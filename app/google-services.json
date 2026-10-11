@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "527660795071",
+    "project_id": "intrack-finance",
+    "storage_bucket": "intrack-finance.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:527660795071:android:3910fd956fc59dde8cb20a",
+        "android_client_info": {
+          "package_name": "com.example.intrack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCThMtVF0eLoB6vSSsJjU0UQs2lO4Oypf4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
