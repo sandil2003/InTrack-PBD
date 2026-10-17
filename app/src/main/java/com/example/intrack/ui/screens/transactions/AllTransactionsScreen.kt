@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.CardDefaults
@@ -74,6 +75,8 @@ import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.theme.ExpenseNegative
 import com.example.intrack.ui.theme.IncomePositive
 import com.example.intrack.ui.theme.PrimaryGreen
+import com.example.intrack.ui.theme.TangerineShade2
+import com.example.intrack.ui.theme.TangerineShade3
 import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.util.DateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -120,7 +123,8 @@ data class UnifiedTransaction(
     val isIncome: Boolean,
     val timestampMillis: Long,
     val categoryOrChannel: String,
-    val accountOrClient: String
+    val accountOrClient: String,
+    val paymentAccount: String? = null
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,6 +138,7 @@ fun AllTransactionsScreen(
     val recentMonths = remember { DateUtils.getRecentMonthsList(count = 6) }
     var selectedMonth by remember { mutableStateOf(recentMonths.firstOrNull() ?: DateUtils.getCurrentMonthName()) }
     var selectedTypeFilter by remember { mutableStateOf("ALL") } // "ALL", "EXPENSES", "INCOME"
+    var selectedAccountFilter by remember { mutableStateOf("ALL") } // "ALL", "CARD_PRIMARY", "ACCOUNT_SECONDARY", "CASH"
 
     Scaffold(
         topBar = {
@@ -232,19 +237,35 @@ fun AllTransactionsScreen(
                                 isIncome = false,
                                 timestampMillis = exp.dateSpentMillis,
                                 categoryOrChannel = exp.category,
-                                accountOrClient = exp.paymentAccount.replace("_", " ")
+                                accountOrClient = when (exp.paymentAccount.uppercase()) {
+                                    "CARD_PRIMARY" -> "Card Primary"
+                                    "ACCOUNT_SECONDARY" -> "Secondary Account"
+                                    "CASH" -> "Cash"
+                                    else -> exp.paymentAccount.replace("_", " ")
+                                },
+                                paymentAccount = exp.paymentAccount.uppercase()
                             )
                         )
                     }
                     list.sortedByDescending { it.timestampMillis }
                 }
 
-                // Filter by type
-                val filteredTransactions = remember(allUnified, selectedTypeFilter) {
-                    when (selectedTypeFilter) {
-                        "EXPENSES" -> allUnified.filter { !it.isIncome }
-                        "INCOME" -> allUnified.filter { it.isIncome }
-                        else -> allUnified
+                // Filter by type and account
+                val filteredTransactions = remember(allUnified, selectedTypeFilter, selectedAccountFilter) {
+                    allUnified.filter { tx ->
+                        val matchesType = when (selectedTypeFilter) {
+                            "EXPENSES" -> !tx.isIncome
+                            "INCOME" -> tx.isIncome
+                            else -> true
+                        }
+                        val matchesAccount = when (selectedAccountFilter) {
+                            "ALL" -> true
+                            "CASH" -> !tx.isIncome && tx.paymentAccount == "CASH"
+                            "CARD_PRIMARY" -> !tx.isIncome && tx.paymentAccount == "CARD_PRIMARY"
+                            "ACCOUNT_SECONDARY" -> !tx.isIncome && tx.paymentAccount == "ACCOUNT_SECONDARY"
+                            else -> true
+                        }
+                        matchesType && matchesAccount
                     }
                 }
 
@@ -268,7 +289,10 @@ fun AllTransactionsScreen(
                                 val isSelected = selectedMonth == monthName
                                 FilterChip(
                                     selected = isSelected,
-                                    onClick = { selectedMonth = monthName },
+                                    onClick = {
+                                        selectedMonth = monthName
+                                        selectedAccountFilter = "ALL"
+                                    },
                                     label = {
                                         Text(
                                             text = monthName,
@@ -461,6 +485,52 @@ fun AllTransactionsScreen(
                                 }
                             }
 
+                            // Payment Account Filter Pills (Card, Secondary, Cash)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    "ALL" to "All Sources",
+                                    "CARD_PRIMARY" to "💳 Card Primary",
+                                    "ACCOUNT_SECONDARY" to "🏦 Secondary",
+                                    "CASH" to "💵 Cash"
+                                ).forEach { (key, label) ->
+                                    val isSelected = selectedAccountFilter == key
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = {
+                                            selectedAccountFilter = key
+                                            if (key != "ALL" && selectedTypeFilter == "INCOME") {
+                                                selectedTypeFilter = "EXPENSES"
+                                            }
+                                        },
+                                        label = {
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            containerColor = MaterialTheme.colorScheme.surface,
+                                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        border = FilterChipDefaults.filterChipBorder(
+                                            enabled = true,
+                                            selected = isSelected,
+                                            borderColor = MaterialTheme.colorScheme.outlineVariant,
+                                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
+                            }
+
                             // 4. Transaction Items List (tight 10dp under filters)
                             if (filteredTransactions.isEmpty()) {
                                 EmptyStateView(
@@ -506,11 +576,13 @@ fun UnifiedTransactionRow(transaction: UnifiedTransaction) {
     val icon: ImageVector = if (transaction.isIncome) {
         Icons.AutoMirrored.Filled.TrendingUp
     } else {
-        when (transaction.categoryOrChannel.uppercase()) {
-            "TRANSPORT" -> Icons.Default.DirectionsCar
-            "DINING_OUT" -> Icons.Default.LocalCafe
-            "RENT" -> Icons.Default.Home
-            "MISC" -> Icons.Default.ShoppingCart
+        when {
+            transaction.title.contains("ATM", ignoreCase = true) -> Icons.Default.Payments
+            transaction.categoryOrChannel.uppercase() == "TRANSPORT" -> Icons.Default.DirectionsCar
+            transaction.categoryOrChannel.uppercase() == "DINING_OUT" -> Icons.Default.LocalCafe
+            transaction.categoryOrChannel.uppercase() == "RENT" -> Icons.Default.Home
+            transaction.categoryOrChannel.uppercase() == "MISC" && transaction.paymentAccount == "CASH" -> Icons.Default.Payments
+            transaction.categoryOrChannel.uppercase() == "MISC" -> Icons.Default.ShoppingCart
             else -> Icons.Default.Receipt
         }
     }
@@ -565,11 +637,26 @@ fun UnifiedTransactionRow(transaction: UnifiedTransaction) {
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = transaction.accountOrClient,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    if (transaction.paymentAccount == "CASH") {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(TangerineShade3.copy(alpha = 0.25f))
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = "Cash",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                color = TangerineShade2
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = transaction.accountOrClient,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Text(
                         text = "•",
                         style = MaterialTheme.typography.labelSmall,

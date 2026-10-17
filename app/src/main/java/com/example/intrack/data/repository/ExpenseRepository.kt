@@ -72,6 +72,16 @@ class ExpenseRepositoryImpl(
                 dateSpentMillis = DateUtils.getMillisForMonthOffset(0, 28)
             ),
             ExpenseEntity(
+                id = "exp_curr_atm",
+                userId = userId,
+                title = "ATM Cash Withdrawal",
+                amountLkr = 15000.0,
+                category = "MISC",
+                paymentAccount = "CASH",
+                commitmentType = "DISCRETIONARY",
+                dateSpentMillis = DateUtils.getMillisForMonthOffset(0, 25)
+            ),
+            ExpenseEntity(
                 id = "exp_curr_2",
                 userId = userId,
                 title = "UberEats Dinner",
@@ -100,6 +110,16 @@ class ExpenseRepositoryImpl(
                 paymentAccount = "CARD_PRIMARY",
                 commitmentType = "COMMITTED",
                 dateSpentMillis = DateUtils.getMillisForMonthOffset(0, 15)
+            ),
+            ExpenseEntity(
+                id = "exp_curr_cafe",
+                userId = userId,
+                title = "Café Java Ceylon (Cash)",
+                amountLkr = 2400.0,
+                category = "DINING_OUT",
+                paymentAccount = "CASH",
+                commitmentType = "DISCRETIONARY",
+                dateSpentMillis = DateUtils.getMillisForMonthOffset(0, 12)
             ),
             ExpenseEntity(
                 id = "exp_curr_5",
@@ -134,6 +154,16 @@ class ExpenseRepositoryImpl(
                 dateSpentMillis = DateUtils.getMillisForMonthOffset(1, 28)
             ),
             ExpenseEntity(
+                id = "exp_prev_atm",
+                userId = userId,
+                title = "Commercial Bank ATM Cash",
+                amountLkr = 20000.0,
+                category = "MISC",
+                paymentAccount = "CASH",
+                commitmentType = "DISCRETIONARY",
+                dateSpentMillis = DateUtils.getMillisForMonthOffset(1, 26)
+            ),
+            ExpenseEntity(
                 id = "exp_prev_2",
                 userId = userId,
                 title = "Coffee & Casual Dining",
@@ -152,6 +182,16 @@ class ExpenseRepositoryImpl(
                 paymentAccount = "CARD_PRIMARY",
                 commitmentType = "DISCRETIONARY",
                 dateSpentMillis = DateUtils.getMillisForMonthOffset(1, 20)
+            ),
+            ExpenseEntity(
+                id = "exp_prev_cafe_cash",
+                userId = userId,
+                title = "Corner Bakery & Espresso (Cash)",
+                amountLkr = 4200.0,
+                category = "DINING_OUT",
+                paymentAccount = "CASH",
+                commitmentType = "DISCRETIONARY",
+                dateSpentMillis = DateUtils.getMillisForMonthOffset(1, 18)
             ),
             ExpenseEntity(
                 id = "exp_prev_4",
@@ -196,6 +236,16 @@ class ExpenseRepositoryImpl(
                 dateSpentMillis = DateUtils.getMillisForMonthOffset(2, 28)
             ),
             ExpenseEntity(
+                id = "exp_hist_atm",
+                userId = userId,
+                title = "ATM Cash Withdrawal",
+                amountLkr = 15000.0,
+                category = "MISC",
+                paymentAccount = "CASH",
+                commitmentType = "DISCRETIONARY",
+                dateSpentMillis = DateUtils.getMillisForMonthOffset(2, 25)
+            ),
+            ExpenseEntity(
                 id = "exp_hist_2",
                 userId = userId,
                 title = "UberEats & Takeout",
@@ -214,6 +264,16 @@ class ExpenseRepositoryImpl(
                 paymentAccount = "CARD_PRIMARY",
                 commitmentType = "COMMITTED",
                 dateSpentMillis = DateUtils.getMillisForMonthOffset(2, 14)
+            ),
+            ExpenseEntity(
+                id = "exp_hist_cafe",
+                userId = userId,
+                title = "Artisan Café Cash Payment",
+                amountLkr = 3800.0,
+                category = "DINING_OUT",
+                paymentAccount = "CASH",
+                commitmentType = "DISCRETIONARY",
+                dateSpentMillis = DateUtils.getMillisForMonthOffset(2, 12)
             ),
             ExpenseEntity(
                 id = "exp_hist_4",

@@ -4,6 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import com.example.intrack.ui.theme.EssentialsColor
 import com.example.intrack.ui.theme.LifestyleColor
+import com.example.intrack.ui.theme.TangerineShade1
+import com.example.intrack.ui.theme.TangerineShade2
+import com.example.intrack.ui.theme.TangerineShade3
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +33,7 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.rounded.Add
@@ -92,6 +96,7 @@ fun ExpenseAnalyticsScreen(
     var selectedMonth by remember { mutableStateOf(recentMonths.firstOrNull() ?: DateUtils.getCurrentMonthName()) }
     var selectedTypeFilter by remember { mutableStateOf("ALL") }
     var selectedCategoryFilter by remember { mutableStateOf("ALL") }
+    var selectedAccountFilter by remember { mutableStateOf("ALL") }
     var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -176,6 +181,10 @@ fun ExpenseAnalyticsScreen(
                 val committed = monthExpenses.filter { it.commitmentType == "COMMITTED" }.sumOf { it.amountLkr }
                 val discretionary = monthExpenses.filter { it.commitmentType == "DISCRETIONARY" }.sumOf { it.amountLkr }
 
+                val cardPrimaryTotal = monthExpenses.filter { it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) }.sumOf { it.amountLkr }
+                val secondaryAccountTotal = monthExpenses.filter { it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true) }.sumOf { it.amountLkr }
+                val cashTotal = monthExpenses.filter { it.paymentAccount.equals("CASH", ignoreCase = true) }.sumOf { it.amountLkr }
+
                 val filteredExpenses = monthExpenses.filter { expense ->
                     val matchesType = when (selectedTypeFilter) {
                         "COMMITTED" -> expense.commitmentType == "COMMITTED"
@@ -186,7 +195,11 @@ fun ExpenseAnalyticsScreen(
                         "ALL" -> true
                         else -> expense.category.equals(selectedCategoryFilter, ignoreCase = true)
                     }
-                    matchesType && matchesCategory
+                    val matchesAccount = when (selectedAccountFilter) {
+                        "ALL" -> true
+                        else -> expense.paymentAccount.equals(selectedAccountFilter, ignoreCase = true)
+                    }
+                    matchesType && matchesCategory && matchesAccount
                 }.sortedByDescending { it.dateSpentMillis }
 
                 LazyColumn(
@@ -213,6 +226,7 @@ fun ExpenseAnalyticsScreen(
                                         selectedMonth = monthName
                                         selectedTypeFilter = "ALL"
                                         selectedCategoryFilter = "ALL"
+                                        selectedAccountFilter = "ALL"
                                     },
                                     label = {
                                         Text(
@@ -244,6 +258,16 @@ fun ExpenseAnalyticsScreen(
                             totalExpenseLkr = totalExpense,
                             committedLkr = committed,
                             discretionaryLkr = discretionary
+                        )
+                    }
+
+                    item {
+                        PaymentSourceDistributionCard(
+                            monthLabel = selectedMonth,
+                            totalExpenseLkr = totalExpense,
+                            cardPrimaryTotal = cardPrimaryTotal,
+                            secondaryAccountTotal = secondaryAccountTotal,
+                            cashTotal = cashTotal
                         )
                     }
 
@@ -303,7 +327,48 @@ fun ExpenseAnalyticsScreen(
                                 }
                             }
 
-                            // 2. Inline Category Filter Pills
+                            // 2. Payment Account & Cash Filter Pills
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    "ALL" to "All Accounts",
+                                    "CARD_PRIMARY" to "💳 Card Primary",
+                                    "ACCOUNT_SECONDARY" to "🏦 Secondary",
+                                    "CASH" to "💵 Cash"
+                                ).forEach { (key, label) ->
+                                    val isSelected = selectedAccountFilter == key
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = { selectedAccountFilter = key },
+                                        label = {
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            containerColor = MaterialTheme.colorScheme.surface,
+                                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        border = FilterChipDefaults.filterChipBorder(
+                                            enabled = true,
+                                            selected = isSelected,
+                                            borderColor = MaterialTheme.colorScheme.outlineVariant,
+                                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
+                            }
+
+                            // 3. Inline Category Filter Pills
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -511,12 +576,205 @@ fun TotalExpenseCard(
 }
 
 @Composable
+fun PaymentSourceDistributionCard(
+    monthLabel: String,
+    totalExpenseLkr: Double,
+    cardPrimaryTotal: Double,
+    secondaryAccountTotal: Double,
+    cashTotal: Double
+) {
+    val total = if (totalExpenseLkr > 0) totalExpenseLkr else 1.0
+    val cardRatio = (cardPrimaryTotal / total).toFloat().coerceIn(0f, 1f)
+    val secondaryRatio = (secondaryAccountTotal / total).toFloat().coerceIn(0f, 1f)
+    val cashRatio = (cashTotal / total).toFloat().coerceIn(0f, 1f)
+
+    val cardPct = if (totalExpenseLkr > 0) ((cardPrimaryTotal / total) * 100).toInt() else 0
+    val secondaryPct = if (totalExpenseLkr > 0) ((secondaryAccountTotal / total) * 100).toInt() else 0
+    val cashPct = if (totalExpenseLkr > 0) ((cashTotal / total) * 100).toInt() else 0
+
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "PAYMENT SOURCES & CASH TRACKING",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.6.sp
+                )
+                if (cashTotal > 0) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(TangerineShade3.copy(alpha = 0.25f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "Cash Monitored",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                            color = TangerineShade2
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Multi-segment horizontal distribution bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                if (cardRatio > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .weight(cardRatio.coerceAtLeast(0.01f))
+                            .fillMaxSize()
+                            .background(TangerineShade2)
+                    )
+                }
+                if (secondaryRatio > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .weight(secondaryRatio.coerceAtLeast(0.01f))
+                            .fillMaxSize()
+                            .background(TangerineShade1)
+                    )
+                }
+                if (cashRatio > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .weight(cashRatio.coerceAtLeast(0.01f))
+                            .fillMaxSize()
+                            .background(TangerineShade3)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Three column stats: Card Primary, Secondary Account, Cash
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(TangerineShade2)
+                        )
+                        Text(
+                            text = "Card Primary",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(cardPrimaryTotal),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "$cardPct% of outflow",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(TangerineShade1)
+                        )
+                        Text(
+                            text = "Secondary",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(secondaryAccountTotal),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "$secondaryPct% of outflow",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(TangerineShade3)
+                        )
+                        Text(
+                            text = "Cash (ATM)",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(cashTotal),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "$cashPct% of outflow",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ExpenseDetailRow(expense: ExpenseEntity) {
-    val categoryIcon: ImageVector = when (expense.category.uppercase()) {
-        "TRANSPORT" -> Icons.Default.DirectionsCar
-        "DINING_OUT" -> Icons.Default.LocalCafe
-        "RENT" -> Icons.Default.Home
-        "MISC" -> Icons.Default.ShoppingCart
+    val categoryIcon: ImageVector = when {
+        expense.title.contains("ATM", ignoreCase = true) -> Icons.Default.Payments
+        expense.category.uppercase() == "TRANSPORT" -> Icons.Default.DirectionsCar
+        expense.category.uppercase() == "DINING_OUT" -> Icons.Default.LocalCafe
+        expense.category.uppercase() == "RENT" -> Icons.Default.Home
+        expense.category.uppercase() == "MISC" && expense.paymentAccount.uppercase() == "CASH" -> Icons.Default.Payments
+        expense.category.uppercase() == "MISC" -> Icons.Default.ShoppingCart
         else -> Icons.Default.Receipt
     }
 
@@ -532,8 +790,8 @@ fun ExpenseDetailRow(expense: ExpenseEntity) {
             "Secondary Account"
         )
         "CASH" -> Triple(
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant,
+            TangerineShade3.copy(alpha = 0.25f),
+            TangerineShade2,
             "Cash"
         )
         else -> Triple(
