@@ -185,6 +185,10 @@ fun ExpenseAnalyticsScreen(
                 val secondaryAccountTotal = monthExpenses.filter { it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true) }.sumOf { it.amountLkr }
                 val cashTotal = monthExpenses.filter { it.paymentAccount.equals("CASH", ignoreCase = true) }.sumOf { it.amountLkr }
 
+                val categoryBreakdownItems = remember(monthExpenses) {
+                    calculateCategoryBreakdown(monthExpenses)
+                }
+
                 val filteredExpenses = monthExpenses.filter { expense ->
                     val matchesType = when (selectedTypeFilter) {
                         "COMMITTED" -> expense.commitmentType == "COMMITTED"
@@ -268,6 +272,17 @@ fun ExpenseAnalyticsScreen(
                             cardPrimaryTotal = cardPrimaryTotal,
                             secondaryAccountTotal = secondaryAccountTotal,
                             cashTotal = cashTotal
+                        )
+                    }
+
+                    item {
+                        CategoryBreakdownCard(
+                            items = categoryBreakdownItems,
+                            totalExpenseLkr = totalExpense,
+                            selectedCategory = selectedCategoryFilter,
+                            onSelectCategory = { catKey ->
+                                selectedCategoryFilter = if (selectedCategoryFilter.equals(catKey, ignoreCase = true)) "ALL" else catKey
+                            }
                         )
                     }
 
