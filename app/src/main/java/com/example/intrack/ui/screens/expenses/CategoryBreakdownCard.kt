@@ -1,5 +1,6 @@
 package com.example.intrack.ui.screens.expenses
 
+import java.util.Locale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,7 +47,8 @@ data class CategorySpendingItem(
     val amountLkr: Double,
     val percentage: Float,
     val color: Color,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val transactionCount: Int = 1
 )
 
 fun calculateCategoryBreakdown(expenses: List<ExpenseEntity>): List<CategorySpendingItem> {
@@ -62,13 +64,17 @@ fun calculateCategoryBreakdown(expenses: List<ExpenseEntity>): List<CategorySpen
         val pct = ((catTotal / total) * 100).toFloat()
 
         val (displayName, color, icon) = when (catKey) {
-            "DINING_OUT" -> Triple("Dining & Coffee", Color(0xFFFF6422), Icons.Default.LocalCafe)
-            "RENT" -> Triple("Housing (Rent)", Color(0xFF6366F1), Icons.Default.Home)
-            "TRANSPORT" -> Triple("Transport & Rides", Color(0xFF0EA5E9), Icons.Default.DirectionsCar)
-            "UTILITIES" -> Triple("Utilities & Bills", Color(0xFF10B981), Icons.Default.Receipt)
+            "MISC" -> Triple("Groceries", Color(0xFFFF5C38), Icons.Default.ShoppingCart)
+            "DINING_OUT" -> Triple("Bistro & Dining", Color(0xFFFFB299), Icons.Default.LocalCafe)
+            "TRANSPORT" -> Triple("Commute & Transport", Color(0xFF2C3437), Icons.Default.DirectionsCar)
+            "UTILITIES" -> Triple("Utilities & Others", Color(0xFF585F6B), Icons.Default.Receipt)
+            "RENT" -> Triple("Housing & Rent", Color(0xFF475569), Icons.Default.Home)
             "SUBSCRIPTION" -> Triple("Subscriptions", Color(0xFF8B5CF6), Icons.Default.Receipt)
-            "MISC" -> Triple("Groceries & Misc", Color(0xFFF59E0B), Icons.Default.ShoppingCart)
-            else -> Triple(catKey.replace("_", " "), Color(0xFF64748B), Icons.Default.Receipt)
+            else -> Triple(
+                catKey.replace("_", " ").lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
+                Color(0xFF64748B),
+                Icons.Default.Receipt
+            )
         }
 
         CategorySpendingItem(
@@ -77,7 +83,8 @@ fun calculateCategoryBreakdown(expenses: List<ExpenseEntity>): List<CategorySpen
             amountLkr = catTotal,
             percentage = pct,
             color = color,
-            icon = icon
+            icon = icon,
+            transactionCount = list.size
         )
     }.sortedByDescending { it.amountLkr }
 }

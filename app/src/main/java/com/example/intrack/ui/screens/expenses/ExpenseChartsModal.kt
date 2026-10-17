@@ -1,10 +1,16 @@
 package com.example.intrack.ui.screens.expenses
 
+import java.util.Locale
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,6 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,26 +40,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.intrack.ui.theme.EssentialsColor
-import com.example.intrack.ui.theme.LifestyleColor
-import com.example.intrack.ui.theme.TangerineShade1
-import com.example.intrack.ui.theme.TangerineShade2
-import com.example.intrack.ui.theme.TangerineShade3
+import androidx.compose.ui.unit.sp
 import com.example.intrack.util.CurrencyFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+   Figma-accurate Expense Breakdown Modal Card
+   Displays Donut Chart & Hero Metric Card and Detailed Category Distribution Cards.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExpenseChartsModal(
     monthLabel: String,
     totalExpenseLkr: Double,
     committedLkr: Double,
     discretionaryLkr: Double,
-    cardPrimaryTotal: Double,
-    secondaryAccountTotal: Double,
-    cashTotal: Double,
+    cardPrimaryTotal: Double = 0.0,
+    secondaryAccountTotal: Double = 0.0,
+    cashTotal: Double = 0.0,
     categoryItems: List<CategorySpendingItem>,
     onDismiss: () -> Unit,
     onSelectCategory: ((String) -> Unit)? = null,
@@ -59,183 +73,230 @@ fun ExpenseChartsModal(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val total = if (totalExpenseLkr > 0) totalExpenseLkr else 1.0
-    val committedRatio = if (totalExpenseLkr > 0) (committedLkr / total).toFloat().coerceIn(0.01f, 0.99f) else 0.5f
-    val discretionaryRatio = if (totalExpenseLkr > 0) (discretionaryLkr / total).toFloat().coerceIn(0.01f, 0.99f) else 0.5f
-    val committedPct = if (totalExpenseLkr > 0) ((committedLkr / total) * 100).toInt() else 0
-    val discretionaryPct = if (totalExpenseLkr > 0) (100 - committedPct) else 0
-
-    val cardRatio = (cardPrimaryTotal / total).toFloat().coerceIn(0f, 1f)
-    val secondaryRatio = (secondaryAccountTotal / total).toFloat().coerceIn(0f, 1f)
-    val cashRatio = (cashTotal / total).toFloat().coerceIn(0f, 1f)
-    val cardPct = if (totalExpenseLkr > 0) ((cardPrimaryTotal / total) * 100).toInt() else 0
-    val secondaryPct = if (totalExpenseLkr > 0) ((secondaryAccountTotal / total) * 100).toInt() else 0
-    val cashPct = if (totalExpenseLkr > 0) ((cashTotal / total) * 100).toInt() else 0
+    // Palette synchronized with Figma InTrack theme
+    val figmaScreenBg = Color(0xFFFBF9F6)
+    val figmaBorder = Color(0x4DE3BEB6)
+    val figmaTerracotta = Color(0xFFB52705)
+    val figmaTrackBg = Color(0xFFE4E2DE)
+    val figmaDarkText = Color(0xFF1B1C1A)
+    val figmaMutedBrown = Color(0xFF6B5B53)
+    val figmaMutedSlate = Color(0xFF585F6B)
+    val figmaDonutBase = Color(0xFFEFEEEA)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = figmaScreenBg,
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp)
                 .navigationBarsPadding()
                 .padding(bottom = 24.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header (Minimal, no highlighted text, standard typography)
+            // Header: "Expense Breakdown" + Close Button (Figma node 2002:243)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = "Charts",
-                        style = MaterialTheme.typography.titleLarge,
+                Text(
+                    text = "Expense Breakdown",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = monthLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = figmaDarkText
+                )
 
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = figmaDarkText
                     )
                 }
             }
 
-            // Total Outflow Metric
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Total Outflow",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = CurrencyFormatter.formatLkr(totalExpenseLkr),
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // Section 1: Categories
-            if (categoryItems.isNotEmpty()) {
+            // Section 1: Donut Chart & Hero Metric Card (Figma node 2002:256)
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, figmaBorder),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Categories",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    // Multi-color proportional continuous bar
+                    // Upper Row: "OUTFLOW & MIX" + Budget Health Indicator Pill (Figma node 2002:258)
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween, // Keeps layout rule for other elements
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        categoryItems.forEach { item ->
-                            val ratio = (item.percentage / 100f).coerceAtLeast(0.01f)
-                            Box(
-                                modifier = Modifier
-                                    .weight(ratio)
-                                    .fillMaxSize()
-                                    .background(item.color)
+                        Text(
+                            text = "OUTFLOW & MIX",
+                            modifier = Modifier.weight(1f), // Forces the text box to fill the Row's width
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 0.55.sp,
+                                textAlign = TextAlign.Center // Centers the text characters inside that filled width
+                            ),
+                            color = figmaMutedBrown
+                        )
+                    }
+
+                    // SVG Donut Chart with Centered Hero Stat
+                    Box(
+                        modifier = Modifier.size(210.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val strokeWidth = 22.dp.toPx()
+                            val diameter = size.minDimension - strokeWidth
+                            val topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
+                            val arcSize = Size(diameter, diameter)
+
+                            // Background circular track
+                            drawArc(
+                                color = figmaDonutBase,
+                                startAngle = 0f,
+                                sweepAngle = 360f,
+                                useCenter = false,
+                                topLeft = topLeft,
+                                size = arcSize,
+                                style = Stroke(width = strokeWidth)
+                            )
+
+                            // Multi-segment category arcs
+                            if (totalExpenseLkr > 0 && categoryItems.isNotEmpty()) {
+                                var startAngle = -90f
+                                val totalPercentages = categoryItems.sumOf { it.percentage.toDouble() }
+                                    .toFloat()
+                                    .coerceAtLeast(1f)
+                                val gapAngle = if (categoryItems.size > 1) 2.5f else 0f
+                                val totalGaps = categoryItems.size * gapAngle
+                                val availableAngle = 360f - totalGaps
+
+                                categoryItems.forEach { item ->
+                                    val sweep = ((item.percentage / totalPercentages) * availableAngle)
+                                        .coerceAtLeast(1.5f)
+                                    drawArc(
+                                        color = item.color,
+                                        startAngle = startAngle,
+                                        sweepAngle = sweep,
+                                        useCenter = false,
+                                        topLeft = topLeft,
+                                        size = arcSize,
+                                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                                    )
+                                    startAngle += sweep + gapAngle
+                                }
+                            }
+                        }
+
+                        // Centered Hero Metric
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "TOTAL SPENT",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.5.sp
+                                ),
+                                color = figmaMutedBrown
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "LKR",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = figmaTerracotta,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+                                Text(
+                                    text = CurrencyFormatter.formatLkr(totalExpenseLkr).replace("LKR ", ""),
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = (-0.5).sp
+                                    ),
+                                    color = figmaDarkText
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = monthLabel,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = figmaMutedSlate
                             )
                         }
                     }
 
-                    // Ranked Category Rows
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        categoryItems.forEach { item ->
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        onSelectCategory?.invoke(item.category)
-                                        onDismiss()
-                                    }
-                                    .padding(vertical = 4.dp)
-                            ) {
+                    // Interactive Compact Legend Pills
+                    if (categoryItems.isNotEmpty()) {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            categoryItems.forEach { item ->
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    modifier = Modifier
+                                        .padding(horizontal = 6.dp)
+                                        .clickable {
+                                            onSelectCategory?.invoke(item.category)
+                                            onDismiss()
+                                        },
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
-                                    // Left: Icon + Name
-                                    Row(
-                                        modifier = Modifier.weight(1f),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .clip(CircleShape)
-                                                .background(item.color.copy(alpha = 0.15f)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = item.icon,
-                                                contentDescription = null,
-                                                tint = item.color,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                        }
-
-                                        Text(
-                                            text = item.displayName,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    // Right: Amount + Percentage (plain, unhighlighted)
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Text(
-                                            text = CurrencyFormatter.formatLkr(item.amountLkr),
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "${item.percentage.toInt()}%",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(item.color)
+                                    )
+                                    Text(
+                                        text = item.displayName.split(" ", "&").firstOrNull() ?: item.displayName,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                        color = figmaMutedBrown
+                                    )
+                                    Text(
+                                        text = "${item.percentage.toInt()}%",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = figmaDarkText
+                                    )
                                 }
                             }
                         }
@@ -243,244 +304,146 @@ fun ExpenseChartsModal(
                 }
             }
 
-            // Section 2: Spending Nature (Essentials & Lifestyle)
+            // Section 2: Category Distribution Detailed Cards
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = "Nature",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                // 2-tone bar
+                // Section Header Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (totalExpenseLkr > 0) {
-                        Box(
-                            modifier = Modifier
-                                .weight(committedRatio)
-                                .fillMaxSize()
-                                .background(EssentialsColor)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .weight(discretionaryRatio)
-                                .fillMaxSize()
-                                .background(LifestyleColor)
-                        )
-                    }
+                    Text(
+                        text = "CATEGORY DISTRIBUTION",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.55.sp
+                        ),
+                        color = figmaMutedBrown
+                    )
+
+                    Text(
+                        text = "${categoryItems.size} Categories",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = figmaMutedSlate
+                    )
                 }
 
-                // 2 responsive equal columns
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Essentials
-                    Column(modifier = Modifier.weight(1f)) {
+                // Cards for each category
+                categoryItems.forEach { item ->
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, figmaBorder),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onSelectCategory?.invoke(item.category)
+                                onDismiss()
+                            }
+                    ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(EssentialsColor))
-                            Text(
-                                text = "Essentials",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = CurrencyFormatter.formatLkr(committedLkr),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = if (committedLkr > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "$committedPct%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // Lifestyle
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(LifestyleColor))
-                            Text(
-                                text = "Lifestyle",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = CurrencyFormatter.formatLkr(discretionaryLkr),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = if (discretionaryLkr > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "$discretionaryPct%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // Section 3: Accounts
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = "Accounts",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                // 3-tone bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    if (cardRatio > 0f) {
-                        Box(
                             modifier = Modifier
-                                .weight(cardRatio.coerceAtLeast(0.01f))
-                                .fillMaxSize()
-                                .background(TangerineShade2)
-                        )
-                    }
-                    if (secondaryRatio > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .weight(secondaryRatio.coerceAtLeast(0.01f))
-                                .fillMaxSize()
-                                .background(TangerineShade1)
-                        )
-                    }
-                    if (cashRatio > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .weight(cashRatio.coerceAtLeast(0.01f))
-                                .fillMaxSize()
-                                .background(TangerineShade3)
-                        )
-                    }
-                }
-
-                // 3 responsive equal columns
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Card Primary
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(TangerineShade2))
-                            Text(
-                                text = "Card",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = CurrencyFormatter.formatLkr(cardPrimaryTotal),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = if (cardPrimaryTotal > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "$cardPct%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                            // Left: Category icon circle + Title / Percentage badge + Subtitle
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(item.color.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = item.icon,
+                                        contentDescription = item.displayName,
+                                        tint = item.color,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
 
-                    // Secondary
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(TangerineShade1))
-                            Text(
-                                text = "Secondary",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = CurrencyFormatter.formatLkr(secondaryAccountTotal),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = if (secondaryAccountTotal > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "$secondaryPct%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = item.displayName,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = figmaDarkText,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
 
-                    // Cash
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(TangerineShade3))
-                            Text(
-                                text = "Cash",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                                    // Subtitle: Transaction count & nature
+                                    Text(
+                                        text = "${item.transactionCount} transactions",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                        color = figmaMutedSlate
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(10.dp))
+
+                            // Right: Amount + Mini proportional progress bar
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "LKR ${CurrencyFormatter.formatLkr(item.amountLkr).replace("LKR ", "")}",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = (-0.3).sp
+                                    ),
+                                    color = figmaDarkText
+                                )
+
+                                // 64dp mini progress bar matching Figma node 2002:330
+                                Box(
+                                    modifier = Modifier
+                                        .width(64.dp)
+                                        .height(4.dp)
+                                        .clip(RoundedCornerShape(9999.dp))
+                                        .background(figmaTrackBg)
+                                ) {
+                                    val barRatio = (item.percentage / 100f).coerceIn(0.04f, 1f)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .fillMaxWidth(barRatio)
+                                            .clip(RoundedCornerShape(9999.dp))
+                                            .background(item.color)
+                                    )
+                                }
+                            }
                         }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = CurrencyFormatter.formatLkr(cashTotal),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = if (cashTotal > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "$cashPct%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
                 }
             }
