@@ -92,10 +92,9 @@ fun ExpenseChartsModal(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .navigationBarsPadding()
-                .padding(bottom = 24.dp)
-                .verticalScroll(rememberScrollState()),
+                .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Header: "Expense Breakdown" + Close Button (Figma node 2002:243)
@@ -425,7 +424,7 @@ fun ExpenseChartsModal(
                                     color = figmaDarkText
                                 )
 
-                                // 64dp mini progress bar matching Figma node 2002:330
+                                // 64dp mini progress bar matching
                                 Box(
                                     modifier = Modifier
                                         .width(64.dp)
@@ -447,6 +446,9 @@ fun ExpenseChartsModal(
                     }
                 }
             }
+
+            // Bottom Spacer ensuring the last card is fully visible with comfortable clearance
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }
