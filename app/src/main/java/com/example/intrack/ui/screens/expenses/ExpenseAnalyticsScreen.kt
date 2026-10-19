@@ -234,20 +234,88 @@ fun ExpenseAnalyticsScreen(
 
                     Spacer(modifier = Modifier.width(4.dp))
 
-                    // Button - Profile (Figma: 36x36 circular button)
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .clickable { /* Profile info */ },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PersonOutline,
-                            contentDescription = "Profile",
-                            modifier = Modifier.size(18.dp),
-                            tint = FigmaDarkText
-                        )
+                    // Button - Profile with Dropdown Menu (Settings & LogOut)
+                    Box {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .clickable { showProfileDropdown = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PersonOutline,
+                                contentDescription = "Profile",
+                                modifier = Modifier.size(18.dp),
+                                tint = FigmaDarkText
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showProfileDropdown,
+                            onDismissRequest = { showProfileDropdown = false },
+                            shape = RoundedCornerShape(16.dp),
+                            containerColor = Color.White,
+                            border = BorderStroke(1.dp, FigmaBorder),
+                            shadowElevation = 6.dp
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "Settings",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        color = FigmaDarkText
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Settings,
+                                        contentDescription = "Settings",
+                                        tint = FigmaDarkText,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                onClick = {
+                                    showProfileDropdown = false
+                                    showProfileSheet = true
+                                }
+                            )
+
+                            HorizontalDivider(
+                                thickness = 0.8.dp,
+                                color = FigmaDivider,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "LogOut",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        color = Color(0xFFD32F2F)
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Rounded.ExitToApp,
+                                        contentDescription = "LogOut",
+                                        tint = Color(0xFFD32F2F),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                onClick = {
+                                    showProfileDropdown = false
+                                    try {
+                                        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                                    } catch (_: Exception) {}
+                                    onSignOut()
+                                }
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -386,6 +454,21 @@ fun ExpenseAnalyticsScreen(
                     }
                 }
             }
+        }
+
+        if (showProfileSheet) {
+            ProfileSettingsBottomSheet(
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange,
+                onSignOut = {
+                    showProfileSheet = false
+                    try {
+                        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                    } catch (_: Exception) {}
+                    onSignOut()
+                },
+                onDismiss = { showProfileSheet = false }
+            )
         }
 
         Column(

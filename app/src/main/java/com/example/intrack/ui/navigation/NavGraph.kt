@@ -182,14 +182,28 @@ fun FinFlowNavGraph(
                 val tab = backStackEntry.arguments?.getString("tab") ?: "daily"
                 ExpenseAnalyticsScreen(
                     initialTab = tab,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange,
+                    onSignOut = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 )
             }
 
             composable(Screen.SubscriptionAudit.route) {
                 ExpenseAnalyticsScreen(
                     initialTab = "subscriptions",
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange,
+                    onSignOut = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 )
             }
 
