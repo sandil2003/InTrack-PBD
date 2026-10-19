@@ -87,6 +87,8 @@ import com.example.intrack.ui.components.GoalSquareCard
 import com.example.intrack.ui.components.ProfileSettingsBottomSheet
 import com.example.intrack.ui.components.QuickExpenseBottomSheet
 import com.example.intrack.ui.theme.PrimaryGreen
+import com.example.intrack.ui.theme.TangerineShade2
+import com.example.intrack.ui.theme.TangerineShade3
 import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.ui.theme.AppThemeMode
 import com.example.intrack.util.DateUtils
@@ -599,15 +601,25 @@ fun QuickActionButtons(
 
 @Composable
 fun RecentExpenseRow(expense: ExpenseEntity) {
-    val categoryIcon = when (expense.category.uppercase()) {
-        "DINING_OUT" -> Icons.Default.Restaurant
-        "TRANSPORT" -> Icons.Default.DirectionsCar
-        "RENT" -> Icons.Default.Home
-        "MISC" -> Icons.Default.ShoppingCart
+    val categoryIcon = when {
+        expense.title.contains("ATM", ignoreCase = true) -> Icons.Default.Payments
+        expense.category.uppercase() == "DINING_OUT" -> Icons.Default.Restaurant
+        expense.category.uppercase() == "TRANSPORT" -> Icons.Default.DirectionsCar
+        expense.category.uppercase() == "RENT" -> Icons.Default.Home
+        expense.category.uppercase() == "MISC" && expense.paymentAccount.uppercase() == "CASH" -> Icons.Default.Payments
+        expense.category.uppercase() == "MISC" -> Icons.Default.ShoppingCart
         else -> Icons.Default.LocalCafe
     }
-    val iconBg = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-    val iconTint = MaterialTheme.colorScheme.primary
+    val iconBg = if (expense.paymentAccount.uppercase() == "CASH") {
+        TangerineShade3.copy(alpha = 0.2f)
+    } else {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+    }
+    val iconTint = if (expense.paymentAccount.uppercase() == "CASH") {
+        TangerineShade2
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
 
     val accountLabel = when (expense.paymentAccount.uppercase()) {
         "CARD_PRIMARY" -> "Card Primary"
@@ -652,11 +664,38 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "$accountLabel • ${DateUtils.formatDate(expense.dateSpentMillis)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (expense.paymentAccount.uppercase() == "CASH") {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(TangerineShade3.copy(alpha = 0.25f))
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = "Cash",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                color = TangerineShade2
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = accountLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = "•",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = DateUtils.formatDate(expense.dateSpentMillis),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 

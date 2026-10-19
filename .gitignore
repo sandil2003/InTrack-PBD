@@ -1,6 +1,7 @@
 # Built artifacts & Gradle caches
 *.iml
 .gradle/
+.kotlin/
 /build/
 **/build/
 /captures/

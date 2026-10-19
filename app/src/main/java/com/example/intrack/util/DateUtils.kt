@@ -10,6 +10,11 @@ object DateUtils {
         return sdf.format(Date(timeMillis))
     }
 
+    fun formatShortDate(timeMillis: Long): String {
+        val sdf = SimpleDateFormat("MMM d", Locale.US)
+        return sdf.format(Date(timeMillis))
+    }
+
     fun formatDateTime(timeMillis: Long): String {
         val sdf = SimpleDateFormat("MMM dd, hh:mm a", Locale.US)
         return sdf.format(Date(timeMillis))

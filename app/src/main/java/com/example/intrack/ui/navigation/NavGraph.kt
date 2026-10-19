@@ -148,7 +148,7 @@ fun FinFlowNavGraph(
                         navigateToRoute(Screen.ExpenseAnalytics.route)
                     },
                     onNavigateToSubscriptions = {
-                        navigateToRoute(Screen.SubscriptionAudit.route)
+                        navigateToRoute(Screen.ExpenseAnalytics.createRoute("subscriptions"))
                     },
                     onNavigateToAllTransactions = {
                         navigateToRoute(Screen.AllTransactions.route)
@@ -169,15 +169,41 @@ fun FinFlowNavGraph(
                 )
             }
 
-            composable(Screen.ExpenseAnalytics.route) {
+            composable(
+                route = Screen.ExpenseAnalytics.navRoute,
+                arguments = listOf(
+                    navArgument("tab") {
+                        type = NavType.StringType
+                        defaultValue = "daily"
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val tab = backStackEntry.arguments?.getString("tab") ?: "daily"
                 ExpenseAnalyticsScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    initialTab = tab,
+                    onNavigateBack = { navController.popBackStack() },
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange,
+                    onSignOut = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 )
             }
 
             composable(Screen.SubscriptionAudit.route) {
-                SubscriptionAuditScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                ExpenseAnalyticsScreen(
+                    initialTab = "subscriptions",
+                    onNavigateBack = { navController.popBackStack() },
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange,
+                    onSignOut = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 )
             }
 
@@ -231,11 +257,6 @@ private fun FinFlowBottomBar(
             icon = Icons.Rounded.Analytics
         ),
         BottomNavItem(
-            route = Screen.SubscriptionAudit.route,
-            label = "Subs",
-            icon = Icons.Rounded.Autorenew
-        ),
-        BottomNavItem(
             route = Screen.GoalTracker.route,
             label = "Goals",
             icon = Icons.Rounded.TrackChanges
@@ -261,7 +282,9 @@ private fun FinFlowBottomBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 navItems.forEach { item ->
-                    val isSelected = currentRoute == item.route || currentRoute.startsWith("${item.route}?")
+                    val isSelected = currentRoute == item.route || 
+                        currentRoute.startsWith("${item.route}?") ||
+                        (item.route == Screen.ExpenseAnalytics.route && (currentRoute == Screen.SubscriptionAudit.route || currentRoute.startsWith("${Screen.SubscriptionAudit.route}?")))
                     val activeBg = MaterialTheme.colorScheme.primaryContainer
                     val activeContentColor = MaterialTheme.colorScheme.primary
                     val inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -292,12 +315,13 @@ private fun FinFlowBottomBar(
                             Text(
                                 text = item.label,
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                    letterSpacing = 0.1.sp
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    letterSpacing = 0.sp
                                 ),
                                 color = if (isSelected) activeContentColor else inactiveContentColor,
-                                maxLines = 1
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
