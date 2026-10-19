@@ -1,16 +1,33 @@
 package com.example.intrack.ui.screens.expenses
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,16 +44,34 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,6 +85,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -59,6 +96,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,27 +106,42 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.intrack.data.model.ExpenseEntity
+import com.example.intrack.data.model.SubscriptionEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
+import com.example.intrack.ui.components.ProfileSettingsBottomSheet
+import com.example.intrack.ui.screens.subscriptions.AddSubscriptionDialog
+import com.example.intrack.ui.screens.subscriptions.SubscriptionViewModel
+import com.example.intrack.ui.theme.AppThemeMode
+import com.example.intrack.ui.theme.BrandTangerine
+import com.example.intrack.ui.theme.BrandTangerineContainer
+import com.example.intrack.ui.theme.BrandTangerineOnContainer
+import com.example.intrack.ui.theme.EssentialsColor
+import com.example.intrack.ui.theme.LifestyleColor
+import com.example.intrack.ui.theme.TangerineShade1
+import com.example.intrack.ui.theme.TangerineShade2
+import com.example.intrack.ui.theme.TangerineShade3
 import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.util.DateUtils
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Design tokens extracted directly from Figma (InTrack Design System)
+// Design tokens unified with InTrack Sunset Tangerine Theme
 private val FigmaCanvasBg = Color(0xFFFAF9F5)
 private val FigmaDarkText = Color(0xFF1B1C1A)
 private val FigmaMutedBrown = Color(0xFF6B5B53)
 private val FigmaMutedSlate = Color(0xFF585F6B)
-private val FigmaTerracotta = Color(0xFFB52705)
-private val FigmaSoftPillActive = Color(0xFFF5DED4)
-private val FigmaActiveText = Color(0xFF5B0D00)
+private val FigmaTerracotta = BrandTangerine
+private val FigmaSoftPillActive = BrandTangerineContainer
+private val FigmaActiveText = BrandTangerineOnContainer
 private val FigmaCardBg = Color(0xFFF5F3EF)
 private val FigmaIconCircleBg = Color(0xFFEFECE5)
 private val FigmaBorder = Color(0x4DE3BEB6)
@@ -96,15 +149,39 @@ private val FigmaBorderActive = Color(0x80E3BEB6)
 private val FigmaDivider = Color(0x33E3BEB6)
 private val FigmaLifestyleBar = Color(0xFFC0C7D5)
 private val FigmaTrackBg = Color(0xFFE4E2DE)
+private val FigmaSwitchBg = Color(0xFFEAE8E4)
+
+enum class ExpenseViewTab {
+    DAILY_TRANSACTIONS,
+    SUBSCRIPTIONS
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseAnalyticsScreen(
+    initialTab: String = "daily",
     onNavigateBack: () -> Unit = {},
+    themeMode: AppThemeMode = AppThemeMode.LIGHT,
+    onThemeModeChange: (AppThemeMode) -> Unit = {},
+    onSignOut: () -> Unit = {},
     viewModel: ExpenseViewModel = viewModel(),
+    subscriptionViewModel: SubscriptionViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
+    val initialViewTab = if (initialTab.equals("subscriptions", ignoreCase = true)) {
+        ExpenseViewTab.SUBSCRIPTIONS
+    } else {
+        ExpenseViewTab.DAILY_TRANSACTIONS
+    }
+    var currentTab by remember(initialTab) { mutableStateOf(initialViewTab) }
+
     val expensesState by viewModel.expensesState.collectAsState()
+    val subscriptionsState by subscriptionViewModel.subscriptionsState.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    val hapticFeedback = LocalHapticFeedback.current
+
     val recentMonths = remember { DateUtils.getRecentMonthsList(count = 6) }
     var selectedMonth by remember { mutableStateOf(recentMonths.firstOrNull() ?: DateUtils.getCurrentMonthName()) }
     var selectedTypeFilter by remember { mutableStateOf("ALL") }
@@ -113,8 +190,16 @@ fun ExpenseAnalyticsScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var showChartsModal by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
+    var showProfileDropdown by remember { mutableStateOf(false) }
+    var showProfileSheet by remember { mutableStateOf(false) }
+
+    // Subscriptions tab state
+    var subscriptionFilter by remember { mutableStateOf("ALL") }
+    var showAddSubscriptionDialog by remember { mutableStateOf(false) }
+    var activeActionSub by remember { mutableStateOf<SubscriptionEntity?>(null) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = FigmaCanvasBg,
         topBar = {
             TopAppBar(
@@ -174,20 +259,24 @@ fun ExpenseAnalyticsScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
-            // Minimal Floating Action Button (Figma: 48x48 circular button, Terracotta red)
             FloatingActionButton(
-                onClick = { showAddDialog = true },
-                containerColor = FigmaTerracotta,
-                contentColor = Color.White,
+                onClick = {
+                    if (currentTab == ExpenseViewTab.DAILY_TRANSACTIONS) {
+                        showAddDialog = true
+                    } else {
+                        showAddSubscriptionDialog = true
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape,
                 modifier = Modifier
                     .padding(bottom = 16.dp, end = 4.dp)
-                    .size(48.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add transaction",
-                    modifier = Modifier.size(18.dp)
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = if (currentTab == ExpenseViewTab.DAILY_TRANSACTIONS) "Add transaction" else "Add subscription",
+                    modifier = Modifier.size(24.dp)
                 )
             }
         },
@@ -199,6 +288,44 @@ fun ExpenseAnalyticsScreen(
                 onSubmit = { newExpense ->
                     viewModel.addExpense(newExpense.copy(userId = "guest_user"))
                     showAddDialog = false
+                }
+            )
+        }
+
+        if (showAddSubscriptionDialog) {
+            AddSubscriptionDialog(
+                onDismiss = { showAddSubscriptionDialog = false },
+                onSubmit = { newSub ->
+                    subscriptionViewModel.addSubscription(newSub)
+                    showAddSubscriptionDialog = false
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Added recurring cost '${newSub.name}' (${CurrencyFormatter.formatLkr(newSub.amountLkr)}/mo)")
+                    }
+                }
+            )
+        }
+
+        if (activeActionSub != null) {
+            val sub = activeActionSub!!
+            FigmaSubscriptionDetailSheet(
+                subscription = sub,
+                onDismiss = { activeActionSub = null },
+                onToggleStatus = { newStatus ->
+                    subscriptionViewModel.updateStatus(sub.id, newStatus)
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            if (newStatus == "CANCELLED") {
+                                "Paused '${sub.name}'. Saved ${CurrencyFormatter.formatLkr(sub.amountLkr)}/month."
+                            } else {
+                                "Resumed '${sub.name}' (${CurrencyFormatter.formatLkr(sub.amountLkr)}/month)."
+                            }
+                        )
+                    }
+                },
+                onMarkAsPaid = {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Marked '${sub.name}' as paid for this month.")
+                    }
                 }
             )
         }
@@ -261,299 +388,547 @@ fun ExpenseAnalyticsScreen(
             }
         }
 
-        when (expensesState) {
-            is UiState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = FigmaTerracotta)
-                }
-            }
-            is UiState.Error -> {
-                val errorMsg = (expensesState as UiState.Error).message
-                EmptyStateView(
-                    title = "Error Loading Expenses",
-                    message = errorMsg,
-                    actionLabel = "Retry",
-                    onActionClick = { viewModel.loadExpenses("guest_user") },
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-            is UiState.Empty -> {
-                EmptyStateView(
-                    title = "No Expense Records Found",
-                    message = "No expense data available to display analytics.",
-                    actionLabel = "Log Expense",
-                    onActionClick = { showAddDialog = true },
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-            is UiState.Success -> {
-                val allExpenses = (expensesState as UiState.Success<List<ExpenseEntity>>).data
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            // Section - Expense views switch (Figma node 2006:55 / 2006:208)
+            FigmaExpenseViewsSwitch(
+                currentTab = currentTab,
+                onTabSelected = { currentTab = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            )
 
-                // Filter expenses by the selected month
-                val monthExpenses = allExpenses.filter {
-                    DateUtils.matchesMonth(it.dateSpentMillis, selectedMonth)
-                }
-
-                val totalExpense = monthExpenses.sumOf { it.amountLkr }
-                val committed = monthExpenses.filter { it.commitmentType == "COMMITTED" }.sumOf { it.amountLkr }
-                val discretionary = monthExpenses.filter { it.commitmentType == "DISCRETIONARY" }.sumOf { it.amountLkr }
-
-                val cardPrimaryTotal = monthExpenses.filter { it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) }.sumOf { it.amountLkr }
-                val secondaryAccountTotal = monthExpenses.filter { it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true) }.sumOf { it.amountLkr }
-                val cashTotal = monthExpenses.filter { it.paymentAccount.equals("CASH", ignoreCase = true) }.sumOf { it.amountLkr }
-
-                val categoryBreakdownItems = remember(monthExpenses) {
-                    calculateCategoryBreakdown(monthExpenses)
-                }
-
-                val filteredExpenses = monthExpenses.filter { expense ->
-                    val matchesType = when (selectedTypeFilter) {
-                        "COMMITTED" -> expense.commitmentType == "COMMITTED"
-                        "DISCRETIONARY" -> expense.commitmentType == "DISCRETIONARY"
-                        else -> true
+            AnimatedContent(
+                targetState = currentTab,
+                transitionSpec = {
+                    if (targetState == ExpenseViewTab.SUBSCRIPTIONS) {
+                        (slideInHorizontally { width -> width / 4 } + fadeIn(animationSpec = tween(220)))
+                            .togetherWith(slideOutHorizontally { width -> -width / 4 } + fadeOut(animationSpec = tween(180)))
+                    } else {
+                        (slideInHorizontally { width -> -width / 4 } + fadeIn(animationSpec = tween(220)))
+                            .togetherWith(slideOutHorizontally { width -> width / 4 } + fadeOut(animationSpec = tween(180)))
                     }
-                    val matchesCategory = when (selectedCategoryFilter) {
-                        "ALL" -> true
-                        else -> expense.category.equals(selectedCategoryFilter, ignoreCase = true)
-                    }
-                    val matchesAccount = when (selectedAccountFilter) {
-                        "ALL" -> true
-                        else -> expense.paymentAccount.equals(selectedAccountFilter, ignoreCase = true)
-                    }
-                    matchesType && matchesCategory && matchesAccount
-                }.sortedByDescending { it.dateSpentMillis }
-
-                // Group transactions by date for Section - Streamlined Grouped Transactions Feed
-                val groupedExpenses = remember(filteredExpenses) {
-                    filteredExpenses.groupBy { formatRelativeDateGroup(it.dateSpentMillis) }
-                }
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    // Item 1: Modern Soft Hero Card (Figma node 2001:69)
-                    item {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        FigmaHeroOutflowCard(
-                            monthLabel = selectedMonth,
-                            totalExpenseLkr = totalExpense,
-                            committedLkr = committed,
-                            discretionaryLkr = discretionary,
-                            onOpenCharts = { showChartsModal = true }
-                        )
-                    }
-
-                    // Item 2: Pill Filter Bar - ACCOUNTS Tier & CATEGORIES Tier (Figma node 2001:96)
-                    item {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            // ACCOUNTS Tier
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                },
+                label = "ExpenseViewsTransition",
+                modifier = Modifier.fillMaxSize()
+            ) { tab ->
+                when (tab) {
+                ExpenseViewTab.DAILY_TRANSACTIONS -> {
+                    when (expensesState) {
+                        is UiState.Loading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "ACCOUNTS",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        letterSpacing = 0.55.sp
-                                    ),
-                                    color = FigmaMutedBrown,
-                                    modifier = Modifier.padding(start = 4.dp)
-                                )
+                                CircularProgressIndicator(color = FigmaTerracotta)
+                            }
+                        }
+                        is UiState.Error -> {
+                            val errorMsg = (expensesState as UiState.Error).message
+                            EmptyStateView(
+                                title = "Error Loading Expenses",
+                                message = errorMsg,
+                                actionLabel = "Retry",
+                                onActionClick = { viewModel.loadExpenses("guest_user") }
+                            )
+                        }
+                        is UiState.Empty -> {
+                            EmptyStateView(
+                                title = "No Expense Records Found",
+                                message = "No expense data available to display analytics.",
+                                actionLabel = "Log Expense",
+                                onActionClick = { showAddDialog = true }
+                            )
+                        }
+                        is UiState.Success -> {
+                            val allExpenses = (expensesState as UiState.Success<List<ExpenseEntity>>).data
 
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    listOf(
-                                        "ALL" to "All Accounts",
-                                        "CASH" to "Cash",
-                                        "CARD_PRIMARY" to "Card",
-                                        "ACCOUNT_SECONDARY" to "Bank Primary"
-                                    ).forEach { (key, label) ->
-                                        val isSelected = selectedAccountFilter == key
-                                        FigmaFilterPill(
-                                            label = label,
-                                            isSelected = isSelected,
-                                            onClick = { selectedAccountFilter = key }
+                            // Filter expenses by the selected month
+                            val monthExpenses = allExpenses.filter {
+                                DateUtils.matchesMonth(it.dateSpentMillis, selectedMonth)
+                            }
+
+                            val totalExpense = monthExpenses.sumOf { it.amountLkr }
+                            val committed = monthExpenses.filter { it.commitmentType == "COMMITTED" }.sumOf { it.amountLkr }
+                            val discretionary = monthExpenses.filter { it.commitmentType == "DISCRETIONARY" }.sumOf { it.amountLkr }
+
+                            val cardPrimaryTotal = monthExpenses.filter { it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) }.sumOf { it.amountLkr }
+                            val secondaryAccountTotal = monthExpenses.filter { it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true) }.sumOf { it.amountLkr }
+                            val cashTotal = monthExpenses.filter { it.paymentAccount.equals("CASH", ignoreCase = true) }.sumOf { it.amountLkr }
+
+                            val categoryBreakdownItems = remember(monthExpenses) {
+                                calculateCategoryBreakdown(monthExpenses)
+                            }
+
+                            val filteredExpenses = monthExpenses.filter { expense ->
+                                val matchesType = when (selectedTypeFilter) {
+                                    "COMMITTED" -> expense.commitmentType == "COMMITTED"
+                                    "DISCRETIONARY" -> expense.commitmentType == "DISCRETIONARY"
+                                    else -> true
+                                }
+                                val matchesCategory = when (selectedCategoryFilter) {
+                                    "ALL" -> true
+                                    else -> expense.category.equals(selectedCategoryFilter, ignoreCase = true)
+                                }
+                                val matchesAccount = when (selectedAccountFilter) {
+                                    "ALL" -> true
+                                    else -> expense.paymentAccount.equals(selectedAccountFilter, ignoreCase = true)
+                                }
+                                matchesType && matchesCategory && matchesAccount
+                            }.sortedByDescending { it.dateSpentMillis }
+
+                            val groupedExpenses = remember(filteredExpenses) {
+                                filteredExpenses.groupBy { formatRelativeDateGroup(it.dateSpentMillis) }
+                            }
+
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                // Item 1: Modern Soft Hero Card (Figma node 2001:69)
+                                item {
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    FigmaHeroOutflowCard(
+                                        monthLabel = selectedMonth,
+                                        totalExpenseLkr = totalExpense,
+                                        committedLkr = committed,
+                                        discretionaryLkr = discretionary,
+                                        onOpenCharts = { showChartsModal = true }
+                                    )
+                                }
+
+                                // Item 2: Pill Filter Bar - ACCOUNTS Tier & CATEGORIES Tier (Figma node 2001:96)
+                                item {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        // ACCOUNTS Tier
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = "ACCOUNTS",
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    letterSpacing = 0.55.sp
+                                                ),
+                                                color = FigmaMutedBrown,
+                                                modifier = Modifier.padding(start = 4.dp)
+                                            )
+
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .horizontalScroll(rememberScrollState()),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                listOf(
+                                                    "ALL" to "All Accounts",
+                                                    "CASH" to "Cash",
+                                                    "CARD_PRIMARY" to "Card",
+                                                    "ACCOUNT_SECONDARY" to "Bank Primary"
+                                                ).forEach { (key, label) ->
+                                                    val isSelected = selectedAccountFilter == key
+                                                    FigmaFilterPill(
+                                                        label = label,
+                                                        isSelected = isSelected,
+                                                        onClick = { selectedAccountFilter = key }
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // CATEGORIES Tier
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = "CATEGORIES",
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    letterSpacing = 0.55.sp
+                                                ),
+                                                color = FigmaMutedBrown,
+                                                modifier = Modifier.padding(start = 4.dp)
+                                            )
+
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .horizontalScroll(rememberScrollState()),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                val isAllCategories = selectedCategoryFilter == "ALL" && selectedTypeFilter == "ALL"
+                                                FigmaFilterPill(
+                                                    label = "All Categories",
+                                                    isSelected = isAllCategories,
+                                                    onClick = {
+                                                        selectedCategoryFilter = "ALL"
+                                                        selectedTypeFilter = "ALL"
+                                                    }
+                                                )
+
+                                                FigmaFilterPill(
+                                                    label = "Essentials",
+                                                    isSelected = selectedTypeFilter == "COMMITTED",
+                                                    onClick = {
+                                                        selectedTypeFilter = if (selectedTypeFilter == "COMMITTED") "ALL" else "COMMITTED"
+                                                        selectedCategoryFilter = "ALL"
+                                                    }
+                                                )
+
+                                                FigmaFilterPill(
+                                                    label = "Lifestyle",
+                                                    isSelected = selectedTypeFilter == "DISCRETIONARY",
+                                                    onClick = {
+                                                        selectedTypeFilter = if (selectedTypeFilter == "DISCRETIONARY") "ALL" else "DISCRETIONARY"
+                                                        selectedCategoryFilter = "ALL"
+                                                    }
+                                                )
+
+                                                listOf(
+                                                    "MISC" to "Groceries",
+                                                    "DINING_OUT" to "Dining",
+                                                    "TRANSPORT" to "Transport",
+                                                    "RENT" to "Housing",
+                                                    "SUBSCRIPTION" to "Subscriptions",
+                                                    "UTILITIES" to "Utilities"
+                                                ).forEach { (key, label) ->
+                                                    val isSelected = selectedCategoryFilter == key
+                                                    FigmaFilterPill(
+                                                        label = label,
+                                                        isSelected = isSelected,
+                                                        onClick = {
+                                                            selectedCategoryFilter = if (isSelected) "ALL" else key
+                                                            selectedTypeFilter = "ALL"
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Item 3: RECENT ACTIVITY Section Header
+                                item {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 2.dp, vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "RECENT ACTIVITY",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                letterSpacing = 0.6.sp
+                                            ),
+                                            color = FigmaMutedBrown
+                                        )
+                                        Text(
+                                            text = "${filteredExpenses.size} transactions",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = FigmaMutedSlate
                                         )
                                     }
                                 }
+
+                                // Item 4: Transactions Feed
+                                if (filteredExpenses.isEmpty()) {
+                                    item {
+                                        EmptyStateView(
+                                            title = "No matching expenses",
+                                            message = "No transactions found with current filters."
+                                        )
+                                    }
+                                } else {
+                                    groupedExpenses.forEach { (dateGroup, expensesInGroup) ->
+                                        item(key = "header_$dateGroup") {
+                                            Text(
+                                                text = dateGroup,
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold
+                                                ),
+                                                color = FigmaMutedSlate,
+                                                modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 2.dp)
+                                            )
+                                        }
+                                        items(expensesInGroup, key = { "${it.id}_${it.dateSpentMillis}" }) { expense ->
+                                            FigmaTransactionCard(expense = expense)
+                                        }
+                                    }
+                                }
+
+                                item {
+                                    Spacer(modifier = Modifier.height(72.dp))
+                                }
                             }
 
-                            // CATEGORIES Tier
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = "CATEGORIES",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        letterSpacing = 0.55.sp
-                                    ),
-                                    color = FigmaMutedBrown,
-                                    modifier = Modifier.padding(start = 4.dp)
+                            if (showChartsModal) {
+                                ExpenseChartsModal(
+                                    monthLabel = selectedMonth,
+                                    totalExpenseLkr = totalExpense,
+                                    committedLkr = committed,
+                                    discretionaryLkr = discretionary,
+                                    cardPrimaryTotal = cardPrimaryTotal,
+                                    secondaryAccountTotal = secondaryAccountTotal,
+                                    cashTotal = cashTotal,
+                                    categoryItems = categoryBreakdownItems,
+                                    onDismiss = { showChartsModal = false },
+                                    onSelectCategory = { catKey ->
+                                        selectedCategoryFilter = if (selectedCategoryFilter.equals(catKey, ignoreCase = true)) "ALL" else catKey
+                                    }
                                 )
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+                ExpenseViewTab.SUBSCRIPTIONS -> {
+                    when (subscriptionsState) {
+                        is UiState.Loading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = FigmaTerracotta)
+                            }
+                        }
+                        is UiState.Error -> {
+                            val errorMsg = (subscriptionsState as UiState.Error).message
+                            EmptyStateView(
+                                title = "Error Loading Subscriptions",
+                                message = errorMsg,
+                                actionLabel = "Retry",
+                                onActionClick = { subscriptionViewModel.loadSubscriptions("guest_user") }
+                            )
+                        }
+                        is UiState.Empty -> {
+                            EmptyStateView(
+                                title = "No Subscriptions Found",
+                                message = "No fixed obligations or auto-debits recorded.",
+                                actionLabel = "Add Subscription",
+                                onActionClick = { showAddSubscriptionDialog = true }
+                            )
+                        }
+                        is UiState.Success -> {
+                            val subscriptions = (subscriptionsState as UiState.Success<List<SubscriptionEntity>>).data
+                            val activeSubs = subscriptions.filter { it.status != "CANCELLED" }
+                            val totalActive = activeSubs.sumOf { it.amountLkr }
+                            val secondaryTotal = activeSubs.filter { it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true) }.sumOf { it.amountLkr }
+                            val primaryCardTotal = activeSubs.filter { it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) }.sumOf { it.amountLkr }
+                            val cashTotal = activeSubs.filter { it.paymentAccount.equals("CASH", ignoreCase = true) }.sumOf { it.amountLkr }
 
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    val isAllCategories = selectedCategoryFilter == "ALL" && selectedTypeFilter == "ALL"
-                                    FigmaFilterPill(
-                                        label = "All Categories",
-                                        isSelected = isAllCategories,
-                                        onClick = {
-                                            selectedCategoryFilter = "ALL"
-                                            selectedTypeFilter = "ALL"
+                            val allCount = subscriptions.size
+                            val dueWeekCount = remember(subscriptions) {
+                                subscriptions.count {
+                                    val diff = it.nextBillingMillis - System.currentTimeMillis()
+                                    diff in 0..(7L * 24 * 3600 * 1000)
+                                }
+                            }
+                            val autoDebitCount = remember(subscriptions) {
+                                subscriptions.count {
+                                    it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) || it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true)
+                                }
+                            }
+
+                            val filteredSubs = when (subscriptionFilter) {
+                                "DUE_WEEK" -> subscriptions.filter {
+                                    val diff = it.nextBillingMillis - System.currentTimeMillis()
+                                    diff in 0..(7L * 24 * 3600 * 1000)
+                                }
+                                "AUTO_DEBIT" -> subscriptions.filter {
+                                    it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) || it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true)
+                                }
+                                else -> subscriptions
+                            }
+
+                            val nextSub = activeSubs.minByOrNull { it.nextBillingMillis }
+                            val nextInDays = if (nextSub != null) {
+                                val diff = nextSub.nextBillingMillis - System.currentTimeMillis()
+                                val days = (diff / (24 * 3600 * 1000)).coerceAtLeast(1)
+                                "Next in $days days"
+                            } else {
+                                "Next in 4 days"
+                            }
+
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                // 1. Hero Section: Monthly Commitments Card
+                                item {
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    FigmaMonthlyCommitmentsCard(
+                                        totalRecurringLkr = totalActive,
+                                        secondaryAccountTotal = secondaryTotal,
+                                        primaryCardTotal = primaryCardTotal,
+                                        cashTotal = cashTotal,
+                                        onCalendarClick = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            subscriptionFilter = if (subscriptionFilter == "DUE_WEEK") "ALL" else "DUE_WEEK"
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar(
+                                                    if (subscriptionFilter == "DUE_WEEK") "Filtered to commitments due this week" else "Showing all fixed commitments"
+                                                )
+                                            }
                                         }
                                     )
+                                }
 
-                                    FigmaFilterPill(
-                                        label = "Essentials",
-                                        isSelected = selectedTypeFilter == "COMMITTED",
-                                        onClick = {
-                                            selectedTypeFilter = if (selectedTypeFilter == "COMMITTED") "ALL" else "COMMITTED"
-                                            selectedCategoryFilter = "ALL"
-                                        }
-                                    )
-
-                                    FigmaFilterPill(
-                                        label = "Lifestyle",
-                                        isSelected = selectedTypeFilter == "DISCRETIONARY",
-                                        onClick = {
-                                            selectedTypeFilter = if (selectedTypeFilter == "DISCRETIONARY") "ALL" else "DISCRETIONARY"
-                                            selectedCategoryFilter = "ALL"
-                                        }
-                                    )
-
-                                    listOf(
-                                        "MISC" to "Groceries",
-                                        "DINING_OUT" to "Dining",
-                                        "TRANSPORT" to "Transport",
-                                        "RENT" to "Housing",
-                                        "SUBSCRIPTION" to "Subscriptions",
-                                        "UTILITIES" to "Utilities"
-                                    ).forEach { (key, label) ->
-                                        val isSelected = selectedCategoryFilter == key
+                                // 2. Section - Quick Action / Filter Pills (Figma node 2006:96)
+                                item {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
                                         FigmaFilterPill(
-                                            label = label,
-                                            isSelected = isSelected,
+                                            label = "All Fixed ($allCount)",
+                                            isSelected = subscriptionFilter == "ALL",
                                             onClick = {
-                                                selectedCategoryFilter = if (isSelected) "ALL" else key
-                                                selectedTypeFilter = "ALL"
+                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                subscriptionFilter = "ALL"
+                                            }
+                                        )
+                                        FigmaFilterPill(
+                                            label = "Due this week ($dueWeekCount)",
+                                            isSelected = subscriptionFilter == "DUE_WEEK",
+                                            onClick = {
+                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                subscriptionFilter = if (subscriptionFilter == "DUE_WEEK") "ALL" else "DUE_WEEK"
+                                            }
+                                        )
+                                        FigmaFilterPill(
+                                            label = "Auto-debit only ($autoDebitCount)",
+                                            isSelected = subscriptionFilter == "AUTO_DEBIT",
+                                            onClick = {
+                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                subscriptionFilter = if (subscriptionFilter == "AUTO_DEBIT") "ALL" else "AUTO_DEBIT"
                                             }
                                         )
                                     }
                                 }
+
+                                // 3. Recurring Charges Header
+                                item {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 2.dp, vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "Recurring Charges",
+                                                style = MaterialTheme.typography.titleMedium.copy(
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                ),
+                                                color = FigmaDarkText
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "(${filteredSubs.size} items)",
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Medium
+                                                ),
+                                                color = FigmaMutedSlate
+                                            )
+                                        }
+                                        Text(
+                                            text = nextInDays,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = FigmaTerracotta
+                                        )
+                                    }
+                                }
+
+                                // 4. Recurring items listing (Figma node 2006:119)
+                                if (filteredSubs.isEmpty()) {
+                                    item {
+                                        EmptyStateView(
+                                            title = "No items in this filter",
+                                            message = "All subscriptions in this category are up to date."
+                                        )
+                                    }
+                                } else {
+                                    items(filteredSubs, key = { it.id.ifEmpty { it.name } }) { sub ->
+                                        FigmaSubscriptionItemCard(
+                                            subscription = sub,
+                                            onClick = {
+                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                activeActionSub = sub
+                                            },
+                                            modifier = Modifier.animateItem()
+                                        )
+                                    }
+                                }
+
+                                // 5. Calendar Schedule Banner / Mini Reminder Insight (Figma node 2006:168)
+                                item {
+                                    FigmaAutoDebitAlertBanner(
+                                        upcomingAmount = nextSub?.amountLkr ?: 4500.0,
+                                        upcomingName = nextSub?.name ?: "Upcoming commitments",
+                                        onManageClick = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            subscriptionFilter = if (subscriptionFilter == "AUTO_DEBIT") "ALL" else "AUTO_DEBIT"
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar(
+                                                    if (subscriptionFilter == "AUTO_DEBIT") "Showing auto-debit obligations" else "Showing all fixed commitments"
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+
+                                item {
+                                    Spacer(modifier = Modifier.height(72.dp))
+                                }
                             }
                         }
+                        else -> {}
                     }
-
-                    // Item 3: RECENT ACTIVITY Section Header
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 2.dp, vertical = 2.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "RECENT ACTIVITY",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.6.sp
-                                ),
-                                color = FigmaMutedBrown
-                            )
-                            Text(
-                                text = "${filteredExpenses.size} transactions",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = FigmaMutedSlate
-                            )
-                        }
-                    }
-
-                    // Item 4: Transactions Feed (grouped by date with Figma rounded card)
-                    if (filteredExpenses.isEmpty()) {
-                        item {
-                            EmptyStateView(
-                                title = "No matching expenses",
-                                message = "No transactions found with current filters."
-                            )
-                        }
-                    } else {
-                        groupedExpenses.forEach { (dateGroup, expensesInGroup) ->
-                            item(key = "header_$dateGroup") {
-                                Text(
-                                    text = dateGroup,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = FigmaMutedSlate,
-                                    modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 2.dp)
-                                )
-                            }
-                            items(expensesInGroup, key = { "${it.id}_${it.dateSpentMillis}" }) { expense ->
-                                FigmaTransactionCard(expense = expense)
-                            }
-                        }
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(72.dp))
-                    }
-                }
-
-                if (showChartsModal) {
-                    ExpenseChartsModal(
-                        monthLabel = selectedMonth,
-                        totalExpenseLkr = totalExpense,
-                        committedLkr = committed,
-                        discretionaryLkr = discretionary,
-                        cardPrimaryTotal = cardPrimaryTotal,
-                        secondaryAccountTotal = secondaryAccountTotal,
-                        cashTotal = cashTotal,
-                        categoryItems = categoryBreakdownItems,
-                        onDismiss = { showChartsModal = false },
-                        onSelectCategory = { catKey ->
-                            selectedCategoryFilter = if (selectedCategoryFilter.equals(catKey, ignoreCase = true)) "ALL" else catKey
-                        }
-                    )
                 }
             }
-            else -> {}
         }
     }
 }
+}
 
 /**
- * Modern Soft Hero Card matching Figma node 2001:69
+ * Modern Hero Outflow Card matching the Monthly Commitments Hero Card theme:
+ * - Pure white container with 24dp rounded corners, subtle border, and 0.5dp elevation
+ * - Top Row: Month total outflow label on left, chart icon button on right
+ * - Hero Outflow Row: LKR in Terracotta, Amount in bold dark text (30sp)
+ * - Dual-tone ratio bar (Deep Terracotta Essentials + Soft Peach Lifestyle)
+ * - Hairline divider
+ * - 2-Column breakdown: (1) Essentials with terracotta dot + LKR Amount, (2) Lifestyle with soft peach dot + LKR Amount
  */
 @Composable
 fun FigmaHeroOutflowCard(
@@ -564,175 +939,224 @@ fun FigmaHeroOutflowCard(
     onOpenCharts: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val total = committedLkr + discretionaryLkr
-    val committedRatio = if (total > 0) (committedLkr / total).toFloat().coerceIn(0.01f, 0.99f) else 0.5f
-    val discretionaryRatio = if (total > 0) (discretionaryLkr / total).toFloat().coerceIn(0.01f, 0.99f) else 0.5f
+    val total = if (totalExpenseLkr > 0) totalExpenseLkr else 1.0
+    val committedRatio = (committedLkr / total).toFloat().coerceIn(0f, 1f)
+    val discretionaryRatio = (discretionaryLkr / total).toFloat().coerceIn(0f, 1f)
+
+    val animatedCommittedRatio by animateFloatAsState(
+        targetValue = committedRatio,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "committedRatio"
+    )
+    val animatedDiscretionaryRatio by animateFloatAsState(
+        targetValue = discretionaryRatio,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "discretionaryRatio"
+    )
+
+    val darkTextColor = Color(0xFF1B1C1A)
+    val mutedLabelColor = Color(0xFF6B5E57)
+    val hairlineColor = Color(0xFFF2ECE6)
 
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = FigmaCardBg),
-        border = BorderStroke(1.dp, FigmaBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFEDE8E3)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
-            // Upper row: Outflow info on left, Charts button on right
+            // 1. Top Row: Title + "View Charts" Capsule Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "${monthLabel.uppercase()} TOTAL OUTFLOW",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.55.sp
-                        ),
-                        color = FigmaMutedBrown
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = "LKR",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = FigmaTerracotta,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                        Text(
-                            text = CurrencyFormatter.formatLkr(totalExpenseLkr).replace("LKR ", ""),
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = (-0.6).sp
-                            ),
-                            color = FigmaDarkText
-                        )
-                    }
-                }
+                Text(
+                    text = "${monthLabel.uppercase()} TOTAL OUTFLOW",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    color = mutedLabelColor
+                )
 
-                // Button - View charts (Figma node 2001:76: 32x32 circular button)
+                // View charts button (symbol only)
                 Box(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, FigmaBorder, CircleShape)
-                        .clickable(onClick = onOpenCharts),
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                        .clickable { onOpenCharts() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.BarChart,
                         contentDescription = "View charts",
-                        tint = FigmaTerracotta,
-                        modifier = Modifier.size(14.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Subtle divider line
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth(),
-                thickness = 1.dp,
-                color = FigmaDivider
-            )
+            // 2. Hero Outflow Amount Row: "LKR XX,XXX.XX"
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "LKR",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 3.dp)
+                )
+                Text(
+                    text = CurrencyFormatter.formatLkr(totalExpenseLkr).replace("LKR ", ""),
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = darkTextColor
+                )
+            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // 2-tone progress bar (6dp height)
+            // 3. Multi-segment progress bar (10dp height pill matching CommitmentRatioBar)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(FigmaTrackBg)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                if (total > 0) {
+                if (totalExpenseLkr > 0 && animatedCommittedRatio > 0f) {
                     Box(
                         modifier = Modifier
-                            .weight(committedRatio)
-                            .fillMaxSize()
-                            .background(FigmaTerracotta)
+                            .weight(animatedCommittedRatio.coerceIn(0.01f, 0.99f))
+                            .fillMaxHeight()
+                            .background(EssentialsColor)
                     )
+                }
+                if (totalExpenseLkr > 0 && animatedDiscretionaryRatio > 0f) {
                     Box(
                         modifier = Modifier
-                            .weight(discretionaryRatio)
-                            .fillMaxSize()
-                            .background(FigmaLifestyleBar)
+                            .weight(animatedDiscretionaryRatio.coerceAtLeast(0.01f))
+                            .fillMaxHeight()
+                            .background(LifestyleColor)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Inline breakdown row (Figma node 2001:83)
+            // 4. Subtle Hairline Divider
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 0.8.dp,
+                color = hairlineColor
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 5. 2-Column Breakdown Legend (Centered and Aligned)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Essentials
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                // Column 1: Essentials
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(FigmaTerracotta)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(EssentialsColor)
+                        )
+                        Text(
+                            text = "Essentials",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = mutedLabelColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Essentials",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = FigmaMutedBrown
-                    )
-                    Text(
-                        text = CurrencyFormatter.formatLkr(committedLkr).replace("LKR ", ""),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
+                        text = CurrencyFormatter.formatLkr(committedLkr),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.3).sp
                         ),
-                        color = FigmaDarkText
+                        color = darkTextColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
                     )
                 }
 
-                // Lifestyle
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Column 2: Lifestyle
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(FigmaLifestyleBar)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(LifestyleColor)
+                        )
+                        Text(
+                            text = "Lifestyle",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = mutedLabelColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Lifestyle",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = FigmaMutedBrown
-                    )
-                    Text(
-                        text = CurrencyFormatter.formatLkr(discretionaryLkr).replace("LKR ", ""),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
+                        text = CurrencyFormatter.formatLkr(discretionaryLkr),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.3).sp
                         ),
-                        color = FigmaDarkText
+                        color = darkTextColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -1119,4 +1543,1028 @@ fun AddExpenseDialog(
         },
         shape = RoundedCornerShape(16.dp)
     )
+}
+
+/**
+ * Expense views switch matching Figma node 2006:55 / 2006:208 with fluid animated indicator
+ * and tactile response.
+ */
+@Composable
+fun FigmaExpenseViewsSwitch(
+    currentTab: ExpenseViewTab,
+    onTabSelected: (ExpenseViewTab) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val haptics = LocalHapticFeedback.current
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(RoundedCornerShape(9999.dp))
+            .background(FigmaSwitchBg)
+            .border(1.dp, FigmaBorder, RoundedCornerShape(9999.dp))
+            .padding(4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Tab 1: Daily Transactions
+            val isDaily = currentTab == ExpenseViewTab.DAILY_TRANSACTIONS
+            val dailyBgColor by animateColorAsState(
+                targetValue = if (isDaily) Color.White else Color.Transparent,
+                animationSpec = tween(200),
+                label = "dailyBg"
+            )
+            val dailyTextColor by animateColorAsState(
+                targetValue = if (isDaily) FigmaTerracotta else FigmaMutedSlate,
+                animationSpec = tween(200),
+                label = "dailyText"
+            )
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(dailyBgColor)
+                    .then(
+                        if (isDaily) Modifier.border(1.dp, FigmaBorderActive, RoundedCornerShape(9999.dp))
+                        else Modifier
+                    )
+                    .clickable {
+                        if (!isDaily) {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onTabSelected(ExpenseViewTab.DAILY_TRANSACTIONS)
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    AnimatedVisibility(
+                        visible = isDaily,
+                        enter = fadeIn(tween(150)) + scaleIn(tween(150)),
+                        exit = fadeOut(tween(150)) + scaleOut(tween(150))
+                    ) {
+                        Row {
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                    }
+                    Text(
+                        text = "Daily Transactions",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontSize = 13.5.sp,
+                            fontWeight = if (isDaily) FontWeight.Bold else FontWeight.SemiBold
+                        ),
+                        color = dailyTextColor
+                    )
+                }
+            }
+
+            // Tab 2: Subscriptions
+            val isSubs = currentTab == ExpenseViewTab.SUBSCRIPTIONS
+            val subsBgColor by animateColorAsState(
+                targetValue = if (isSubs) Color.White else Color.Transparent,
+                animationSpec = tween(200),
+                label = "subsBg"
+            )
+            val subsTextColor by animateColorAsState(
+                targetValue = if (isSubs) FigmaTerracotta else FigmaMutedSlate,
+                animationSpec = tween(200),
+                label = "subsText"
+            )
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(subsBgColor)
+                    .then(
+                        if (isSubs) Modifier.border(1.dp, FigmaBorderActive, RoundedCornerShape(9999.dp))
+                        else Modifier
+                    )
+                    .clickable {
+                        if (!isSubs) {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onTabSelected(ExpenseViewTab.SUBSCRIPTIONS)
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    AnimatedVisibility(
+                        visible = isSubs,
+                        enter = fadeIn(tween(150)) + scaleIn(tween(150)),
+                        exit = fadeOut(tween(150)) + scaleOut(tween(150))
+                    ) {
+                        Row {
+                            
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                    }
+                    Text(
+                        text = "Subscriptions",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontSize = 13.5.sp,
+                            fontWeight = if (isSubs) FontWeight.Bold else FontWeight.SemiBold
+                        ),
+                        color = subsTextColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Monthly Commitments Hero Card matching the user's design exactly:
+ * - Pure white container with 24dp rounded corners and subtle border
+ * - Top Row: "MONTHLY COMMITMENTS" on left, [Calendar View] rounded capsule button on right
+ * - Hero Outflow Row: LKR in Terracotta, Amount in bold dark text
+ * - Dual-tone ratio bar (Deep Terracotta + Soft Peach)
+ * - Hairline divider
+ * - 2-Column breakdown: (1) Secondary Account with terracotta dot + LKR Amount, (2) Card Primary with soft peach dot + LKR Amount
+ */
+@Composable
+fun FigmaMonthlyCommitmentsCard(
+    totalRecurringLkr: Double,
+    secondaryAccountTotal: Double,
+    primaryCardTotal: Double,
+    cashTotal: Double,
+    onCalendarClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val total = if (totalRecurringLkr > 0) totalRecurringLkr else 1.0
+    val secondaryRatio = (secondaryAccountTotal / total).toFloat().coerceIn(0f, 1f)
+    val primaryRatio = (primaryCardTotal / total).toFloat().coerceIn(0f, 1f)
+
+    val cashRatio = (cashTotal / total).toFloat().coerceIn(0f, 1f)
+
+    val animatedSecondaryRatio by animateFloatAsState(
+        targetValue = secondaryRatio,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "secRatio"
+    )
+    val animatedPrimaryRatio by animateFloatAsState(
+        targetValue = primaryRatio,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "primRatio"
+    )
+    val animatedCashRatio by animateFloatAsState(
+        targetValue = cashRatio,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "cashRatio"
+    )
+
+    val darkTextColor = Color(0xFF1B1C1A)
+    val mutedLabelColor = Color(0xFF6B5E57)
+    val hairlineColor = Color(0xFFF2ECE6)
+
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFEDE8E3)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp)
+        ) {
+            // 1. Top Row: Title + "Calendar View" Capsule Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "MONTHLY COMMITMENTS",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    color = mutedLabelColor
+                )
+
+                // Calendar View rounded pill button
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                        .clickable { onCalendarClick() }
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CalendarToday,
+                        contentDescription = "Calendar View",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = "Calendar View",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 2. Hero Outflow Amount Row: "LKR 40,700.00"
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "LKR",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 3.dp)
+                )
+                Text(
+                    text = CurrencyFormatter.formatLkr(totalRecurringLkr).replace("LKR ", ""),
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = darkTextColor
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 3. Multi-account progress bar (10dp height pill matching RentAndRecurringCard)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                if (totalRecurringLkr > 0 && animatedSecondaryRatio > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .weight(animatedSecondaryRatio.coerceIn(0.01f, 0.99f))
+                            .fillMaxHeight()
+                            .background(TangerineShade1)
+                    )
+                }
+                if (totalRecurringLkr > 0 && animatedPrimaryRatio > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .weight(animatedPrimaryRatio.coerceAtLeast(0.01f))
+                            .fillMaxHeight()
+                            .background(TangerineShade2)
+                    )
+                }
+                if (totalRecurringLkr > 0 && animatedCashRatio > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .weight(animatedCashRatio.coerceAtLeast(0.01f))
+                            .fillMaxHeight()
+                            .background(TangerineShade3)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 4. Subtle Hairline Divider
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 0.8.dp,
+                color = hairlineColor
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 5. Breakdown Legend (Centered and Aligned)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Column 1: Secondary
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(TangerineShade1)
+                        )
+                        Text(
+                            text = "Secondary",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = mutedLabelColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(secondaryAccountTotal),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.3).sp
+                        ),
+                        color = darkTextColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Column 2: Card
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(TangerineShade2)
+                        )
+                        Text(
+                            text = "Card",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = mutedLabelColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(primaryCardTotal),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.3).sp
+                        ),
+                        color = darkTextColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                if (cashRatio > 0f) {
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Column 3: Cash
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(TangerineShade3)
+                            )
+                            Text(
+                                text = "Cash",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = mutedLabelColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = CurrencyFormatter.formatLkr(cashTotal),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            color = darkTextColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Subscription Item Card matching Figma node 2006:119 with responsive press physics,
+ * status chip indicator, countdown alert, and chevron touch target.
+ */
+@Composable
+fun FigmaSubscriptionItemCard(
+    subscription: SubscriptionEntity,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "sub_card_press_scale"
+    )
+
+    val isCancelled = subscription.status.equals("CANCELLED", ignoreCase = true)
+    val diff = subscription.nextBillingMillis - System.currentTimeMillis()
+    val daysRemaining = (diff / (24 * 3600 * 1000)).coerceAtLeast(0)
+
+    val icon: ImageVector = when {
+        subscription.name.contains("Rent", ignoreCase = true) || subscription.name.contains("House", ignoreCase = true) -> Icons.Default.Home
+        subscription.name.contains("Gym", ignoreCase = true) || subscription.name.contains("Fitness", ignoreCase = true) -> Icons.Default.FitnessCenter
+        subscription.name.contains("SaaS", ignoreCase = true) || subscription.name.contains("Cloud", ignoreCase = true) || subscription.name.contains("Stream", ignoreCase = true) -> Icons.Default.Cloud
+        else -> Icons.Default.Receipt
+    }
+
+    val accountLabel = when (subscription.paymentAccount.uppercase()) {
+        "CARD_PRIMARY" -> "Card Primary"
+        "ACCOUNT_SECONDARY" -> "Secondary Account"
+        "CASH" -> "Cash"
+        else -> subscription.paymentAccount.replace("_", " ")
+    }
+
+    Card(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isCancelled) Color(0xFFFAF9F6) else Color.White
+        ),
+        border = BorderStroke(1.dp, if (isCancelled) FigmaBorder.copy(alpha = 0.5f) else FigmaBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isCancelled) 0.dp else 1.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(if (isCancelled) Color(0xFFF0EFEB) else FigmaIconCircleBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = subscription.name,
+                        tint = if (isCancelled) FigmaMutedSlate else FigmaDarkText,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = subscription.name,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = if (isCancelled) FigmaMutedSlate else FigmaDarkText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (isCancelled) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color(0xFFEDEBE8))
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                            ) {
+                                Text(
+                                    text = "PAUSED",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = FigmaMutedSlate
+                                )
+                            }
+                        } 
+                    }
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(FigmaIconCircleBg)
+                                .padding(horizontal = 6.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = accountLabel,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = FigmaMutedBrown
+                            )
+                        }
+
+                        if (!isCancelled && daysRemaining > 3L) {
+                            Text(
+                                text = "• in ${daysRemaining}d",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = FigmaMutedSlate
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = CurrencyFormatter.formatLkr(subscription.amountLkr),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.35).sp
+                        ),
+                        color = if (isCancelled) FigmaMutedSlate else FigmaDarkText
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "/ month",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = FigmaMutedSlate
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = "Manage",
+                    tint = FigmaMutedSlate.copy(alpha = 0.45f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Modern ergonomic ModalBottomSheet for viewing, toggling, and managing subscriptions.
+ * Replaces the static AlertDialog with smooth gesture dismiss, annualized cost breakdown,
+ * auto-debit indicators, and tactile action buttons.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FigmaSubscriptionDetailSheet(
+    subscription: SubscriptionEntity,
+    onDismiss: () -> Unit,
+    onToggleStatus: (newStatus: String) -> Unit,
+    onMarkAsPaid: () -> Unit
+) {
+    val haptics = LocalHapticFeedback.current
+    val isCancelled = subscription.status.equals("CANCELLED", ignoreCase = true)
+
+    val icon: ImageVector = when {
+        subscription.name.contains("Rent", ignoreCase = true) || subscription.name.contains("House", ignoreCase = true) -> Icons.Default.Home
+        subscription.name.contains("Gym", ignoreCase = true) || subscription.name.contains("Fitness", ignoreCase = true) -> Icons.Default.FitnessCenter
+        subscription.name.contains("SaaS", ignoreCase = true) || subscription.name.contains("Cloud", ignoreCase = true) || subscription.name.contains("Stream", ignoreCase = true) -> Icons.Default.Cloud
+        else -> Icons.Default.Receipt
+    }
+
+    val accountLabel = when (subscription.paymentAccount.uppercase()) {
+        "CARD_PRIMARY" -> "Card Primary"
+        "ACCOUNT_SECONDARY" -> "Secondary Bank Account"
+        "CASH" -> "Cash"
+        else -> subscription.paymentAccount.replace("_", " ")
+    }
+
+    val diff = subscription.nextBillingMillis - System.currentTimeMillis()
+    val daysRemaining = (diff / (24 * 3600 * 1000)).coerceAtLeast(0)
+    val nextDateFormatted = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.US).format(Date(subscription.nextBillingMillis))
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp)
+                .navigationBarsPadding()
+        ) {
+            // Header: Icon + Title + Status Pill + Close button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(if (isCancelled) Color(0xFFF0EFEB) else FigmaIconCircleBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = subscription.name,
+                            tint = if (isCancelled) FigmaMutedSlate else FigmaDarkText,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = subscription.name,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = FigmaDarkText
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isCancelled) Color(0xFFF1F3F4) else Color(0xFFE6F4EA))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = if (isCancelled) "PAUSED" else "ACTIVE",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = if (isCancelled) FigmaMutedSlate else Color(0xFF137333)
+                                )
+                            }
+                            Text(
+                                text = "•  $accountLabel",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                color = FigmaMutedBrown
+                            )
+                        }
+                    }
+                }
+
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = FigmaMutedSlate
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Cost summary cards (Monthly & Annualized Outflow)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = FigmaCardBg),
+                    border = BorderStroke(1.dp, FigmaBorder)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = "MONTHLY",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = FigmaMutedBrown
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = CurrencyFormatter.formatLkr(subscription.amountLkr),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = FigmaDarkText
+                        )
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = FigmaCardBg),
+                    border = BorderStroke(1.dp, FigmaBorder)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = "ANNUALIZED",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = FigmaMutedBrown
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = CurrencyFormatter.formatLkr(subscription.amountLkr * 12),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = FigmaTerracotta
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Schedule & Renewal details card
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, FigmaBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Next Renewal",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = FigmaMutedBrown
+                        )
+                        Text(
+                            text = if (daysRemaining == 0L) "Today" else "In $daysRemaining days",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = if (daysRemaining <= 3L && !isCancelled) FigmaTerracotta else FigmaDarkText
+                            )
+                        )
+                    }
+
+                    HorizontalDivider(thickness = 0.8.dp, color = FigmaDivider)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Renewal Date",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = FigmaMutedBrown
+                        )
+                        Text(
+                            text = nextDateFormatted,
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = FigmaDarkText
+                        )
+                    }
+
+                    HorizontalDivider(thickness = 0.8.dp, color = FigmaDivider)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Auto-Debit",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = FigmaMutedBrown
+                        )
+                        Text(
+                            text = if (subscription.paymentAccount != "CASH") "Auto-charged via Bank" else "Manual Payment",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (subscription.paymentAccount != "CASH") Color(0xFF1B6B38) else FigmaMutedSlate
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onMarkAsPaid()
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, FigmaBorder)
+                ) {
+                    Text(
+                        text = "Mark Paid",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = FigmaDarkText
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        val newStatus = if (isCancelled) "ACTIVE" else "CANCELLED"
+                        onToggleStatus(newStatus)
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isCancelled) FigmaTerracotta else MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(
+                        text = if (isCancelled) "Resume Sub" else "Pause / Cancel",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Auto-debit Alert Insight Banner matching Figma node 2006:168
+ */
+@Composable
+fun FigmaAutoDebitAlertBanner(
+    upcomingAmount: Double,
+    upcomingName: String,
+    onManageClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F6F0)),
+        border = BorderStroke(1.dp, FigmaBorder),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(FigmaIconCircleBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NotificationsActive,
+                        contentDescription = "Alert",
+                        tint = FigmaTerracotta,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Column {
+                    Text(
+                        text = "Auto-debit alert",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = FigmaDarkText
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Ensure ${CurrencyFormatter.formatLkr(upcomingAmount)} is buffered by Friday",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.5.sp
+                        ),
+                        color = FigmaMutedBrown
+                    )
+                }
+            }
+
+            TextButton(
+                onClick = onManageClick,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "Manage",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = FigmaTerracotta
+                )
+            }
+        }
+    }
 }

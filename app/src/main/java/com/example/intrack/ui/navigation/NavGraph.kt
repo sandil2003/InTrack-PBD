@@ -148,7 +148,7 @@ fun FinFlowNavGraph(
                         navigateToRoute(Screen.ExpenseAnalytics.route)
                     },
                     onNavigateToSubscriptions = {
-                        navigateToRoute(Screen.SubscriptionAudit.route)
+                        navigateToRoute(Screen.ExpenseAnalytics.createRoute("subscriptions"))
                     },
                     onNavigateToAllTransactions = {
                         navigateToRoute(Screen.AllTransactions.route)
@@ -169,14 +169,26 @@ fun FinFlowNavGraph(
                 )
             }
 
-            composable(Screen.ExpenseAnalytics.route) {
+            composable(
+                route = Screen.ExpenseAnalytics.navRoute,
+                arguments = listOf(
+                    navArgument("tab") {
+                        type = NavType.StringType
+                        defaultValue = "daily"
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val tab = backStackEntry.arguments?.getString("tab") ?: "daily"
                 ExpenseAnalyticsScreen(
+                    initialTab = tab,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
 
             composable(Screen.SubscriptionAudit.route) {
-                SubscriptionAuditScreen(
+                ExpenseAnalyticsScreen(
+                    initialTab = "subscriptions",
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -231,11 +243,6 @@ private fun FinFlowBottomBar(
             icon = Icons.Rounded.Analytics
         ),
         BottomNavItem(
-            route = Screen.SubscriptionAudit.route,
-            label = "Subs",
-            icon = Icons.Rounded.Autorenew
-        ),
-        BottomNavItem(
             route = Screen.GoalTracker.route,
             label = "Goals",
             icon = Icons.Rounded.TrackChanges
@@ -261,7 +268,9 @@ private fun FinFlowBottomBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 navItems.forEach { item ->
-                    val isSelected = currentRoute == item.route || currentRoute.startsWith("${item.route}?")
+                    val isSelected = currentRoute == item.route || 
+                        currentRoute.startsWith("${item.route}?") ||
+                        (item.route == Screen.ExpenseAnalytics.route && (currentRoute == Screen.SubscriptionAudit.route || currentRoute.startsWith("${Screen.SubscriptionAudit.route}?")))
                     val activeBg = MaterialTheme.colorScheme.primaryContainer
                     val activeContentColor = MaterialTheme.colorScheme.primary
                     val inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant

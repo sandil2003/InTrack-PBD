@@ -2,6 +2,7 @@ package com.example.intrack.ui.screens.subscriptions
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -234,7 +235,8 @@ fun SubscriptionAuditScreen(
                 viewModel.addSubscription(newSub)
                 showAddDialog = false
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar("Added recurring cost '${newSub.name}' (${CurrencyFormatter.formatLkr(newSub.amountLkr)}/mo)")
+                    val autoPayText = if (newSub.isAutoPayment) " with Auto-Pay" else ""
+                    snackbarHostState.showSnackbar("Added recurring cost '${newSub.name}' (${CurrencyFormatter.formatLkr(newSub.amountLkr)}/mo)$autoPayText")
                 }
             }
         )
@@ -257,6 +259,12 @@ fun SubscriptionAuditScreen(
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Payment Account: ${sub.paymentAccount.replace("_", " ")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Auto Payment: ${if (sub.isAutoPayment) "Enabled (Auto-Debit)" else "Disabled (Manual)"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -297,8 +305,25 @@ fun SubscriptionAuditScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { activeActionSub = null }) {
-                    Text("Close")
+                Row {
+                    TextButton(
+                        onClick = {
+                            val newAutoPay = !sub.isAutoPayment
+                            viewModel.updateAutoPayment(sub.id, newAutoPay)
+                            activeActionSub = sub.copy(isAutoPayment = newAutoPay)
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(
+                                    if (newAutoPay) "Enabled auto payment for ${sub.name}"
+                                    else "Disabled auto payment for ${sub.name}"
+                                )
+                            }
+                        }
+                    ) {
+                        Text(if (sub.isAutoPayment) "Disable Auto-Pay" else "Enable Auto-Pay")
+                    }
+                    TextButton(onClick = { activeActionSub = null }) {
+                        Text("Close")
+                    }
                 }
             }
         )
@@ -565,20 +590,43 @@ fun SubscriptionItemCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(badgeBg)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = accountLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = badgeText
-                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(badgeBg)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = accountLabel,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = badgeText
+                            )
+                        }
+
+                        if (subscription.isAutoPayment) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "Auto-Pay",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -611,6 +659,7 @@ fun AddSubscriptionDialog(
     var name by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
     var isFlagged by remember { mutableStateOf(false) }
+    var isAutoPayment by remember { mutableStateOf(false) }
     var accountIndex by remember { mutableIntStateOf(1) } // 0: CARD_PRIMARY, 1: ACCOUNT_SECONDARY, 2: CASH
 
     val accounts = listOf("Card", "Secondary", "Cash")
@@ -664,11 +713,45 @@ fun AddSubscriptionDialog(
                         ) { Text(label, style = MaterialTheme.typography.labelSmall) }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = isAutoPayment,
+                        onCheckedChange = { isAutoPayment = it }
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isAutoPayment = !isAutoPayment }
+                    ) {
+                        Text(
+                            text = "Auto subscription payment",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Automatically pay or debit on renewal",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Checkbox(checked = isFlagged, onCheckedChange = { isFlagged = it })
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Flag for review", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = "Flag for review",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.clickable { isFlagged = !isFlagged }
+                    )
                 }
             }
         },
@@ -683,6 +766,7 @@ fun AddSubscriptionDialog(
                                 amountLkr = amt,
                                 paymentAccount = accountKeys[accountIndex],
                                 isFlaggedForReview = isFlagged,
+                                isAutoPayment = isAutoPayment,
                                 status = "ACTIVE"
                             )
                         )

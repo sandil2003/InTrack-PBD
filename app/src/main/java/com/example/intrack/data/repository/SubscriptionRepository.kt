@@ -12,6 +12,7 @@ interface SubscriptionRepository {
     fun getSubscriptions(userId: String): Flow<List<SubscriptionEntity>>
     suspend fun addSubscription(subscription: SubscriptionEntity): Result<Unit>
     suspend fun updateSubscriptionStatus(userId: String, subscriptionId: String, newStatus: String): Result<Unit>
+    suspend fun updateSubscriptionAutoPayment(userId: String, subscriptionId: String, isAutoPayment: Boolean): Result<Unit>
 }
 
 class SubscriptionRepositoryImpl(
@@ -75,6 +76,24 @@ class SubscriptionRepositoryImpl(
         }
     }
 
+    override suspend fun updateSubscriptionAutoPayment(
+        userId: String,
+        subscriptionId: String,
+        isAutoPayment: Boolean
+    ): Result<Unit> {
+        return try {
+            val collection = if (userId.isNotEmpty()) {
+                db.collection("users").document(userId).collection("subscriptions")
+            } else {
+                db.collection("subscriptions")
+            }
+            collection.document(subscriptionId).update("isAutoPayment", isAutoPayment).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     // Sample subscriptions list
     private fun getInitialSampleSubscriptions(userId: String): List<SubscriptionEntity> {
         return listOf(
@@ -85,7 +104,8 @@ class SubscriptionRepositoryImpl(
                 amountLkr = 34000.0,
                 billingCycle = "MONTHLY",
                 paymentAccount = "ACCOUNT_SECONDARY",
-                status = "ACTIVE"
+                status = "ACTIVE",
+                isAutoPayment = false
             ),
             SubscriptionEntity(
                 id = "sub_2",
@@ -94,7 +114,8 @@ class SubscriptionRepositoryImpl(
                 amountLkr = 4500.0,
                 billingCycle = "MONTHLY",
                 paymentAccount = "ACCOUNT_SECONDARY",
-                status = "ACTIVE"
+                status = "ACTIVE",
+                isAutoPayment = true
             ),
             SubscriptionEntity(
                 id = "sub_3",
@@ -104,7 +125,8 @@ class SubscriptionRepositoryImpl(
                 billingCycle = "MONTHLY",
                 paymentAccount = "CARD_PRIMARY",
                 status = "UNUSED_FLAGGED",
-                isFlaggedForReview = true
+                isFlaggedForReview = true,
+                isAutoPayment = true
             )
         )
     }

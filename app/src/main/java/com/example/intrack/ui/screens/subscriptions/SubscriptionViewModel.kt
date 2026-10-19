@@ -45,4 +45,10 @@ class SubscriptionViewModel(
             subscriptionRepository.updateSubscriptionStatus("guest_user", subscriptionId, newStatus)
         }
     }
+
+    fun updateAutoPayment(subscriptionId: String, isAutoPayment: Boolean) {
+        viewModelScope.launch {
+            subscriptionRepository.updateSubscriptionAutoPayment("guest_user", subscriptionId, isAutoPayment)
+        }
+    }
 }

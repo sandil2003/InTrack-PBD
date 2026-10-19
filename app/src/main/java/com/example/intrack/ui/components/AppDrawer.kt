@@ -75,7 +75,7 @@ fun AppDrawerContent(
             icon = Icons.Rounded.Analytics
         ),
         DrawerMenuItem(
-            route = Screen.SubscriptionAudit.route,
+            route = Screen.ExpenseAnalytics.createRoute("subscriptions"),
             title = "Subscriptions",
             icon = Icons.AutoMirrored.Rounded.ReceiptLong,
             badge = "Review"
