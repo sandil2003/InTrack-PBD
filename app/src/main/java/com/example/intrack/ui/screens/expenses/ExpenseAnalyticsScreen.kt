@@ -1037,6 +1037,8 @@ fun FigmaHeroOutflowCard(
         label = "discretionaryRatio"
     )
 
+    val heroTerracotta = Color(0xFFB52705)
+    val heroPeachBar = Color(0xFFE3BEB6)
     val darkTextColor = Color(0xFF1B1C1A)
     val mutedLabelColor = Color(0xFF6B5E57)
     val hairlineColor = Color(0xFFF2ECE6)
@@ -1074,14 +1076,14 @@ fun FigmaHeroOutflowCard(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                        .background(Color(0xFFF7EBE6))
                         .clickable { onOpenCharts() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.BarChart,
                         contentDescription = "View charts",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = heroTerracotta,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -1100,7 +1102,7 @@ fun FigmaHeroOutflowCard(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = heroTerracotta,
                     modifier = Modifier.padding(bottom = 3.dp)
                 )
                 Text(
@@ -1116,20 +1118,20 @@ fun FigmaHeroOutflowCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3. Multi-segment progress bar (10dp height pill matching CommitmentRatioBar)
+            // 3. Multi-segment progress bar (8dp height capsule pill matching hero section image)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(if (totalExpenseLkr > 0) heroPeachBar else Color(0xFFF2ECE6))
             ) {
                 if (totalExpenseLkr > 0 && animatedCommittedRatio > 0f) {
                     Box(
                         modifier = Modifier
                             .weight(animatedCommittedRatio.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(EssentialsColor)
+                            .background(heroTerracotta)
                     )
                 }
                 if (totalExpenseLkr > 0 && animatedDiscretionaryRatio > 0f) {
@@ -1137,7 +1139,7 @@ fun FigmaHeroOutflowCard(
                         modifier = Modifier
                             .weight(animatedDiscretionaryRatio.coerceAtLeast(0.01f))
                             .fillMaxHeight()
-                            .background(LifestyleColor)
+                            .background(heroPeachBar)
                     )
                 }
             }
@@ -1172,7 +1174,7 @@ fun FigmaHeroOutflowCard(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(EssentialsColor)
+                                .background(heroTerracotta)
                         )
                         Text(
                             text = "Essentials",
@@ -1215,7 +1217,7 @@ fun FigmaHeroOutflowCard(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(LifestyleColor)
+                                .background(heroPeachBar)
                         )
                         Text(
                             text = "Lifestyle",
@@ -1808,6 +1810,9 @@ fun FigmaMonthlyCommitmentsCard(
         label = "cashRatio"
     )
 
+    val heroTerracotta = Color(0xFFB52705)
+    val heroPeachBar = Color(0xFFE3BEB6)
+    val heroCashBar = Color(0xFFD79583)
     val darkTextColor = Color(0xFF1B1C1A)
     val mutedLabelColor = Color(0xFF6B5E57)
     val hairlineColor = Color(0xFFF2ECE6)
@@ -1844,7 +1849,7 @@ fun FigmaMonthlyCommitmentsCard(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                        .background(Color(0xFFF7EBE6))
                         .clickable { onCalendarClick() }
                         .padding(horizontal = 10.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1853,7 +1858,7 @@ fun FigmaMonthlyCommitmentsCard(
                     Icon(
                         imageVector = Icons.Rounded.CalendarToday,
                         contentDescription = "Calendar View",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = heroTerracotta,
                         modifier = Modifier.size(13.dp)
                     )
                     Text(
@@ -1862,7 +1867,7 @@ fun FigmaMonthlyCommitmentsCard(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = MaterialTheme.colorScheme.primary
+                        color = heroTerracotta
                     )
                 }
             }
@@ -1880,7 +1885,7 @@ fun FigmaMonthlyCommitmentsCard(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = heroTerracotta,
                     modifier = Modifier.padding(bottom = 3.dp)
                 )
                 Text(
@@ -1896,20 +1901,20 @@ fun FigmaMonthlyCommitmentsCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3. Multi-account progress bar (10dp height pill matching RentAndRecurringCard)
+            // 3. Multi-account progress bar (8dp height capsule pill matching hero section)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(if (totalRecurringLkr > 0) heroPeachBar else Color(0xFFF2ECE6))
             ) {
                 if (totalRecurringLkr > 0 && animatedSecondaryRatio > 0f) {
                     Box(
                         modifier = Modifier
                             .weight(animatedSecondaryRatio.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(TangerineShade1)
+                            .background(heroTerracotta)
                     )
                 }
                 if (totalRecurringLkr > 0 && animatedPrimaryRatio > 0f) {
@@ -1917,7 +1922,7 @@ fun FigmaMonthlyCommitmentsCard(
                         modifier = Modifier
                             .weight(animatedPrimaryRatio.coerceAtLeast(0.01f))
                             .fillMaxHeight()
-                            .background(TangerineShade2)
+                            .background(heroPeachBar)
                     )
                 }
                 if (totalRecurringLkr > 0 && animatedCashRatio > 0f) {
@@ -1925,7 +1930,7 @@ fun FigmaMonthlyCommitmentsCard(
                         modifier = Modifier
                             .weight(animatedCashRatio.coerceAtLeast(0.01f))
                             .fillMaxHeight()
-                            .background(TangerineShade3)
+                            .background(heroCashBar)
                     )
                 }
             }
@@ -1960,7 +1965,7 @@ fun FigmaMonthlyCommitmentsCard(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(TangerineShade1)
+                                .background(heroTerracotta)
                         )
                         Text(
                             text = "Secondary",
@@ -2003,7 +2008,7 @@ fun FigmaMonthlyCommitmentsCard(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(TangerineShade2)
+                                .background(heroPeachBar)
                         )
                         Text(
                             text = "Card",
@@ -2047,7 +2052,7 @@ fun FigmaMonthlyCommitmentsCard(
                                 modifier = Modifier
                                     .size(7.dp)
                                     .clip(CircleShape)
-                                    .background(TangerineShade3)
+                                    .background(heroCashBar)
                             )
                             Text(
                                 text = "Cash",
