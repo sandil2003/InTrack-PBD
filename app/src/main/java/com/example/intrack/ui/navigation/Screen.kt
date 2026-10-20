@@ -1,7 +1,9 @@
 package com.example.intrack.ui.navigation
 
 sealed class Screen(val route: String, val title: String) {
-    object Login : Screen("login", "Login")
+    object Login : Screen("login", "Sign In")
+    object SignIn : Screen("login", "Sign In")
+    object SignUp : Screen("sign_up", "Sign Up")
     object Dashboard : Screen("dashboard", "Dashboard")
     object IncomeHub : Screen("income_hub", "Income Hub")
     object ExpenseAnalytics : Screen("expense_analytics", "Expense Analytics") {
@@ -15,4 +17,12 @@ sealed class Screen(val route: String, val title: String) {
         const val navRoute = "goal_detail/{goalId}"
         fun createRoute(goalId: String): String = "goal_detail/$goalId"
     }
+    object AddExpense : Screen("add_expense", "Add an expense")
+    object AddSubscription : Screen("add_subscription", "Add Subscription")
+    object Settings : Screen("settings", "Settings & Account")
+    object EditExpense : Screen("edit_expense?expenseId={expenseId}", "Edit expense") {
+        const val navRoute = "edit_expense?expenseId={expenseId}"
+        fun createRoute(expenseId: String): String = "edit_expense?expenseId=$expenseId"
+    }
 }
+

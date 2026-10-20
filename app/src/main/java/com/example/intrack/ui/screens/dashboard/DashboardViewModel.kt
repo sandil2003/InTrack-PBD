@@ -19,14 +19,16 @@ import kotlinx.coroutines.launch
 class DashboardViewModel(
     private val incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
     private val expenseRepository: ExpenseRepository = ExpenseRepositoryImpl(),
-    private val goalRepository: GoalRepository = GoalRepositoryImpl()
+    private val goalRepository: GoalRepository = GoalRepositoryImpl(),
+    private val subscriptionRepository: com.example.intrack.data.repository.SubscriptionRepository = com.example.intrack.data.repository.SubscriptionRepositoryImpl()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState<DashboardData>>(UiState.Loading)
     val uiState: StateFlow<UiState<DashboardData>> = _uiState
 
     init {
-        loadDashboard("guest_user")
+        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+        loadDashboard(currentUid)
     }
 
     fun loadDashboard(userId: String) {
@@ -74,8 +76,24 @@ class DashboardViewModel(
     }
 
     fun logExpense(expense: ExpenseEntity) {
+        val currentUid = if (expense.userId.isNotBlank()) expense.userId else (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
+        val preparedExpense = expense.copy(userId = currentUid)
         viewModelScope.launch {
-            expenseRepository.addExpense(expense)
+            expenseRepository.addExpense(preparedExpense)
+            if (preparedExpense.isRecurring) {
+                val sub = com.example.intrack.data.model.SubscriptionEntity(
+                    id = java.util.UUID.randomUUID().toString(),
+                    userId = currentUid,
+                    name = preparedExpense.title,
+                    amountLkr = preparedExpense.amountLkr,
+                    billingCycle = "MONTHLY",
+                    paymentAccount = preparedExpense.paymentAccount,
+                    status = "ACTIVE",
+                    nextBillingMillis = preparedExpense.dateSpentMillis + 30L * 24 * 60 * 60 * 1000L,
+                    isAutoPayment = true
+                )
+                subscriptionRepository.addSubscription(sub)
+            }
         }
     }
 

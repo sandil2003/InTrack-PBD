@@ -86,6 +86,7 @@ import com.example.intrack.ui.components.CommitmentRatioBar
 import com.example.intrack.ui.components.GoalSquareCard
 import com.example.intrack.ui.components.ProfileSettingsBottomSheet
 import com.example.intrack.ui.components.QuickExpenseBottomSheet
+import com.example.intrack.ui.screens.expenses.AddExpenseBottomSheet
 import com.example.intrack.ui.theme.PrimaryGreen
 import com.example.intrack.ui.theme.TangerineShade2
 import com.example.intrack.ui.theme.TangerineShade3
@@ -105,6 +106,7 @@ fun DashboardScreen(
     onNavigateToExpenses: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToAllTransactions: () -> Unit = onNavigateToExpenses,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -126,7 +128,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
-                            .clickable { showProfileSheet = true }
+                            .clickable { onNavigateToSettings() }
                             .padding(horizontal = 6.dp, vertical = 6.dp)
                     ) {
                         Box(
@@ -376,9 +378,9 @@ fun DashboardScreen(
     }
 
     if (showExpenseSheet) {
-        QuickExpenseBottomSheet(
+        AddExpenseBottomSheet(
             onDismiss = { showExpenseSheet = false },
-            onSubmitExpense = { expense ->
+            onSubmit = { expense ->
                 viewModel.logExpense(expense)
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar(
@@ -386,6 +388,7 @@ fun DashboardScreen(
                         duration = SnackbarDuration.Short
                     )
                 }
+                showExpenseSheet = false
             }
         )
     }

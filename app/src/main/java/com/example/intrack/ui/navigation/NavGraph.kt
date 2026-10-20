@@ -50,15 +50,22 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.intrack.ui.screens.auth.LoginScreen
+import com.example.intrack.ui.screens.auth.SignInScreen
+import com.example.intrack.ui.screens.auth.SignUpScreen
 import com.example.intrack.ui.screens.dashboard.DashboardScreen
+import com.example.intrack.ui.screens.expenses.AddExpenseScreen
 import com.example.intrack.ui.screens.expenses.ExpenseAnalyticsScreen
 import com.example.intrack.ui.screens.goal.GoalDetailScreen
 import com.example.intrack.ui.screens.goal.GoalTrackerScreen
 import com.example.intrack.ui.screens.income.IncomeHubScreen
+import com.example.intrack.ui.screens.subscriptions.AddSubscriptionScreen
 import com.example.intrack.ui.screens.subscriptions.SubscriptionAuditScreen
 import com.example.intrack.ui.screens.transactions.AllTransactionsScreen
+import com.example.intrack.ui.screens.settings.SettingsScreen
+import com.example.intrack.ui.screens.expenses.EditExpenseScreen
 
 import com.example.intrack.ui.theme.AppThemeMode
+
 
 private data class BottomNavItem(
     val route: String,
@@ -76,7 +83,7 @@ fun FinFlowNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Login.route
 
-    val isBottomBarVisible = currentRoute != Screen.Login.route
+    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && currentRoute != Screen.AddExpense.route && currentRoute != Screen.AddSubscription.route && !currentRoute.startsWith("edit_expense")
 
     val navigateToRoute: (String) -> Unit = { route ->
         if (currentRoute != route) {
@@ -116,11 +123,30 @@ fun FinFlowNavGraph(
             popExitTransition = { fadeOut(animationSpec = tween(220)) }
         ) {
             composable(Screen.Login.route) {
-                LoginScreen(
+                SignInScreen(
                     onLoginSuccess = {
                         navController.navigate(Screen.Dashboard.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
+                    },
+                    onNavigateToSignUp = {
+                        navController.navigate(Screen.SignUp.route)
+                    }
+                )
+            }
+
+            composable(Screen.SignUp.route) {
+                SignUpScreen(
+                    onSignUpSuccess = {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onNavigateToSignIn = {
+                        navController.popBackStack()
+                    },
+                    onBackClick = {
+                        navController.popBackStack()
                     }
                 )
             }
@@ -152,6 +178,9 @@ fun FinFlowNavGraph(
                     },
                     onNavigateToAllTransactions = {
                         navigateToRoute(Screen.AllTransactions.route)
+                    },
+                    onNavigateToSettings = {
+                        navigateToRoute(Screen.Settings.route)
                     }
                 )
             }
@@ -183,6 +212,7 @@ fun FinFlowNavGraph(
                 ExpenseAnalyticsScreen(
                     initialTab = tab,
                     onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
                     onSignOut = {
@@ -197,6 +227,7 @@ fun FinFlowNavGraph(
                 ExpenseAnalyticsScreen(
                     initialTab = "subscriptions",
                     onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
                     onSignOut = {
@@ -227,6 +258,49 @@ fun FinFlowNavGraph(
                 val goalId = backStackEntry.arguments?.getString("goalId") ?: ""
                 GoalDetailScreen(
                     goalId = goalId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.AddExpense.route) {
+                AddExpenseScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onExpenseSaved = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.AddSubscription.route) {
+                AddSubscriptionScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSubscriptionSaved = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSignOut = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange
+                )
+            }
+
+            composable(
+                route = Screen.EditExpense.navRoute,
+                arguments = listOf(
+                    navArgument("expenseId") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
+                val expenseId = backStackEntry.arguments?.getString("expenseId") ?: ""
+                EditExpenseScreen(
+                    expenseId = expenseId,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
