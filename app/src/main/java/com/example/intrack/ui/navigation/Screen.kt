@@ -19,4 +19,10 @@ sealed class Screen(val route: String, val title: String) {
     }
     object AddExpense : Screen("add_expense", "Add an expense")
     object AddSubscription : Screen("add_subscription", "Add Subscription")
+    object Settings : Screen("settings", "Settings & Account")
+    object EditExpense : Screen("edit_expense?expenseId={expenseId}", "Edit expense") {
+        const val navRoute = "edit_expense?expenseId={expenseId}"
+        fun createRoute(expenseId: String): String = "edit_expense?expenseId=$expenseId"
+    }
 }
+

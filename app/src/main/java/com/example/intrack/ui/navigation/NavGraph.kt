@@ -61,8 +61,11 @@ import com.example.intrack.ui.screens.income.IncomeHubScreen
 import com.example.intrack.ui.screens.subscriptions.AddSubscriptionScreen
 import com.example.intrack.ui.screens.subscriptions.SubscriptionAuditScreen
 import com.example.intrack.ui.screens.transactions.AllTransactionsScreen
+import com.example.intrack.ui.screens.settings.SettingsScreen
+import com.example.intrack.ui.screens.expenses.EditExpenseScreen
 
 import com.example.intrack.ui.theme.AppThemeMode
+
 
 private data class BottomNavItem(
     val route: String,
@@ -80,7 +83,7 @@ fun FinFlowNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Login.route
 
-    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && currentRoute != Screen.AddExpense.route && currentRoute != Screen.AddSubscription.route
+    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && currentRoute != Screen.AddExpense.route && currentRoute != Screen.AddSubscription.route && !currentRoute.startsWith("edit_expense")
 
     val navigateToRoute: (String) -> Unit = { route ->
         if (currentRoute != route) {
@@ -175,6 +178,9 @@ fun FinFlowNavGraph(
                     },
                     onNavigateToAllTransactions = {
                         navigateToRoute(Screen.AllTransactions.route)
+                    },
+                    onNavigateToSettings = {
+                        navigateToRoute(Screen.Settings.route)
                     }
                 )
             }
@@ -206,6 +212,7 @@ fun FinFlowNavGraph(
                 ExpenseAnalyticsScreen(
                     initialTab = tab,
                     onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
                     onSignOut = {
@@ -220,6 +227,7 @@ fun FinFlowNavGraph(
                 ExpenseAnalyticsScreen(
                     initialTab = "subscriptions",
                     onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
                     onSignOut = {
@@ -265,6 +273,35 @@ fun FinFlowNavGraph(
                 AddSubscriptionScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onSubscriptionSaved = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSignOut = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange
+                )
+            }
+
+            composable(
+                route = Screen.EditExpense.navRoute,
+                arguments = listOf(
+                    navArgument("expenseId") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
+                val expenseId = backStackEntry.arguments?.getString("expenseId") ?: ""
+                EditExpenseScreen(
+                    expenseId = expenseId,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

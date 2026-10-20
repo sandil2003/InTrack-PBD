@@ -106,6 +106,7 @@ fun DashboardScreen(
     onNavigateToExpenses: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToAllTransactions: () -> Unit = onNavigateToExpenses,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -127,7 +128,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
-                            .clickable { showProfileSheet = true }
+                            .clickable { onNavigateToSettings() }
                             .padding(horizontal = 6.dp, vertical = 6.dp)
                     ) {
                         Box(

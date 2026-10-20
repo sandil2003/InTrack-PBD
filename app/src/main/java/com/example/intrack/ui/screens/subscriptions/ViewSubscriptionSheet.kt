@@ -356,27 +356,29 @@ fun ViewSubscriptionContent(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Row(verticalAlignment = Alignment.Bottom) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Text(
                         text = "LKR",
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1B1C1A),
-                        modifier = Modifier.padding(bottom = 3.dp)
+                        modifier = Modifier.alignByBaseline()
                     )
-
-                    Spacer(modifier = Modifier.width(6.dp))
 
                     Text(
                         text = String.format(Locale.US, "%,.2f", subscription.amountLkr),
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1B1C1A)
+                        color = Color(0xFF1B1C1A),
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.alignByBaseline()
                     )
-
-                    Spacer(modifier = Modifier.width(6.dp))
 
                     Text(
                         text = "/ $cycleLabel",
@@ -384,7 +386,9 @@ fun ViewSubscriptionContent(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
                         color = Color(0xFF585F6B),
-                        modifier = Modifier.padding(bottom = 4.dp)
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.alignByBaseline()
                     )
                 }
             }
