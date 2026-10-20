@@ -53,6 +53,7 @@ import com.example.intrack.ui.screens.auth.LoginScreen
 import com.example.intrack.ui.screens.auth.SignInScreen
 import com.example.intrack.ui.screens.auth.SignUpScreen
 import com.example.intrack.ui.screens.dashboard.DashboardScreen
+import com.example.intrack.ui.screens.expenses.AddExpenseScreen
 import com.example.intrack.ui.screens.expenses.ExpenseAnalyticsScreen
 import com.example.intrack.ui.screens.goal.GoalDetailScreen
 import com.example.intrack.ui.screens.goal.GoalTrackerScreen
@@ -78,7 +79,7 @@ fun FinFlowNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Login.route
 
-    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route
+    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && currentRoute != Screen.AddExpense.route
 
     val navigateToRoute: (String) -> Unit = { route ->
         if (currentRoute != route) {
@@ -249,6 +250,13 @@ fun FinFlowNavGraph(
                 GoalDetailScreen(
                     goalId = goalId,
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.AddExpense.route) {
+                AddExpenseScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onExpenseSaved = { navController.popBackStack() }
                 )
             }
         }

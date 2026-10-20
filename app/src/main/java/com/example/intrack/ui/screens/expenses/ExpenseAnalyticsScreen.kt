@@ -49,6 +49,8 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -192,6 +194,11 @@ fun ExpenseAnalyticsScreen(
     var showMonthPicker by remember { mutableStateOf(false) }
     var showProfileDropdown by remember { mutableStateOf(false) }
     var showProfileSheet by remember { mutableStateOf(false) }
+
+    // Transaction detail modal & action states
+    var selectedExpense by remember { mutableStateOf<ExpenseEntity?>(null) }
+    var expenseToEdit by remember { mutableStateOf<ExpenseEntity?>(null) }
+    var expenseToDelete by remember { mutableStateOf<ExpenseEntity?>(null) }
 
     // Subscriptions tab state
     var subscriptionFilter by remember { mutableStateOf("ALL") }
@@ -351,11 +358,91 @@ fun ExpenseAnalyticsScreen(
         modifier = modifier
     ) { innerPadding ->
         if (showAddDialog) {
-            AddExpenseDialog(
+            AddExpenseBottomSheet(
                 onDismiss = { showAddDialog = false },
                 onSubmit = { newExpense ->
-                    viewModel.addExpense(newExpense.copy(userId = "guest_user"))
+                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                    viewModel.addExpense(newExpense.copy(userId = currentUid))
                     showAddDialog = false
+                }
+            )
+        }
+
+        if (selectedExpense != null) {
+            val exp = selectedExpense!!
+            FigmaTransactionDetailSheet(
+                expense = exp,
+                onDismiss = { selectedExpense = null },
+                onEdit = {
+                    expenseToEdit = exp
+                    selectedExpense = null
+                },
+                onDelete = {
+                    expenseToDelete = exp
+                    selectedExpense = null
+                }
+            )
+        }
+
+        if (expenseToEdit != null) {
+            EditExpenseDialog(
+                expense = expenseToEdit!!,
+                onDismiss = { expenseToEdit = null },
+                onSubmit = { updatedExpense ->
+                    viewModel.updateExpense(updatedExpense)
+                    expenseToEdit = null
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Updated transaction '${updatedExpense.title}'.")
+                    }
+                }
+            )
+        }
+
+        if (expenseToDelete != null) {
+            val exp = expenseToDelete!!
+            AlertDialog(
+                onDismissRequest = { expenseToDelete = null },
+                shape = RoundedCornerShape(20.dp),
+                containerColor = Color.White,
+                title = {
+                    Text(
+                        text = "Delete Transaction?",
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = FigmaDarkText
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Are you sure you want to delete '${exp.title}' (${CurrencyFormatter.formatLkr(exp.amountLkr)})? This action cannot be undone.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = FigmaMutedBrown
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.deleteExpense("guest_user", exp.id)
+                            expenseToDelete = null
+                            selectedExpense = null
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Deleted transaction '${exp.title}'.")
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Delete", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = { expenseToDelete = null },
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, FigmaBorder)
+                    ) {
+                        Text("Cancel", color = FigmaDarkText)
+                    }
                 }
             )
         }
@@ -754,7 +841,13 @@ fun ExpenseAnalyticsScreen(
                                             )
                                         }
                                         items(expensesInGroup, key = { "${it.id}_${it.dateSpentMillis}" }) { expense ->
-                                            FigmaTransactionCard(expense = expense)
+                                            FigmaTransactionCard(
+                                                expense = expense,
+                                                onClick = {
+                                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    selectedExpense = expense
+                                                }
+                                            )
                                         }
                                     }
                                 }
@@ -1292,6 +1385,7 @@ fun FigmaFilterPill(
 @Composable
 fun FigmaTransactionCard(
     expense: ExpenseEntity,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val categoryIcon: ImageVector = when {
@@ -1327,7 +1421,10 @@ fun FigmaTransactionCard(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, FigmaBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
@@ -1467,6 +1564,10 @@ private fun formatTimeOrDate(timeMillis: Long): String {
     } else {
         SimpleDateFormat("MMM dd", Locale.US).format(Date(timeMillis))
     }
+}
+
+private fun formatFullDateTime(timeMillis: Long): String {
+    return SimpleDateFormat("EEEE, MMMM d, yyyy • hh:mm a", Locale.US).format(Date(timeMillis))
 }
 
 @Composable
@@ -1616,6 +1717,181 @@ fun AddExpenseDialog(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text("Save", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
+@Composable
+fun EditExpenseDialog(
+    expense: ExpenseEntity,
+    onDismiss: () -> Unit,
+    onSubmit: (ExpenseEntity) -> Unit
+) {
+    var title by remember(expense) { mutableStateOf(expense.title) }
+    var amountText by remember(expense) { mutableStateOf(if (expense.amountLkr > 0) expense.amountLkr.toString() else "") }
+    var selectedCategory by remember(expense) { mutableStateOf(expense.category) }
+    var selectedCommitment by remember(expense) { mutableStateOf(expense.commitmentType) }
+    var selectedAccount by remember(expense) { mutableStateOf(expense.paymentAccount) }
+    var notesText by remember(expense) { mutableStateOf(expense.notes ?: "") }
+
+    val categories = listOf(
+        "DINING_OUT" to "Dining",
+        "TRANSPORT" to "Transport",
+        "RENT" to "Rent",
+        "UTILITIES" to "Utilities",
+        "SUBSCRIPTION" to "Sub",
+        "MISC" to "Misc"
+    )
+    val accounts = listOf(
+        "CARD_PRIMARY" to "Primary Card",
+        "ACCOUNT_SECONDARY" to "Bank Account",
+        "CASH" to "Cash"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Edit Transaction",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Commitment Type",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = selectedCommitment == "DISCRETIONARY",
+                        onClick = { selectedCommitment = "DISCRETIONARY" },
+                        label = { Text("Discretionary", style = MaterialTheme.typography.labelSmall) },
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    FilterChip(
+                        selected = selectedCommitment == "COMMITTED",
+                        onClick = { selectedCommitment = "COMMITTED" },
+                        label = { Text("Committed", style = MaterialTheme.typography.labelSmall) },
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Category",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    categories.forEach { (key, label) ->
+                        FilterChip(
+                            selected = selectedCategory == key,
+                            onClick = { selectedCategory = key },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    placeholder = { Text("e.g. Grocery Store") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { amountText = it },
+                    label = { Text("Amount (LKR)") },
+                    placeholder = { Text("2500.00") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = notesText,
+                    onValueChange = { notesText = it },
+                    label = { Text("Notes (Optional)") },
+                    placeholder = { Text("e.g. Dinner with team") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Payment Source",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    accounts.forEach { (key, label) ->
+                        FilterChip(
+                            selected = selectedAccount == key,
+                            onClick = { selectedAccount = key },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val amt = amountText.toDoubleOrNull() ?: 0.0
+                    if (title.isNotBlank() && amt > 0) {
+                        onSubmit(
+                            expense.copy(
+                                title = title.trim(),
+                                amountLkr = amt,
+                                category = selectedCategory,
+                                commitmentType = selectedCommitment,
+                                paymentAccount = selectedAccount,
+                                notes = notesText.trim().ifEmpty { null }
+                            )
+                        )
+                    }
+                },
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Save Changes", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -2265,6 +2541,387 @@ fun FigmaSubscriptionItemCard(
                     tint = FigmaMutedSlate.copy(alpha = 0.45f),
                     modifier = Modifier.size(16.dp)
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Transaction Detail Modal Card Sheet matching InTrack Figma Design Language:
+ * - Slides up on clicking any transaction card in the Daily Transactions tab
+ * - Displays all additional information: Title, Amount, Date & Time, Category, Payment Source, Commitment Tier, Notes, ID
+ * - Action buttons on bottom: Delete button on bottom-left, Edit button on bottom-right
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FigmaTransactionDetailSheet(
+    expense: ExpenseEntity,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val haptics = LocalHapticFeedback.current
+    val categoryIcon: ImageVector = when {
+        expense.title.contains("ATM", ignoreCase = true) || (expense.paymentAccount.equals("CASH", ignoreCase = true) && expense.category.equals("MISC", ignoreCase = true)) -> Icons.Default.Payments
+        expense.category.uppercase() == "TRANSPORT" -> Icons.Default.DirectionsCar
+        expense.category.uppercase() == "DINING_OUT" -> Icons.Default.LocalCafe
+        expense.category.uppercase() == "RENT" -> Icons.Default.Home
+        expense.category.uppercase() == "MISC" -> Icons.Default.ShoppingCart
+        else -> Icons.Default.Receipt
+    }
+
+    val accountLabel = when (expense.paymentAccount.uppercase()) {
+        "CARD_PRIMARY" -> "Card Primary"
+        "ACCOUNT_SECONDARY" -> "Secondary Bank Account"
+        "CASH" -> "Cash"
+        else -> expense.paymentAccount.replace("_", " ")
+    }
+
+    val displayCategory = when (expense.category.uppercase()) {
+        "DINING_OUT" -> "Dining Out"
+        "TRANSPORT" -> "Transportation"
+        "RENT" -> "Housing / Rent"
+        "SUBSCRIPTION" -> "Subscription"
+        "UTILITIES" -> "Utilities"
+        "MISC" -> "Groceries & Misc"
+        else -> expense.category
+    }
+
+    val isCommitted = expense.commitmentType.equals("COMMITTED", ignoreCase = true)
+    val formattedDateTime = formatFullDateTime(expense.dateSpentMillis)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp)
+                .navigationBarsPadding()
+        ) {
+            // Header: Category Icon + Title + Account Badge + Close button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(FigmaIconCircleBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = categoryIcon,
+                            contentDescription = expense.category,
+                            tint = FigmaDarkText,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = expense.title,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = FigmaDarkText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0xFFF1F3F4))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = accountLabel,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = FigmaMutedBrown
+                                )
+                            }
+                        }
+                    }
+                }
+
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = FigmaMutedSlate
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Hero Outflow Amount Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFBF8F5)),
+                border = BorderStroke(1.dp, FigmaBorder)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "EXPENSE AMOUNT",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = FigmaMutedBrown
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(if (isCommitted) Color(0xFFF7EBE6) else Color(0xFFEDE8E3))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = if (isCommitted) "ESSENTIALS" else "LIFESTYLE",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = if (isCommitted) FigmaTerracotta else FigmaDarkText
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "- ${CurrencyFormatter.formatLkr(expense.amountLkr)}",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = FigmaTerracotta
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Additional details card
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, FigmaBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Date & Time
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Date & Time",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = FigmaMutedBrown
+                        )
+                        Text(
+                            text = formattedDateTime,
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = FigmaDarkText
+                        )
+                    }
+
+                    HorizontalDivider(thickness = 0.8.dp, color = FigmaDivider)
+
+                    // Category
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Category",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = FigmaMutedBrown
+                        )
+                        Text(
+                            text = displayCategory,
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = FigmaDarkText
+                        )
+                    }
+
+                    HorizontalDivider(thickness = 0.8.dp, color = FigmaDivider)
+
+                    // Payment Method
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Payment Method",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = FigmaMutedBrown
+                        )
+                        Text(
+                            text = accountLabel,
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = FigmaDarkText
+                        )
+                    }
+
+                    HorizontalDivider(thickness = 0.8.dp, color = FigmaDivider)
+
+                    // Commitment Classification
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Commitment Tier",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = FigmaMutedBrown
+                        )
+                        Text(
+                            text = if (isCommitted) "Committed (Essentials)" else "Discretionary (Lifestyle)",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isCommitted) FigmaTerracotta else FigmaDarkText
+                            )
+                        )
+                    }
+
+                    HorizontalDivider(thickness = 0.8.dp, color = FigmaDivider)
+
+                    // Expense Nature
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Expense Type",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = FigmaMutedBrown
+                        )
+                        Text(
+                            text = if (expense.isRecurring) "Recurring Obligation" else "One-Time Outflow",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = FigmaDarkText
+                        )
+                    }
+
+                    if (!expense.notes.isNullOrBlank()) {
+                        HorizontalDivider(thickness = 0.8.dp, color = FigmaDivider)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Notes",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                color = FigmaMutedBrown
+                            )
+                            Text(
+                                text = expense.notes,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Normal),
+                                color = FigmaDarkText
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Action Buttons: Delete on bottom-left, Edit on bottom-right
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Bottom-Left: Delete
+                OutlinedButton(
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onDelete()
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFD32F2F).copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFD32F2F)
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        modifier = Modifier.size(17.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Delete",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+
+                // Bottom-Right: Edit
+                Button(
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onEdit()
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = FigmaTerracotta,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        modifier = Modifier.size(17.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Edit",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
         }
     }
