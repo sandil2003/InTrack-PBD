@@ -11,6 +11,8 @@ import kotlinx.coroutines.tasks.await
 interface SubscriptionRepository {
     fun getSubscriptions(userId: String): Flow<List<SubscriptionEntity>>
     suspend fun addSubscription(subscription: SubscriptionEntity): Result<Unit>
+    suspend fun updateSubscription(subscription: SubscriptionEntity): Result<Unit>
+    suspend fun deleteSubscription(userId: String, subscriptionId: String): Result<Unit>
     suspend fun updateSubscriptionStatus(userId: String, subscriptionId: String, newStatus: String): Result<Unit>
     suspend fun updateSubscriptionAutoPayment(userId: String, subscriptionId: String, isAutoPayment: Boolean): Result<Unit>
 }
@@ -51,7 +53,36 @@ class SubscriptionRepositoryImpl(
             } else {
                 db.collection("subscriptions")
             }
-            collection.add(subscription).await()
+            val docRef = if (subscription.id.isNotBlank()) collection.document(subscription.id) else collection.document()
+            docRef.set(subscription.copy(id = docRef.id)).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateSubscription(subscription: SubscriptionEntity): Result<Unit> {
+        return try {
+            val collection = if (subscription.userId.isNotEmpty()) {
+                db.collection("users").document(subscription.userId).collection("subscriptions")
+            } else {
+                db.collection("subscriptions")
+            }
+            collection.document(subscription.id).set(subscription).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteSubscription(userId: String, subscriptionId: String): Result<Unit> {
+        return try {
+            val collection = if (userId.isNotEmpty()) {
+                db.collection("users").document(userId).collection("subscriptions")
+            } else {
+                db.collection("subscriptions")
+            }
+            collection.document(subscriptionId).delete().await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

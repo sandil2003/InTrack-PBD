@@ -75,6 +75,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -95,8 +96,9 @@ fun SubscriptionAuditScreen(
     modifier: Modifier = Modifier
 ) {
     val subscriptionsState by viewModel.subscriptionsState.collectAsState()
-    var showAddDialog by remember { mutableStateOf(false) }
-    var activeActionSub by remember { mutableStateOf<SubscriptionEntity?>(null) }
+    var showAddSheet by remember { mutableStateOf(false) }
+    var subscriptionToEdit by remember { mutableStateOf<SubscriptionEntity?>(null) }
+    var selectedSubscriptionForDetail by remember { mutableStateOf<SubscriptionEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -124,7 +126,10 @@ fun SubscriptionAuditScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = {
+                    subscriptionToEdit = null
+                    showAddSheet = true
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp)
@@ -157,7 +162,10 @@ fun SubscriptionAuditScreen(
                     title = "No Subscriptions Found",
                     message = "No fixed obligations or auto-debits recorded.",
                     actionLabel = "Add Subscription",
-                    onActionClick = { showAddDialog = true },
+                    onActionClick = {
+                        subscriptionToEdit = null
+                        showAddSheet = true
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
@@ -189,33 +197,39 @@ fun SubscriptionAuditScreen(
                     }
 
                     item {
-                        Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 2.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
                                 text = "Recurring Charges",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
+                            Text(
+                                text = "(${filteredList.size})",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
 
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            if (filteredList.isEmpty()) {
-                                EmptyStateView(
-                                    title = "No items in this filter",
-                                    message = "All subscriptions in this category are up to date."
-                                )
-                            } else {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    filteredList.forEach { subscription ->
-                                        SubscriptionItemCard(
-                                            subscription = subscription,
-                                            onClick = { activeActionSub = subscription }
-                                        )
-                                    }
-                                }
-                            }
+                    if (filteredList.isEmpty()) {
+                        item {
+                            EmptyStateView(
+                                title = "No items in this filter",
+                                message = "All subscriptions in this category are up to date."
+                            )
+                        }
+                    } else {
+                        items(filteredList, key = { it.id.ifEmpty { it.name } }) { subscription ->
+                            SubscriptionItemCard(
+                                subscription = subscription,
+                                onClick = { selectedSubscriptionForDetail = subscription }
+                            )
                         }
                     }
 
@@ -228,103 +242,46 @@ fun SubscriptionAuditScreen(
         }
     }
 
-    if (showAddDialog) {
-        AddSubscriptionDialog(
-            onDismiss = { showAddDialog = false },
-            onSubmit = { newSub ->
-                viewModel.addSubscription(newSub)
-                showAddDialog = false
+    if (selectedSubscriptionForDetail != null) {
+        ViewSubscriptionBottomSheet(
+            subscription = selectedSubscriptionForDetail!!,
+            onDismiss = { selectedSubscriptionForDetail = null },
+            onEdit = { subToEdit ->
+                subscriptionToEdit = subToEdit
+                selectedSubscriptionForDetail = null
+                showAddSheet = true
+            },
+            onDelete = { subToDelete ->
+                viewModel.deleteSubscription(subToDelete.id)
+                selectedSubscriptionForDetail = null
                 coroutineScope.launch {
-                    val autoPayText = if (newSub.isAutoPayment) " with Auto-Pay" else ""
-                    snackbarHostState.showSnackbar("Added recurring cost '${newSub.name}' (${CurrencyFormatter.formatLkr(newSub.amountLkr)}/mo)$autoPayText")
+                    snackbarHostState.showSnackbar("Cancelled and deleted ${subToDelete.name}")
                 }
             }
         )
     }
 
-    if (activeActionSub != null) {
-        val sub = activeActionSub!!
-        AlertDialog(
-            onDismissRequest = { activeActionSub = null },
-            title = {
-                Text(text = sub.name, fontWeight = FontWeight.Bold)
+    if (showAddSheet) {
+        AddSubscriptionBottomSheet(
+            initialSubscription = subscriptionToEdit,
+            onDismiss = {
+                showAddSheet = false
+                subscriptionToEdit = null
             },
-            text = {
-                Column {
-                    Text(
-                        text = "Cost: ${CurrencyFormatter.formatLkr(sub.amountLkr)} / month",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Payment Account: ${sub.paymentAccount.replace("_", " ")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Auto Payment: ${if (sub.isAutoPayment) "Enabled (Auto-Debit)" else "Disabled (Manual)"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Status: ${sub.status.lowercase().replaceFirstChar { it.uppercase() }}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                if (sub.status != "CANCELLED") {
-                    Button(
-                        onClick = {
-                            viewModel.updateStatus(sub.id, "CANCELLED")
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Cancelled ${sub.name}! Saved ${CurrencyFormatter.formatLkr(sub.amountLkr)}/month.")
-                            }
-                            activeActionSub = null
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Cancel Subscription")
+            onSubmit = { updatedSub ->
+                if (subscriptionToEdit != null) {
+                    viewModel.updateSubscription(updatedSub)
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Updated '${updatedSub.name}'")
                     }
                 } else {
-                    Button(
-                        onClick = {
-                            viewModel.updateStatus(sub.id, "ACTIVE")
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Re-activated ${sub.name}")
-                            }
-                            activeActionSub = null
-                        }
-                    ) {
-                        Text("Keep Active")
+                    viewModel.addSubscription(updatedSub)
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Added recurring cost '${updatedSub.name}' (${CurrencyFormatter.formatLkr(updatedSub.amountLkr)}/mo)")
                     }
                 }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(
-                        onClick = {
-                            val newAutoPay = !sub.isAutoPayment
-                            viewModel.updateAutoPayment(sub.id, newAutoPay)
-                            activeActionSub = sub.copy(isAutoPayment = newAutoPay)
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar(
-                                    if (newAutoPay) "Enabled auto payment for ${sub.name}"
-                                    else "Disabled auto payment for ${sub.name}"
-                                )
-                            }
-                        }
-                    ) {
-                        Text(if (sub.isAutoPayment) "Disable Auto-Pay" else "Enable Auto-Pay")
-                    }
-                    TextButton(onClick = { activeActionSub = null }) {
-                        Text("Close")
-                    }
-                }
+                showAddSheet = false
+                subscriptionToEdit = null
             }
         )
     }
@@ -432,14 +389,18 @@ fun RentAndRecurringCard(
                             Text(
                                 text = "Secondary Account",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = CurrencyFormatter.formatLkr(secondaryAccountTotal),
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
@@ -457,14 +418,18 @@ fun RentAndRecurringCard(
                             Text(
                                 text = "Card Primary",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = CurrencyFormatter.formatLkr(primaryCardTotal),
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

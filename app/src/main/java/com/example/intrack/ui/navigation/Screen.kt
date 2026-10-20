@@ -18,4 +18,5 @@ sealed class Screen(val route: String, val title: String) {
         fun createRoute(goalId: String): String = "goal_detail/$goalId"
     }
     object AddExpense : Screen("add_expense", "Add an expense")
+    object AddSubscription : Screen("add_subscription", "Add Subscription")
 }

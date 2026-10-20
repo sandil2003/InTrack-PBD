@@ -58,6 +58,7 @@ import com.example.intrack.ui.screens.expenses.ExpenseAnalyticsScreen
 import com.example.intrack.ui.screens.goal.GoalDetailScreen
 import com.example.intrack.ui.screens.goal.GoalTrackerScreen
 import com.example.intrack.ui.screens.income.IncomeHubScreen
+import com.example.intrack.ui.screens.subscriptions.AddSubscriptionScreen
 import com.example.intrack.ui.screens.subscriptions.SubscriptionAuditScreen
 import com.example.intrack.ui.screens.transactions.AllTransactionsScreen
 
@@ -79,7 +80,7 @@ fun FinFlowNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Login.route
 
-    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && currentRoute != Screen.AddExpense.route
+    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && currentRoute != Screen.AddExpense.route && currentRoute != Screen.AddSubscription.route
 
     val navigateToRoute: (String) -> Unit = { route ->
         if (currentRoute != route) {
@@ -257,6 +258,13 @@ fun FinFlowNavGraph(
                 AddExpenseScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onExpenseSaved = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.AddSubscription.route) {
+                AddSubscriptionScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSubscriptionSaved = { navController.popBackStack() }
                 )
             }
         }

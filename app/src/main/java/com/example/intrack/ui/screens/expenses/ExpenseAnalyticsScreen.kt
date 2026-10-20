@@ -118,7 +118,8 @@ import com.example.intrack.data.model.SubscriptionEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.components.ProfileSettingsBottomSheet
-import com.example.intrack.ui.screens.subscriptions.AddSubscriptionDialog
+import com.example.intrack.ui.screens.subscriptions.AddSubscriptionBottomSheet
+import com.example.intrack.ui.screens.subscriptions.ViewSubscriptionBottomSheet
 import com.example.intrack.ui.screens.subscriptions.SubscriptionViewModel
 import com.example.intrack.ui.theme.AppThemeMode
 import com.example.intrack.ui.theme.BrandTangerine
@@ -204,6 +205,7 @@ fun ExpenseAnalyticsScreen(
     var subscriptionFilter by remember { mutableStateOf("ALL") }
     var showAddSubscriptionDialog by remember { mutableStateOf(false) }
     var activeActionSub by remember { mutableStateOf<SubscriptionEntity?>(null) }
+    var subscriptionToEdit by remember { mutableStateOf<SubscriptionEntity?>(null) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -448,13 +450,27 @@ fun ExpenseAnalyticsScreen(
         }
 
         if (showAddSubscriptionDialog) {
-            AddSubscriptionDialog(
+            AddSubscriptionBottomSheet(
                 onDismiss = { showAddSubscriptionDialog = false },
                 onSubmit = { newSub ->
                     subscriptionViewModel.addSubscription(newSub)
                     showAddSubscriptionDialog = false
                     coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Added recurring cost '${newSub.name}' (${CurrencyFormatter.formatLkr(newSub.amountLkr)}/mo)")
+                        snackbarHostState.showSnackbar("Added recurring charge '${newSub.name}' (${CurrencyFormatter.formatLkr(newSub.amountLkr)}/mo)")
+                    }
+                }
+            )
+        }
+
+        if (subscriptionToEdit != null) {
+            AddSubscriptionBottomSheet(
+                initialSubscription = subscriptionToEdit,
+                onDismiss = { subscriptionToEdit = null },
+                onSubmit = { updatedSub ->
+                    subscriptionViewModel.updateSubscription(updatedSub)
+                    subscriptionToEdit = null
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Updated subscription '${updatedSub.name}'")
                     }
                 }
             )
@@ -462,24 +478,19 @@ fun ExpenseAnalyticsScreen(
 
         if (activeActionSub != null) {
             val sub = activeActionSub!!
-            FigmaSubscriptionDetailSheet(
+            ViewSubscriptionBottomSheet(
                 subscription = sub,
                 onDismiss = { activeActionSub = null },
-                onToggleStatus = { newStatus ->
-                    subscriptionViewModel.updateStatus(sub.id, newStatus)
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar(
-                            if (newStatus == "CANCELLED") {
-                                "Paused '${sub.name}'. Saved ${CurrencyFormatter.formatLkr(sub.amountLkr)}/month."
-                            } else {
-                                "Resumed '${sub.name}' (${CurrencyFormatter.formatLkr(sub.amountLkr)}/month)."
-                            }
-                        )
-                    }
+                onEdit = { subToEdit ->
+                    activeActionSub = null
+                    subscriptionToEdit = subToEdit
                 },
-                onMarkAsPaid = {
+                onDelete = { subToDelete ->
+                    val uid = subToDelete.userId.ifBlank { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user" }
+                    subscriptionViewModel.deleteSubscription(uid, subToDelete.id)
+                    activeActionSub = null
                     coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Marked '${sub.name}' as paid for this month.")
+                        snackbarHostState.showSnackbar("Cancelled & deleted subscription '${subToDelete.name}'")
                     }
                 }
             )
@@ -1015,18 +1026,23 @@ fun ExpenseAnalyticsScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        ) {
                                             Text(
                                                 text = "Recurring Charges",
                                                 style = MaterialTheme.typography.titleMedium.copy(
                                                     fontSize = 15.sp,
                                                     fontWeight = FontWeight.Bold
                                                 ),
-                                                color = FigmaDarkText
+                                                color = FigmaDarkText,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
-                                                text = "(${filteredSubs.size} items)",
+                                                text = "(${filteredSubs.size})",
                                                 style = MaterialTheme.typography.labelSmall.copy(
                                                     fontSize = 12.sp,
                                                     fontWeight = FontWeight.Medium
@@ -1034,14 +1050,49 @@ fun ExpenseAnalyticsScreen(
                                                 color = FigmaMutedSlate
                                             )
                                         }
-                                        Text(
-                                            text = nextInDays,
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold
-                                            ),
-                                            color = FigmaTerracotta
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = nextInDays,
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold
+                                                ),
+                                                color = FigmaTerracotta
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(999.dp))
+                                                    .background(FigmaTerracotta.copy(alpha = 0.12f))
+                                                    .clickable {
+                                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        showAddSubscriptionDialog = true
+                                                    }
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.Add,
+                                                        contentDescription = "Add",
+                                                        tint = FigmaTerracotta,
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                    Text(
+                                                        text = "Add",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        ),
+                                                        color = FigmaTerracotta
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 }
 
@@ -1084,7 +1135,7 @@ fun ExpenseAnalyticsScreen(
                                 }
 
                                 item {
-                                    Spacer(modifier = Modifier.height(72.dp))
+                                    Spacer(modifier = Modifier.height(96.dp))
                                 }
                             }
                         }
@@ -2118,8 +2169,13 @@ fun FigmaMonthlyCommitmentsCard(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.5.sp
                     ),
-                    color = mutedLabelColor
+                    color = mutedLabelColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 // Calendar View rounded pill button
                 Row(
@@ -2143,7 +2199,9 @@ fun FigmaMonthlyCommitmentsCard(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = heroTerracotta
+                        color = heroTerracotta,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
