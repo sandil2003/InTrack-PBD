@@ -50,6 +50,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.intrack.ui.screens.auth.LoginScreen
+import com.example.intrack.ui.screens.auth.SignInScreen
+import com.example.intrack.ui.screens.auth.SignUpScreen
 import com.example.intrack.ui.screens.dashboard.DashboardScreen
 import com.example.intrack.ui.screens.expenses.ExpenseAnalyticsScreen
 import com.example.intrack.ui.screens.goal.GoalDetailScreen
@@ -76,7 +78,7 @@ fun FinFlowNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Login.route
 
-    val isBottomBarVisible = currentRoute != Screen.Login.route
+    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route
 
     val navigateToRoute: (String) -> Unit = { route ->
         if (currentRoute != route) {
@@ -116,11 +118,30 @@ fun FinFlowNavGraph(
             popExitTransition = { fadeOut(animationSpec = tween(220)) }
         ) {
             composable(Screen.Login.route) {
-                LoginScreen(
+                SignInScreen(
                     onLoginSuccess = {
                         navController.navigate(Screen.Dashboard.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
+                    },
+                    onNavigateToSignUp = {
+                        navController.navigate(Screen.SignUp.route)
+                    }
+                )
+            }
+
+            composable(Screen.SignUp.route) {
+                SignUpScreen(
+                    onSignUpSuccess = {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onNavigateToSignIn = {
+                        navController.popBackStack()
+                    },
+                    onBackClick = {
+                        navController.popBackStack()
                     }
                 )
             }

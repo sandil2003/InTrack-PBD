@@ -1,7 +1,9 @@
 package com.example.intrack.ui.navigation
 
 sealed class Screen(val route: String, val title: String) {
-    object Login : Screen("login", "Login")
+    object Login : Screen("login", "Sign In")
+    object SignIn : Screen("login", "Sign In")
+    object SignUp : Screen("sign_up", "Sign Up")
     object Dashboard : Screen("dashboard", "Dashboard")
     object IncomeHub : Screen("income_hub", "Income Hub")
     object ExpenseAnalytics : Screen("expense_analytics", "Expense Analytics") {
