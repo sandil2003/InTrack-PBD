@@ -243,7 +243,13 @@ fun FinFlowNavGraph(
                     onNavigateToGoalDetail = { goalId ->
                         navController.navigate(Screen.GoalDetail.createRoute(goalId))
                     },
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onSignOut = {
+                        navController.navigate(Screen.SignIn.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 )
             }
 
