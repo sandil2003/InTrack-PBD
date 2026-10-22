@@ -515,7 +515,7 @@ fun AddGoalValueSheet(
                                 onCheckedChange = { autoSweepEnabled = it },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
-                                    checkedTrackColor = FigmaTerracotta,
+                                    checkedTrackColor = FigmaLightOrange,
                                     uncheckedThumbColor = FigmaMutedSlate,
                                     uncheckedTrackColor = Color(0xFFEFEEEA)
                                 ),
@@ -623,22 +623,13 @@ fun AddGoalValueSheet(
             Spacer(modifier = Modifier.height(4.dp))
 
             // --- 5. Confirm Deposit CTA Button ---
-            Button(
+            InTrackPrimaryButton(
                 onClick = {
                     if (depositAmount > 0) {
                         onConfirmDeposit(depositAmount, selectedSourceId, autoSweepEnabled)
                     }
                 },
-                enabled = depositAmount > 0,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = FigmaTerracotta,
-                    disabledContainerColor = FigmaTerracotta.copy(alpha = 0.5f)
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp)
+                enabled = depositAmount > 0
             ) {
                 Text(
                     text = "Confirm Deposit • ${CurrencyFormatter.formatLkr(depositAmount)}",

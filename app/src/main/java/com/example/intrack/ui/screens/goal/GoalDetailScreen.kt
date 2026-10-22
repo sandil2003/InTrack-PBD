@@ -263,14 +263,8 @@ fun GoalDetailScreen(
 
                     // --- Primary Action CTA Button: "Deposit Funds" ---
                     item {
-                        Button(
-                            onClick = { showDepositSheet = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = FigmaTerracotta),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp)
+                        InTrackPrimaryButton(
+                            onClick = { showDepositSheet = true }
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Savings,
@@ -476,7 +470,7 @@ fun GoalDetailScreen(
                             Icon(
                                 imageVector = Icons.Rounded.AutoGraph,
                                 contentDescription = null,
-                                tint = FigmaTerracotta,
+                                tint = FigmaLightOrange,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))

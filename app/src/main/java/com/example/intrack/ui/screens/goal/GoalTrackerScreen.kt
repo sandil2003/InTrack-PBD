@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,6 +97,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun GoalTrackerScreen(
     onNavigateToGoalDetail: (String) -> Unit,
+    onNavigateToAddGoal: (() -> Unit)? = null,
     onNavigateBack: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onSignOut: () -> Unit = {},
@@ -121,7 +123,13 @@ fun GoalTrackerScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             InTrackAddFab(
-                onClick = { showAddGoalDialog = true },
+                onClick = {
+                    if (onNavigateToAddGoal != null) {
+                        onNavigateToAddGoal()
+                    } else {
+                        showAddGoalDialog = true
+                    }
+                },
                 contentDescription = "New Goal"
             )
         },
@@ -154,7 +162,13 @@ fun GoalTrackerScreen(
                         title = "No Goals Created Yet",
                         message = "Set targets like a new laptop, emergency buffer, or vacation fund.",
                         actionLabel = "Create First Goal",
-                        onActionClick = { showAddGoalDialog = true }
+                        onActionClick = {
+                            if (onNavigateToAddGoal != null) {
+                                onNavigateToAddGoal()
+                            } else {
+                                showAddGoalDialog = true
+                            }
+                        }
                     )
                 }
                 is UiState.Success -> {
@@ -234,7 +248,7 @@ fun GoalTrackerScreen(
     }
 
     if (showAddGoalDialog) {
-        FigmaCreateGoalDialog(
+        AddGoalBottomSheet(
             onDismiss = { showAddGoalDialog = false },
             onSubmit = { newGoal ->
                 viewModel.addGoal(newGoal)
@@ -449,41 +463,21 @@ fun FigmaGoalCard(
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Target: ${CurrencyFormatter.formatLkr(goal.targetAmountLkr)}",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = FigmaMutedSlate,
-                        maxLines = 1,
-                        softWrap = false
-                    )
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    InTrackStatusBadge(
-                        text = if (isCompleted) "Done 🎉" else "${daysLeft}d left",
-                        containerColor = if (isCompleted) FigmaSoftPeach else Color(0xFFF4EEEA),
-                        contentColor = if (isCompleted) FigmaTerracotta else FigmaMutedBrown,
-                        fontSize = 11.sp
-                    )
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
-                        contentDescription = "View Details",
-                        tint = FigmaMutedSlate.copy(alpha = 0.45f),
-                        modifier = Modifier.size(12.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                    contentDescription = "View Details",
+                    tint = FigmaMutedSlate.copy(alpha = 0.45f),
+                    modifier = Modifier.size(12.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Progress Bar
+            // Progress Bar (Dark Orange / Terracotta matching Expenses page)
             InTrackProgressBar(
                 progress = progress,
                 height = 6.dp,
@@ -493,7 +487,7 @@ fun FigmaGoalCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Bottom Metrics Row: Saved amount on left, percentage on right
+            // Bottom Metrics Row: Saved amount on left in smaller text size, percentage on right (right-aligned)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -501,12 +495,11 @@ fun FigmaGoalCard(
             ) {
                 Text(
                     text = "Saved ${CurrencyFormatter.formatLkr(goal.currentSavedLkr)}",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.2).sp
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium
                     ),
-                    color = FigmaDarkText,
+                    color = FigmaMutedSlate,
                     maxLines = 1,
                     softWrap = false,
                     overflow = TextOverflow.Ellipsis
@@ -515,10 +508,12 @@ fun FigmaGoalCard(
                 Text(
                     text = "$percentageInt%",
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 15.sp,
+                        fontSize = 14.5.sp,
                         fontWeight = FontWeight.Bold
                     ),
                     color = FigmaTerracotta,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f),
                     maxLines = 1,
                     softWrap = false
                 )
@@ -532,116 +527,8 @@ fun FigmaCreateGoalDialog(
     onDismiss: () -> Unit,
     onSubmit: (GoalEntity) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var targetAmountText by remember { mutableStateOf("") }
-    var initialDepositText by remember { mutableStateOf("0") }
-    var monthsText by remember { mutableStateOf("12") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Create Financial Goal",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = FigmaDarkText
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Goal Title", color = FigmaMutedSlate) },
-                    placeholder = { Text("e.g. MacBook Pro M4, Japan Trip") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FigmaTerracotta,
-                        unfocusedBorderColor = FigmaBorder
-                    ),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = targetAmountText,
-                    onValueChange = { targetAmountText = it },
-                    label = { Text("Target Amount (LKR)", color = FigmaMutedSlate) },
-                    placeholder = { Text("490000.00") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FigmaTerracotta,
-                        unfocusedBorderColor = FigmaBorder
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = initialDepositText,
-                    onValueChange = { initialDepositText = it },
-                    label = { Text("Initial Saved (LKR)", color = FigmaMutedSlate) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FigmaTerracotta,
-                        unfocusedBorderColor = FigmaBorder
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = monthsText,
-                    onValueChange = { monthsText = it },
-                    label = { Text("Timeframe (Months)", color = FigmaMutedSlate) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FigmaTerracotta,
-                        unfocusedBorderColor = FigmaBorder
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val targetAmt = targetAmountText.toDoubleOrNull() ?: 0.0
-                    val initialSaved = initialDepositText.toDoubleOrNull() ?: 0.0
-                    val months = monthsText.toDoubleOrNull() ?: 12.0
-                    if (title.isNotEmpty() && targetAmt > 0) {
-                        val runRate = (targetAmt - initialSaved) / months.coerceAtLeast(1.0)
-                        val targetDateMillis = System.currentTimeMillis() + (months * 30L * 24L * 60L * 60L * 1000L).toLong()
-                        val newGoal = GoalEntity(
-                            id = UUID.randomUUID().toString(),
-                            title = title,
-                            targetAmountLkr = targetAmt,
-                            currentSavedLkr = initialSaved,
-                            targetDateMillis = targetDateMillis,
-                            monthlyTargetRunRateLkr = runRate
-                        )
-                        onSubmit(newGoal)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = FigmaTerracotta),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Create Goal", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = FigmaDarkText)
-            }
-        },
-        containerColor = Color.White,
-        shape = RoundedCornerShape(20.dp)
+    AddGoalBottomSheet(
+        onDismiss = onDismiss,
+        onSubmit = onSubmit
     )
 }

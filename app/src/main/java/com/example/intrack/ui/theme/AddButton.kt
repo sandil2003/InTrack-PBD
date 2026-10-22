@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 /**
  * Standard Floating Action Button (+) matching the Expenses screen style:
  * - Circular geometry (CircleShape)
- * - Brand Terracotta background (FigmaTerracotta)
+ * - Light Orange background (FigmaLightOrange / #FF5C38 matching Expenses edit button)
  * - White rounded plus icon (Icons.Rounded.Add)
  * - Standard positioning padding (16dp bottom, 4dp end)
  */
@@ -32,7 +32,7 @@ fun InTrackAddFab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     contentDescription: String = "Add",
-    containerColor: Color = FigmaTerracotta,
+    containerColor: Color = FigmaLightOrange,
     contentColor: Color = Color.White,
     shape: Shape = CircleShape,
     iconSize: Dp = 24.dp,
@@ -58,7 +58,7 @@ fun InTrackAddFab(
  * Inline circular (+) icon button matching the Expenses page circular action style:
  * - 36dp circular clickable container
  * - Soft peach or customizable background
- * - Terracotta rounded plus icon
+ * - Light orange rounded plus icon
  */
 @Composable
 fun InTrackAddIconButton(
@@ -67,7 +67,7 @@ fun InTrackAddIconButton(
     size: Dp = 36.dp,
     iconSize: Dp = 18.dp,
     containerColor: Color = FigmaSoftPeach,
-    iconTint: Color = FigmaTerracotta,
+    iconTint: Color = FigmaLightOrange,
     contentDescription: String = "Add"
 ) {
     Box(

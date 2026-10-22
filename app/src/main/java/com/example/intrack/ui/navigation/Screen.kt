@@ -19,6 +19,7 @@ sealed class Screen(val route: String, val title: String) {
     }
     object AddExpense : Screen("add_expense", "Add an expense")
     object AddSubscription : Screen("add_subscription", "Add Subscription")
+    object AddGoal : Screen("add_goal", "New Financial Goal")
     object Settings : Screen("settings", "Settings & Account")
     object EditExpense : Screen("edit_expense?expenseId={expenseId}", "Edit expense") {
         const val navRoute = "edit_expense?expenseId={expenseId}"

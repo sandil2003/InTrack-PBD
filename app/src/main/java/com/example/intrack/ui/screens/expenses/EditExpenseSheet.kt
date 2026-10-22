@@ -409,14 +409,7 @@ fun EditExpenseContent(
                             overflow = TextOverflow.Ellipsis
                         )
                         Spacer(modifier = Modifier.height(3.dp))
-                        Text(
-                            text = if (expense.notes?.isNotBlank() == true) expense.notes!! else "Personal Ledger • Expense Record",
-                            fontFamily = PlusJakartaSansFontFamily,
-                            fontSize = 13.5.sp,
-                            color = FigmaMuted,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        
                     }
 
                     // Hero Total Debited Card
@@ -447,39 +440,16 @@ fun EditExpenseContent(
                                     maxLines = 1
                                 )
 
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = FigmaSettledBg,
-                                    border = BorderStroke(1.dp, FigmaSettledBorder)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(FigmaActiveGreen)
-                                        )
-                                        Text(
-                                            text = "Settled",
-                                            fontFamily = PlusJakartaSansFontFamily,
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = FigmaSettledGreen,
-                                            maxLines = 1,
-                                            softWrap = false
-                                        )
-                                    }
-                                }
+
                             }
 
                             // Amount Display (Baseline aligned like in ViewSubscriptionSheet)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    space = 6.dp,
+                                    alignment = Alignment.CenterHorizontally
+                                ),
                                 verticalAlignment = Alignment.Bottom
                             ) {
                                 Text(
