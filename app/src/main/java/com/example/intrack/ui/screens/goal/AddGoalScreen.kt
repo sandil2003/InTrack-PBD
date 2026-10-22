@@ -2,12 +2,7 @@ package com.example.intrack.ui.screens.goal
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -67,6 +62,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -220,17 +218,8 @@ fun AddGoalContent(
     val amountToSave = (cleanTarget - cleanInitial).coerceAtLeast(0.0)
     val estimatedRunRate = amountToSave / monthsRemaining
 
-    // Blinking cursor transition for hero amount
-    val infiniteTransition = rememberInfiniteTransition(label = "cursorTransition")
-    val cursorAlpha by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "cursorAlpha"
-    )
+    val targetAmountFocusRequester = remember { FocusRequester() }
+    var isTargetAmountFocused by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -371,35 +360,7 @@ fun AddGoalContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Quick suggestion chips
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                listOf("MacBook Pro M4", "Emergency Fund", "Japan Trip", "Car Downpayment").forEach { suggestion ->
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(Color(0xFFF5F3EF))
-                            .border(1.dp, Color(0xFFE4E2DE), CircleShape)
-                            .clickable {
-                                title = suggestion
-                                errorMessage = null
-                            }
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = suggestion,
-                            fontFamily = PlusJakartaSansFontFamily,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF585F6B)
-                        )
-                    }
-                }
-            }
+            
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -412,6 +373,12 @@ fun AddGoalContent(
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color(0xFFFBF9F5))
                 .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(16.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    targetAmountFocusRequester.requestFocus()
+                }
                 .padding(20.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -463,53 +430,30 @@ fun AddGoalContent(
                             keyboardType = KeyboardType.Decimal,
                             imeAction = ImeAction.Next
                         ),
-                        cursorBrush = SolidColor(Color.Transparent),
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-
-                    Spacer(modifier = Modifier.width(3.dp))
-
-                    // Blinking vertical cursor divider (2x28dp, fill #B52705)
-                    Box(
+                        singleLine = true,
+                        cursorBrush = SolidColor(Color(0xFFB52705)),
                         modifier = Modifier
-                            .width(2.dp)
-                            .height(28.dp)
-                            .background(Color(0xFFB52705).copy(alpha = cursorAlpha))
+                            .focusRequester(targetAmountFocusRequester)
+                            .onFocusChanged { focusState ->
+                                isTargetAmountFocused = focusState.isFocused
+                            }
+                            .fillMaxWidth(),
+                        decorationBox = { innerTextField ->
+                            if (targetAmountInput.isEmpty()) {
+                                Text(
+                                    text = "0.00",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = amountFontSize,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF9CA3AF)
+                                )
+                            }
+                            innerTextField()
+                        }
                     )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
-
-                // Quick Increment Chips
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf(50000.0 to "+50k", 100000.0 to "+100k", 250000.0 to "+250k", 500000.0 to "+500k").forEach { (inc, label) ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(CircleShape)
-                                .background(Color(0xFFF5DED4))
-                                .border(1.dp, Color(0xFFE3BEB6), CircleShape)
-                                .clickable {
-                                    val current = targetAmountInput.replace(",", "").toDoubleOrNull() ?: 0.0
-                                    val updated = current + inc
-                                    targetAmountInput = String.format(Locale.US, "%.2f", updated)
-                                }
-                                .padding(vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = label,
-                                fontFamily = PlusJakartaSansFontFamily,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFB52705)
-                            )
-                        }
-                    }
-                }
             }
         }
 
@@ -577,34 +521,7 @@ fun AddGoalContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Starter increment chips
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                listOf(0.0 to "0", 10000.0 to "+10k", 25000.0 to "+25k", 50000.0 to "+50k").forEach { (st, label) ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(CircleShape)
-                            .background(Color(0xFFF5F3EF))
-                            .border(1.dp, Color(0xFFE4E2DE), CircleShape)
-                            .clickable {
-                                initialDepositInput = String.format(Locale.US, "%.2f", st)
-                            }
-                            .padding(vertical = 5.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            fontFamily = PlusJakartaSansFontFamily,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF585F6B)
-                        )
-                    }
-                }
-            }
+            
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -1168,7 +1085,12 @@ fun AddGoalContent(
                             currentSavedLkr = parsedInitial,
                             targetDateMillis = selectedDateMillis,
                             monthlyTargetRunRateLkr = runRate,
-                            isCompleted = parsedInitial >= parsedTarget
+                            isCompleted = parsedInitial >= parsedTarget,
+                            category = selectedCategoryKey,
+                            initialDepositLkr = parsedInitial,
+                            primaryFundingSource = selectedAccountKey,
+                            remindMonthlyPace = remindPace,
+                            createdAtMillis = System.currentTimeMillis()
                         )
 
                         onSubmit(newGoal)

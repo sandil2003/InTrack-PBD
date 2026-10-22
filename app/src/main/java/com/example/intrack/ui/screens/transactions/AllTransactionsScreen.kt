@@ -98,7 +98,8 @@ class AllTransactionsViewModel(
     val uiState: StateFlow<UiState<AllTransactionsData>> = _uiState
 
     init {
-        loadData("guest_user")
+        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+        loadData(currentUid)
     }
 
     fun loadData(userId: String) {
@@ -185,8 +186,10 @@ fun AllTransactionsScreen(
                 EmptyStateView(
                     title = "Error Loading Transactions",
                     message = errorMsg,
-                    actionLabel = "Retry",
-                    onActionClick = { viewModel.loadData("guest_user") },
+                    onActionClick = {
+                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                        viewModel.loadData(currentUid)
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
             }

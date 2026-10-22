@@ -98,8 +98,9 @@ class DashboardViewModel(
     }
 
     fun allocateWindfallToGoal(amountLkr: Double, goalId: String = "macbook_m4_goal") {
+        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
         viewModelScope.launch {
-            goalRepository.allocateWindfallToGoal("guest_user", amountLkr, goalId)
+            goalRepository.allocateWindfallToGoal(currentUid, amountLkr, goalId)
         }
     }
 }

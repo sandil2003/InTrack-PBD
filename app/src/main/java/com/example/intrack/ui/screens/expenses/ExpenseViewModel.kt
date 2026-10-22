@@ -65,17 +65,20 @@ class ExpenseViewModel(
     }
 
     fun updateExpense(expense: ExpenseEntity) {
+        val currentUid = if (expense.userId.isNotBlank()) expense.userId else (FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
+        val prepared = expense.copy(userId = currentUid)
         viewModelScope.launch {
             val currentState = _expensesState.value
             if (currentState is UiState.Success) {
-                val updatedList = currentState.data.map { if (it.id == expense.id) expense else it }
+                val updatedList = currentState.data.map { if (it.id == prepared.id) prepared else it }
                 _expensesState.value = UiState.Success(updatedList)
             }
-            expenseRepository.updateExpense(expense)
+            expenseRepository.updateExpense(prepared)
         }
     }
 
     fun deleteExpense(userId: String, expenseId: String) {
+        val currentUid = if (userId.isNotBlank()) userId else (FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
         viewModelScope.launch {
             val currentState = _expensesState.value
             if (currentState is UiState.Success) {
@@ -86,7 +89,7 @@ class ExpenseViewModel(
                     _expensesState.value = UiState.Success(updatedList)
                 }
             }
-            expenseRepository.deleteExpense(userId, expenseId)
+            expenseRepository.deleteExpense(currentUid, expenseId)
         }
     }
 }

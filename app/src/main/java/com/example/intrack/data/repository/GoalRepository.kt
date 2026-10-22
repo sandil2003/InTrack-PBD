@@ -43,12 +43,14 @@ class GoalRepositoryImpl(
                 isSeeding = true
                 val sampleList = getDefaultSampleGoals(userId)
                 trySend(sampleList)
-                val batch = db.batch()
-                sampleList.forEach { sampleItem ->
-                    val docRef = collection.document(sampleItem.id)
-                    batch.set(docRef, sampleItem)
-                }
-                batch.commit()
+                try {
+                    val batch = db.batch()
+                    sampleList.forEach { sampleItem ->
+                        val docRef = collection.document(sampleItem.id)
+                        batch.set(docRef, sampleItem)
+                    }
+                    batch.commit()
+                } catch (_: Exception) {}
             } else {
                 trySend(list)
             }
@@ -88,7 +90,8 @@ class GoalRepositoryImpl(
             } else {
                 db.collection("goals")
             }
-            collection.add(goal).await()
+            val docRef = if (goal.id.isNotBlank()) collection.document(goal.id) else collection.document()
+            docRef.set(goal.copy(id = docRef.id)).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -155,6 +158,7 @@ class GoalRepositoryImpl(
     }
 
     private fun getDefaultSampleGoals(userId: String): List<GoalEntity> {
+        val now = System.currentTimeMillis()
         return listOf(
             GoalEntity(
                 id = "macbook_m4_goal",
@@ -162,7 +166,13 @@ class GoalRepositoryImpl(
                 title = "MacBook Pro M4 Fund",
                 targetAmountLkr = 490000.0,
                 currentSavedLkr = 11200.0,
-                monthlyTargetRunRateLkr = 40833.33
+                targetDateMillis = now + (365L * 24 * 60 * 60 * 1000),
+                monthlyTargetRunRateLkr = 40833.33,
+                category = "TECH",
+                initialDepositLkr = 10000.0,
+                primaryFundingSource = "CARD_PRIMARY",
+                remindMonthlyPace = true,
+                createdAtMillis = now - (14L * 24 * 60 * 60 * 1000)
             ),
             GoalEntity(
                 id = "emergency_fund",
@@ -170,7 +180,13 @@ class GoalRepositoryImpl(
                 title = "6-Month Emergency Fund",
                 targetAmountLkr = 250000.0,
                 currentSavedLkr = 85000.0,
-                monthlyTargetRunRateLkr = 25000.0
+                targetDateMillis = now + (180L * 24 * 60 * 60 * 1000),
+                monthlyTargetRunRateLkr = 25000.0,
+                category = "EMERGENCY",
+                initialDepositLkr = 50000.0,
+                primaryFundingSource = "ACCOUNT_SECONDARY",
+                remindMonthlyPace = true,
+                createdAtMillis = now - (30L * 24 * 60 * 60 * 1000)
             ),
             GoalEntity(
                 id = "trip_fund",
@@ -178,7 +194,13 @@ class GoalRepositoryImpl(
                 title = "Tech Conference & Travel",
                 targetAmountLkr = 180000.0,
                 currentSavedLkr = 42000.0,
-                monthlyTargetRunRateLkr = 15000.0
+                targetDateMillis = now + (240L * 24 * 60 * 60 * 1000),
+                monthlyTargetRunRateLkr = 15000.0,
+                category = "TRAVEL",
+                initialDepositLkr = 20000.0,
+                primaryFundingSource = "CARD_PRIMARY",
+                remindMonthlyPace = false,
+                createdAtMillis = now - (20L * 24 * 60 * 60 * 1000)
             )
         )
     }

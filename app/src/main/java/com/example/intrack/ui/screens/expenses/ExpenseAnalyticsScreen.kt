@@ -322,7 +322,9 @@ fun ExpenseAnalyticsScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            viewModel.deleteExpense("guest_user", exp.id)
+                            val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                            val targetUid = exp.userId.ifBlank { currentUid }
+                            viewModel.deleteExpense(targetUid, exp.id)
                             expenseToDelete = null
                             selectedExpense = null
                             coroutineScope.launch {
@@ -512,7 +514,10 @@ fun ExpenseAnalyticsScreen(
                                 title = "Error Loading Expenses",
                                 message = errorMsg,
                                 actionLabel = "Retry",
-                                onActionClick = { viewModel.loadExpenses("guest_user") }
+                                onActionClick = {
+                                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                                    viewModel.loadExpenses(currentUid)
+                                }
                             )
                         }
                         is UiState.Empty -> {
@@ -802,7 +807,10 @@ fun ExpenseAnalyticsScreen(
                                 title = "Error Loading Subscriptions",
                                 message = errorMsg,
                                 actionLabel = "Retry",
-                                onActionClick = { subscriptionViewModel.loadSubscriptions("guest_user") }
+                                onActionClick = {
+                                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                                    subscriptionViewModel.loadSubscriptions(currentUid)
+                                }
                             )
                         }
                         is UiState.Empty -> {

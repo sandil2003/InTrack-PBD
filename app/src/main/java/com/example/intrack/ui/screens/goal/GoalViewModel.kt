@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+import com.google.firebase.auth.FirebaseAuth
+
 class GoalViewModel(
     private val goalRepository: GoalRepository = GoalRepositoryImpl()
 ) : ViewModel() {
@@ -18,7 +20,8 @@ class GoalViewModel(
     val goalsState: StateFlow<UiState<List<GoalEntity>>> = _goalsState
 
     init {
-        loadGoals("guest_user")
+        val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+        loadGoals(currentUid)
     }
 
     fun loadGoals(userId: String) {
@@ -35,20 +38,46 @@ class GoalViewModel(
     }
 
     fun addGoal(goal: GoalEntity) {
+        val currentUid = if (goal.userId.isNotBlank()) goal.userId else (FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
+        val preparedGoal = goal.copy(userId = currentUid)
         viewModelScope.launch {
-            goalRepository.addGoal(goal.copy(userId = "guest_user"))
+            goalRepository.addGoal(preparedGoal)
         }
     }
 
-    fun allocateWindfall(amountLkr: Double, goalId: String = "macbook_m4_goal") {
+    fun updateGoal(goal: GoalEntity) {
+        val currentUid = if (goal.userId.isNotBlank()) goal.userId else (FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
+        val preparedGoal = goal.copy(userId = currentUid)
         viewModelScope.launch {
-            goalRepository.allocateWindfallToGoal("guest_user", amountLkr, goalId)
+            val currentState = _goalsState.value
+            if (currentState is UiState.Success) {
+                val updatedList = currentState.data.map { if (it.id == preparedGoal.id) preparedGoal else it }
+                _goalsState.value = UiState.Success(updatedList)
+            }
+            goalRepository.updateGoal(preparedGoal)
         }
     }
 
-    fun deleteGoal(goalId: String, userId: String = "guest_user") {
+    fun allocateWindfall(amountLkr: Double, goalId: String = "macbook_m4_goal", userId: String? = null) {
+        val currentUid = userId ?: (FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
         viewModelScope.launch {
-            goalRepository.deleteGoal(userId, goalId)
+            goalRepository.allocateWindfallToGoal(currentUid, amountLkr, goalId)
+        }
+    }
+
+    fun deleteGoal(goalId: String, userId: String? = null) {
+        val currentUid = userId ?: (FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
+        viewModelScope.launch {
+            val currentState = _goalsState.value
+            if (currentState is UiState.Success) {
+                val updatedList = currentState.data.filter { it.id != goalId }
+                if (updatedList.isEmpty()) {
+                    _goalsState.value = UiState.Empty
+                } else {
+                    _goalsState.value = UiState.Success(updatedList)
+                }
+            }
+            goalRepository.deleteGoal(currentUid, goalId)
         }
     }
 }

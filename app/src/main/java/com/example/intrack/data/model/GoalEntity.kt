@@ -8,5 +8,11 @@ data class GoalEntity(
     val currentSavedLkr: Double = 11200.0,
     val targetDateMillis: Long = System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000),
     val monthlyTargetRunRateLkr: Double = 40833.33,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val category: String = "TECH",
+    val initialDepositLkr: Double = 0.0,
+    val primaryFundingSource: String = "CARD_PRIMARY",
+    val remindMonthlyPace: Boolean = true,
+    val createdAtMillis: Long = System.currentTimeMillis()
 )
+

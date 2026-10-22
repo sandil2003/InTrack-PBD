@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+import com.google.firebase.auth.FirebaseAuth
+
 class IncomeViewModel(
     private val incomeRepository: IncomeRepository = IncomeRepositoryImpl()
 ) : ViewModel() {
@@ -18,7 +20,8 @@ class IncomeViewModel(
     val incomesState: StateFlow<UiState<List<IncomeEntity>>> = _incomesState
 
     init {
-        loadIncomes("guest_user")
+        val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+        loadIncomes(currentUid)
     }
 
     fun loadIncomes(userId: String) {
@@ -35,20 +38,25 @@ class IncomeViewModel(
     }
 
     fun addIncome(income: IncomeEntity) {
+        val currentUid = if (income.userId.isNotBlank()) income.userId else (FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
+        val prepared = income.copy(userId = currentUid)
         viewModelScope.launch {
-            incomeRepository.addIncome(income)
+            incomeRepository.addIncome(prepared)
         }
     }
 
     fun updateIncome(income: IncomeEntity) {
+        val currentUid = if (income.userId.isNotBlank()) income.userId else (FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
+        val prepared = income.copy(userId = currentUid)
         viewModelScope.launch {
-            incomeRepository.updateIncome(income)
+            incomeRepository.updateIncome(prepared)
         }
     }
 
-    fun deleteIncome(incomeId: String, userId: String = "guest_user") {
+    fun deleteIncome(incomeId: String, userId: String? = null) {
+        val currentUid = userId ?: (FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
         viewModelScope.launch {
-            incomeRepository.deleteIncome(userId, incomeId)
+            incomeRepository.deleteIncome(currentUid, incomeId)
         }
     }
 }
