@@ -3,15 +3,18 @@ package com.example.intrack.data.repository
 import com.example.intrack.data.remote.FirestoreService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
 interface AuthRepository {
     fun getCurrentUser(): FirebaseUser?
     suspend fun signInWithEmail(email: String, password: String): Result<FirebaseUser>
     suspend fun signUpWithEmail(name: String, email: String, password: String): Result<FirebaseUser>
+    suspend fun signInWithGoogle(idToken: String): Result<FirebaseUser>
     suspend fun sendPasswordResetEmail(email: String): Result<Unit>
     suspend fun signInAnonymously(): Result<FirebaseUser>
     fun signOut()
@@ -59,6 +62,31 @@ class AuthRepositoryImpl(
                 db.collection("users").document(user.uid).set(userProfile).await()
             } catch (_: Exception) {
                 // If offline or rule initialization, auth user session remains valid
+            }
+
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun signInWithGoogle(idToken: String): Result<FirebaseUser> {
+        return try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val result = auth.signInWithCredential(credential).await()
+            val user = result.user ?: throw Exception("Google authentication returned empty user session")
+
+            // Initialize or merge user document in Cloud Firestore
+            val userProfile = hashMapOf(
+                "displayName" to (user.displayName ?: "User"),
+                "email" to (user.email ?: ""),
+                "photoUrl" to (user.photoUrl?.toString() ?: ""),
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            try {
+                db.collection("users").document(user.uid).set(userProfile, SetOptions.merge()).await()
+            } catch (_: Exception) {
+                // Ignore Firestore sync errors so auth session succeeds even offline
             }
 
             Result.success(user)

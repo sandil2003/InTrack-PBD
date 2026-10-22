@@ -64,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -107,6 +108,7 @@ fun SignUpScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     LaunchedEffect(authState) {
         if (authState is UiState.Success) {
@@ -490,10 +492,8 @@ fun SignUpScreen(
             // 4. Social Authentication Options
             SocialAuthSection(
                 onGoogleClick = {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Google Sign-In initialized.")
-                        viewModel.continueOffline(onSignUpSuccess)
-                    }
+                    focusManager.clearFocus()
+                    viewModel.signInWithGoogle(context, onSignUpSuccess)
                 },
                 onAppleClick = {
                     coroutineScope.launch {

@@ -8,6 +8,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isOwner(userId);
 
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+
       match /incomes/{incomeId} {
         allow read, write: if isOwner(userId);
       }
@@ -16,6 +20,9 @@ service cloud.firestore {
       }
       match /goals/{goalId} {
         allow read, write: if isOwner(userId);
+        match /contributions/{contributionId} {
+          allow read, write: if isOwner(userId);
+        }
       }
       match /subscriptions/{subscriptionId} {
         allow read, write: if isOwner(userId);
@@ -30,6 +37,12 @@ service cloud.firestore {
     }
     match /goals/{goalId} {
       allow read, write: if true;
+      match /{document=**} {
+        allow read, write: if true;
+      }
+      match /contributions/{contributionId} {
+        allow read, write: if true;
+      }
     }
     match /subscriptions/{subscriptionId} {
       allow read, write: if true;

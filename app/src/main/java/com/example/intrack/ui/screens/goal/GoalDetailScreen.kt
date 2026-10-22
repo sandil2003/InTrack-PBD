@@ -24,10 +24,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.AutoGraph
 import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CurrencyBitcoin
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.LaptopMac
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.AlertDialog
@@ -50,6 +54,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +73,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.intrack.data.model.GoalContributionEntity
 import com.example.intrack.data.model.GoalEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
@@ -83,7 +89,9 @@ import kotlinx.coroutines.launch
  * - Main Goal Card (2026:1559): Category icon, Goal Title, Centered Hero Amount, Target caption, Saved / Time pills, Progress bar
  * - Primary Action CTA: "Deposit Funds" (opens AddGoalValueSheet)
  * - Quick Metrics Grid (2026:1578): MONTHLY PACE & TARGET DATE side-by-side cards
+ * - Savings Pace Analysis Card (Required vs Actual pace & deficit/surplus)
  * - Milestones Stepper & What-If Calculator Simulator
+ * - Deposit & Windfall History Timeline
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,6 +102,19 @@ fun GoalDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val goalsState by viewModel.goalsState.collectAsState()
+    val contributionsMap by viewModel.contributionsState.collectAsState()
+    val currentGoalsList = (goalsState as? UiState.Success<List<GoalEntity>>)?.data ?: emptyList()
+    val currentGoal = currentGoalsList.find { it.id == goalId } ?: currentGoalsList.firstOrNull() ?: GoalEntity()
+    val contributions = contributionsMap[goalId]?.takeIf { it.isNotEmpty() }
+        ?: currentGoal.contributions.takeIf { it.isNotEmpty() }
+        ?: emptyList()
+
+    LaunchedEffect(goalId) {
+        if (goalId.isNotBlank()) {
+            viewModel.loadContributions(goalId)
+        }
+    }
+
     var showWhatIfModal by remember { mutableStateOf(false) }
     var showDepositSheet by remember { mutableStateOf(false) }
     var showDeleteGoalConfirm by remember { mutableStateOf(false) }
@@ -172,8 +193,27 @@ fun GoalDetailScreen(
                     label = "goalProgress"
                 )
                 val isCompleted = goal.isCompleted || progress >= 1f
-                val daysLeft = DateUtils.daysBetween(System.currentTimeMillis(), goal.targetDateMillis).coerceAtLeast(0L)
+                val now = System.currentTimeMillis()
+                val daysLeft = DateUtils.daysBetween(now, goal.targetDateMillis).coerceAtLeast(0L)
                 val percentageInt = (progress * 100).toInt()
+
+                val remainingToSave = (goal.targetAmountLkr - goal.currentSavedLkr).coerceAtLeast(0.0)
+                val monthsRemaining = (daysLeft / 30.4375).coerceAtLeast(0.1)
+
+                val dynamicRequiredMonthlyPace = if (isCompleted || remainingToSave <= 0.0) {
+                    0.0
+                } else {
+                    remainingToSave / monthsRemaining
+                }
+
+                val elapsedMillis = (now - goal.createdAtMillis).coerceAtLeast(1L)
+                val elapsedDays = (elapsedMillis / (24L * 60 * 60 * 1000L)).coerceAtLeast(1L)
+                val elapsedMonths = (elapsedDays / 30.4375).coerceAtLeast(0.25)
+                val actualMonthlySavingsRate = (goal.currentSavedLkr / elapsedMonths)
+
+                val isPaceOnTrack = isCompleted || (actualMonthlySavingsRate >= dynamicRequiredMonthlyPace)
+                val paceDeficit = (dynamicRequiredMonthlyPace - actualMonthlySavingsRate).coerceAtLeast(0.0)
+                val paceSurplus = (actualMonthlySavingsRate - dynamicRequiredMonthlyPace).coerceAtLeast(0.0)
 
                 LazyColumn(
                     modifier = Modifier
@@ -259,7 +299,6 @@ fun GoalDetailScreen(
                                 Spacer(modifier = Modifier.height(6.dp))
 
                                 // Target Caption & Remaining breakdown
-                                val remainingToSave = (goal.targetAmountLkr - goal.currentSavedLkr).coerceAtLeast(0.0)
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -466,8 +505,8 @@ fun GoalDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             FigmaStatCard(
-                                label = "MONTHLY PACE",
-                                value = "${CurrencyFormatter.formatLkr(goal.monthlyTargetRunRateLkr)}/mo",
+                                label = "REQUIRED PACE",
+                                value = if (isCompleted) "Completed" else "${CurrencyFormatter.formatLkr(dynamicRequiredMonthlyPace)}/mo",
                                 icon = Icons.Rounded.Speed,
                                 modifier = Modifier.weight(1f)
                             )
@@ -478,6 +517,160 @@ fun GoalDetailScreen(
                                 icon = Icons.Rounded.CalendarToday,
                                 modifier = Modifier.weight(1f)
                             )
+                        }
+                    }
+
+                    // --- 4. Dynamic Savings Pace Analysis Card (Scenario Core Implementation) ---
+                    item {
+                        InTrackCard(
+                            shape = InTrackMediumCardShape,
+                            elevation = 0.5.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Savings Pace Analysis",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = FigmaDarkText
+                                    )
+
+                                    InTrackStatusBadge(
+                                        text = when {
+                                            isCompleted -> "Target Reached 🎉"
+                                            isPaceOnTrack -> "On Track"
+                                            else -> "Pace Deficit"
+                                        },
+                                        containerColor = when {
+                                            isCompleted || isPaceOnTrack -> Color(0xFFE8F5E9)
+                                            else -> FigmaSoftPeach
+                                        },
+                                        contentColor = when {
+                                            isCompleted || isPaceOnTrack -> Color(0xFF2E7D32)
+                                            else -> FigmaTerracotta
+                                        },
+                                        fontSize = 11.5.sp
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(14.dp))
+
+                                // 3-Metric Clean Row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Actual Pace
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "CURRENT PACE",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                letterSpacing = 0.5.sp
+                                            ),
+                                            color = FigmaMutedSlate
+                                        )
+                                        Spacer(modifier = Modifier.height(3.dp))
+                                        Text(
+                                            text = "${CurrencyFormatter.formatLkr(actualMonthlySavingsRate)}/mo",
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = FigmaDarkText,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    // Needed Pace
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "NEEDED PACE",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                letterSpacing = 0.5.sp
+                                            ),
+                                            color = FigmaMutedSlate
+                                        )
+                                        Spacer(modifier = Modifier.height(3.dp))
+                                        Text(
+                                            text = "${CurrencyFormatter.formatLkr(dynamicRequiredMonthlyPace)}/mo",
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = FigmaDarkText,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    // Gap
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.End
+                                    ) {
+                                        Text(
+                                            text = if (paceDeficit > 0) "MONTHLY DEFICIT" else "MONTHLY SURPLUS",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                letterSpacing = 0.5.sp
+                                            ),
+                                            color = if (paceDeficit > 0) FigmaTerracotta else Color(0xFF2E7D32)
+                                        )
+                                        Spacer(modifier = Modifier.height(3.dp))
+                                        Text(
+                                            text = if (paceDeficit > 0) {
+                                                "- ${CurrencyFormatter.formatLkr(paceDeficit)}"
+                                            } else {
+                                                "+ ${CurrencyFormatter.formatLkr(paceSurplus)}"
+                                            },
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = if (paceDeficit > 0) FigmaTerracotta else Color(0xFF2E7D32),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // Minimalist explanatory caption
+                                Text(
+                                    text = when {
+                                        isCompleted -> "Target reached! All goal savings satisfied."
+                                        paceDeficit > 0 -> "Saving ${CurrencyFormatter.formatLkr(paceDeficit)}/mo below the pace needed to meet your 12-month target on time."
+                                        else -> "Great progress! Your savings velocity is on schedule to reach target by ${DateUtils.formatDate(goal.targetDateMillis)}."
+                                    },
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Normal
+                                    ),
+                                    color = if (paceDeficit > 0) FigmaMutedBrown else Color(0xFF2E7D32)
+                                )
+                            }
                         }
                     }
 
@@ -659,6 +852,133 @@ fun GoalDetailScreen(
                         }
                     }
 
+                    // --- 5. Deposit & Windfall Contribution History Section ---
+                    item {
+                        InTrackCard(
+                            shape = InTrackMediumCardShape,
+                            elevation = 0.5.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Deposit History",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = FigmaDarkText
+                                    )
+
+                                    InTrackStatusBadge(
+                                        text = "${contributions.size} Deposits",
+                                        containerColor = Color(0xFFF4EEEA),
+                                        contentColor = FigmaMutedBrown,
+                                        fontSize = 11.sp
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(14.dp))
+
+                                if (contributions.isEmpty()) {
+                                    Text(
+                                        text = "No deposits recorded yet. Use 'Deposit Funds' to allocate savings or sweep freelance windfalls.",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 12.sp
+                                        ),
+                                        color = FigmaMutedSlate
+                                    )
+                                } else {
+                                    contributions.forEachIndexed { index, contrib ->
+                                        val icon = when (contrib.sourceId) {
+                                            "freelance_milestone" -> Icons.Rounded.LaptopMac
+                                            "monthly_salary" -> Icons.Rounded.AccountBalance
+                                            "adsense_usd" -> Icons.Rounded.Language
+                                            "crypto_profit" -> Icons.Rounded.CurrencyBitcoin
+                                            else -> Icons.Rounded.Savings
+                                        }
+
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(CircleShape)
+                                                        .background(FigmaSoftPeach),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = icon,
+                                                        contentDescription = null,
+                                                        tint = FigmaTerracotta,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+
+                                                Column {
+                                                    Text(
+                                                        text = contrib.sourceTitle,
+                                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                                            fontSize = 13.sp,
+                                                            fontWeight = FontWeight.SemiBold
+                                                        ),
+                                                        color = FigmaDarkText,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    Text(
+                                                        text = DateUtils.formatDate(contrib.timestampMillis) + if (!contrib.note.isNullOrBlank()) " • ${contrib.note}" else "",
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontSize = 11.sp
+                                                        ),
+                                                        color = FigmaMutedSlate,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                            }
+
+                                            Text(
+                                                text = "+ ${CurrencyFormatter.formatLkr(contrib.amountLkr)}",
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                ),
+                                                color = FigmaTerracottaOrange
+                                            )
+                                        }
+
+                                        if (index < contributions.size - 1) {
+                                            HorizontalDivider(
+                                                modifier = Modifier.padding(vertical = 10.dp),
+                                                color = FigmaDivider,
+                                                thickness = 0.8.dp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
                     }
@@ -668,16 +988,19 @@ fun GoalDetailScreen(
         }
     }
 
-    val goals = (goalsState as? UiState.Success<List<GoalEntity>>)?.data ?: emptyList()
-    val currentGoal = goals.find { it.id == goalId } ?: goals.firstOrNull() ?: GoalEntity()
-
     // --- "Add a goal value" Bottom Sheet (Figma node 2026:1549) ---
     if (showDepositSheet) {
         AddGoalValueSheet(
             goal = currentGoal,
+            contributions = contributions,
             onDismiss = { showDepositSheet = false },
-            onConfirmDeposit = { amount, source, _ ->
-                viewModel.allocateWindfall(amount, currentGoal.id)
+            onConfirmDeposit = { amount, sourceId, sourceTitle, _ ->
+                viewModel.depositToGoal(
+                    amountLkr = amount,
+                    goalId = currentGoal.id,
+                    sourceId = sourceId,
+                    sourceTitle = sourceTitle
+                )
                 showDepositSheet = false
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Deposited ${CurrencyFormatter.formatLkr(amount)} to ${currentGoal.title}!")
