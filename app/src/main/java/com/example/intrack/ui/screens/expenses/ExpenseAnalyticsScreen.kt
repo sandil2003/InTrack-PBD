@@ -52,7 +52,6 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
@@ -121,15 +120,7 @@ import com.example.intrack.ui.components.ProfileSettingsBottomSheet
 import com.example.intrack.ui.screens.subscriptions.AddSubscriptionBottomSheet
 import com.example.intrack.ui.screens.subscriptions.ViewSubscriptionBottomSheet
 import com.example.intrack.ui.screens.subscriptions.SubscriptionViewModel
-import com.example.intrack.ui.theme.AppThemeMode
-import com.example.intrack.ui.theme.BrandTangerine
-import com.example.intrack.ui.theme.BrandTangerineContainer
-import com.example.intrack.ui.theme.BrandTangerineOnContainer
-import com.example.intrack.ui.theme.EssentialsColor
-import com.example.intrack.ui.theme.LifestyleColor
-import com.example.intrack.ui.theme.TangerineShade1
-import com.example.intrack.ui.theme.TangerineShade2
-import com.example.intrack.ui.theme.TangerineShade3
+import com.example.intrack.ui.theme.*
 import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.util.DateUtils
 import kotlinx.coroutines.launch
@@ -194,7 +185,6 @@ fun ExpenseAnalyticsScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var showChartsModal by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
-    var showProfileDropdown by remember { mutableStateOf(false) }
     var showProfileSheet by remember { mutableStateOf(false) }
 
     // Transaction detail modal & action states
@@ -212,19 +202,10 @@ fun ExpenseAnalyticsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = FigmaCanvasBg,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Expense Analytics",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.5).sp
-                        ),
-                        color = FigmaDarkText,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                },
+            InTrackTopBar(
+                title = "Expense Analytics",
+                onNavigateToSettings = onNavigateToSettings,
+                onSignOut = onSignOut,
                 actions = {
                     // Button - Select Date / Month (Figma: 36x36 circular button)
                     Box(
@@ -243,101 +224,12 @@ fun ExpenseAnalyticsScreen(
                     }
 
                     Spacer(modifier = Modifier.width(4.dp))
-
-                    // Button - Profile with Dropdown Menu (Settings & LogOut)
-                    Box {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .clickable { showProfileDropdown = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PersonOutline,
-                                contentDescription = "Profile",
-                                modifier = Modifier.size(18.dp),
-                                tint = FigmaDarkText
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = showProfileDropdown,
-                            onDismissRequest = { showProfileDropdown = false },
-                            shape = RoundedCornerShape(16.dp),
-                            containerColor = Color.White,
-                            border = BorderStroke(1.dp, FigmaBorder),
-                            shadowElevation = 6.dp
-                        ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = "Settings",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        color = FigmaDarkText
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Settings,
-                                        contentDescription = "Settings",
-                                        tint = FigmaDarkText,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                },
-                                onClick = {
-                                    showProfileDropdown = false
-                                    onNavigateToSettings()
-                                }
-                            )
-
-                            HorizontalDivider(
-                                thickness = 0.8.dp,
-                                color = FigmaDivider,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
-
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = "LogOut",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        color = Color(0xFFD32F2F)
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Rounded.ExitToApp,
-                                        contentDescription = "LogOut",
-                                        tint = Color(0xFFD32F2F),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                },
-                                onClick = {
-                                    showProfileDropdown = false
-                                    try {
-                                        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                                    } catch (_: Exception) {}
-                                    onSignOut()
-                                }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = FigmaCanvasBg
-                )
+                }
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
-            FloatingActionButton(
+            InTrackAddFab(
                 onClick = {
                     if (currentTab == ExpenseViewTab.DAILY_TRANSACTIONS) {
                         showAddDialog = true
@@ -345,18 +237,8 @@ fun ExpenseAnalyticsScreen(
                         showAddSubscriptionDialog = true
                     }
                 },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = CircleShape,
-                modifier = Modifier
-                    .padding(bottom = 16.dp, end = 4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Add,
-                    contentDescription = if (currentTab == ExpenseViewTab.DAILY_TRANSACTIONS) "Add transaction" else "Add subscription",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+                contentDescription = if (currentTab == ExpenseViewTab.DAILY_TRANSACTIONS) "Add transaction" else "Add subscription"
+            )
         },
         modifier = modifier
     ) { innerPadding ->
@@ -985,16 +867,7 @@ fun ExpenseAnalyticsScreen(
                                         totalRecurringLkr = totalActive,
                                         secondaryAccountTotal = secondaryTotal,
                                         primaryCardTotal = primaryCardTotal,
-                                        cashTotal = cashTotal,
-                                        onCalendarClick = {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            subscriptionFilter = if (subscriptionFilter == "DUE_WEEK") "ALL" else "DUE_WEEK"
-                                            coroutineScope.launch {
-                                                snackbarHostState.showSnackbar(
-                                                    if (subscriptionFilter == "DUE_WEEK") "Filtered to commitments due this week" else "Showing all fixed commitments"
-                                                )
-                                            }
-                                        }
+                                        cashTotal = cashTotal
                                     )
                                 }
 
@@ -1223,30 +1096,12 @@ fun FigmaHeroOutflowCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 2. Hero Outflow Amount Row: "LKR XX,XXX.XX"
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "LKR",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = heroTerracotta,
-                    modifier = Modifier.padding(bottom = 3.dp)
-                )
-                Text(
-                    text = CurrencyFormatter.formatLkr(totalExpenseLkr).replace("LKR ", ""),
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.5).sp
-                    ),
-                    color = darkTextColor
-                )
-            }
+            // 2. Hero Outflow Amount Row: "LKR XX,XXX.XX" (Centered)
+            InTrackHeroAmount(
+                amountLkr = totalExpenseLkr,
+                prefixColor = heroTerracotta,
+                textColor = darkTextColor
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -1381,42 +1236,7 @@ fun FigmaHeroOutflowCard(
     }
 }
 
-/**
- * Filter Pill matching standard application filter chips across pages
- */
-@Composable
-fun FigmaFilterPill(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    FilterChip(
-        selected = isSelected,
-        onClick = onClick,
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-            )
-        },
-        shape = RoundedCornerShape(10.dp),
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            containerColor = MaterialTheme.colorScheme.surface,
-            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = isSelected,
-            borderColor = MaterialTheme.colorScheme.outlineVariant,
-            selectedBorderColor = MaterialTheme.colorScheme.primary
-        ),
-        modifier = modifier
-    )
-}
+
 
 /**
  * Transaction Card matching Figma node 2001:136 (Background+Border+Shadow)
@@ -1427,15 +1247,6 @@ fun FigmaTransactionCard(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val categoryIcon: ImageVector = when {
-        expense.title.contains("ATM", ignoreCase = true) || (expense.paymentAccount.equals("CASH", ignoreCase = true) && expense.category.equals("MISC", ignoreCase = true)) -> Icons.Default.Payments
-        expense.category.uppercase() == "TRANSPORT" -> Icons.Default.DirectionsCar
-        expense.category.uppercase() == "DINING_OUT" -> Icons.Default.LocalCafe
-        expense.category.uppercase() == "RENT" -> Icons.Default.Home
-        expense.category.uppercase() == "MISC" -> Icons.Default.ShoppingCart
-        else -> Icons.Default.Receipt
-    }
-
     val accountLabel = when (expense.paymentAccount.uppercase()) {
         "CARD_PRIMARY" -> "Card Primary"
         "ACCOUNT_SECONDARY" -> "Bank Primary"
@@ -1468,79 +1279,57 @@ fun FigmaTransactionCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: Icon + Title & Account/Time Subtitle
-            Row(
+            // Left: Title & Account/Time Subtitle
+            Column(
                 modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(FigmaIconCircleBg),
-                    contentAlignment = Alignment.Center
+                Text(
+                    text = expense.title,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = FigmaDarkText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = categoryIcon,
-                        contentDescription = expense.category,
-                        tint = FigmaDarkText,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = expense.title,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = FigmaDarkText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    // Mini account badge (Figma node 2001:145)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(FigmaIconCircleBg)
+                            .padding(horizontal = 6.dp, vertical = 1.dp)
                     ) {
-                        // Mini account badge (Figma node 2001:145)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(FigmaIconCircleBg)
-                                .padding(horizontal = 6.dp, vertical = 1.dp)
-                        ) {
-                            Text(
-                                text = accountLabel,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                color = FigmaMutedBrown
-                            )
-                        }
-
-                        // Time or short date
                         Text(
-                            text = formatTimeOrDate(expense.dateSpentMillis),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = FigmaMutedSlate
+                            text = accountLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = FigmaMutedBrown
                         )
                     }
+
+                    // Time or short date
+                    Text(
+                        text = formatTimeOrDate(expense.dateSpentMillis),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = FigmaMutedSlate
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             // Right: Amount + Category (Figma node 2001:149)
             Column(
@@ -1551,10 +1340,11 @@ fun FigmaTransactionCard(
                     text = "- LKR ${CurrencyFormatter.formatLkr(expense.amountLkr).replace("LKR ", "")}",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.35).sp
+                        fontWeight = FontWeight.Bold
                     ),
-                    color = FigmaDarkText
+                    color = FigmaDarkText,
+                    maxLines = 1,
+                    softWrap = false
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -1563,7 +1353,9 @@ fun FigmaTransactionCard(
                         fontSize = 10.sp,
                         fontWeight = if (isCommitted) FontWeight.SemiBold else FontWeight.Medium
                     ),
-                    color = if (isCommitted) FigmaTerracotta else FigmaMutedSlate
+                    color = if (isCommitted) FigmaTerracotta else FigmaMutedSlate,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         }
@@ -1947,7 +1739,7 @@ fun EditExpenseDialog(
 
 /**
  * Expense views switch matching Figma node 2006:55 / 2006:208 with fluid animated indicator
- * and tactile response.
+ * and tactile response. Delegates to InTrackSegmentedSwitch.
  */
 @Composable
 fun FigmaExpenseViewsSwitch(
@@ -1955,134 +1747,14 @@ fun FigmaExpenseViewsSwitch(
     onTabSelected: (ExpenseViewTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val haptics = LocalHapticFeedback.current
-
-    Box(
+    InTrackSegmentedSwitch(
+        leftLabel = "Daily Transactions",
+        rightLabel = "Subscriptions",
+        isLeftSelected = currentTab == ExpenseViewTab.DAILY_TRANSACTIONS,
+        onLeftSelect = { onTabSelected(ExpenseViewTab.DAILY_TRANSACTIONS) },
+        onRightSelect = { onTabSelected(ExpenseViewTab.SUBSCRIPTIONS) },
         modifier = modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .clip(RoundedCornerShape(9999.dp))
-            .background(FigmaSwitchBg)
-            .border(1.dp, FigmaBorder, RoundedCornerShape(9999.dp))
-            .padding(4.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Tab 1: Daily Transactions
-            val isDaily = currentTab == ExpenseViewTab.DAILY_TRANSACTIONS
-            val dailyBgColor by animateColorAsState(
-                targetValue = if (isDaily) Color.White else Color.Transparent,
-                animationSpec = tween(200),
-                label = "dailyBg"
-            )
-            val dailyTextColor by animateColorAsState(
-                targetValue = if (isDaily) FigmaTerracotta else FigmaMutedSlate,
-                animationSpec = tween(200),
-                label = "dailyText"
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(dailyBgColor)
-                    .then(
-                        if (isDaily) Modifier.border(1.dp, FigmaBorderActive, RoundedCornerShape(9999.dp))
-                        else Modifier
-                    )
-                    .clickable {
-                        if (!isDaily) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onTabSelected(ExpenseViewTab.DAILY_TRANSACTIONS)
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    AnimatedVisibility(
-                        visible = isDaily,
-                        enter = fadeIn(tween(150)) + scaleIn(tween(150)),
-                        exit = fadeOut(tween(150)) + scaleOut(tween(150))
-                    ) {
-                        Row {
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
-                    }
-                    Text(
-                        text = "Daily Transactions",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontSize = 13.5.sp,
-                            fontWeight = if (isDaily) FontWeight.Bold else FontWeight.SemiBold
-                        ),
-                        color = dailyTextColor
-                    )
-                }
-            }
-
-            // Tab 2: Subscriptions
-            val isSubs = currentTab == ExpenseViewTab.SUBSCRIPTIONS
-            val subsBgColor by animateColorAsState(
-                targetValue = if (isSubs) Color.White else Color.Transparent,
-                animationSpec = tween(200),
-                label = "subsBg"
-            )
-            val subsTextColor by animateColorAsState(
-                targetValue = if (isSubs) FigmaTerracotta else FigmaMutedSlate,
-                animationSpec = tween(200),
-                label = "subsText"
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(subsBgColor)
-                    .then(
-                        if (isSubs) Modifier.border(1.dp, FigmaBorderActive, RoundedCornerShape(9999.dp))
-                        else Modifier
-                    )
-                    .clickable {
-                        if (!isSubs) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onTabSelected(ExpenseViewTab.SUBSCRIPTIONS)
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    AnimatedVisibility(
-                        visible = isSubs,
-                        enter = fadeIn(tween(150)) + scaleIn(tween(150)),
-                        exit = fadeOut(tween(150)) + scaleOut(tween(150))
-                    ) {
-                        Row {
-                            
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
-                    }
-                    Text(
-                        text = "Subscriptions",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontSize = 13.5.sp,
-                            fontWeight = if (isSubs) FontWeight.Bold else FontWeight.SemiBold
-                        ),
-                        color = subsTextColor
-                    )
-                }
-            }
-        }
-    }
+    )
 }
 
 /**
@@ -2144,62 +1816,26 @@ fun FigmaMonthlyCommitmentsCard(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
-            // 1. Top Row: Title + "Calendar View" Capsule Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "MONTHLY COMMITMENTS",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.5.sp
-                    ),
-                    color = mutedLabelColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Calendar View rounded pill button
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color(0xFFF7EBE6))
-                        .clickable { onCalendarClick() }
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.CalendarToday,
-                        contentDescription = "Calendar View",
-                        tint = heroTerracotta,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Text(
-                        text = "Calendar View",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = heroTerracotta,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
+            // 1. Top Row: Title
+            Text(
+                text = "MONTHLY COMMITMENTS",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.5.sp
+                ),
+                color = mutedLabelColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 2. Hero Outflow Amount Row: "LKR 40,700.00"
+            // 2. Hero Outflow Amount Row: "LKR 40,700.00" (Centered)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.Bottom
             ) {
                 Text(
                     text = "LKR",
@@ -2210,6 +1846,7 @@ fun FigmaMonthlyCommitmentsCard(
                     color = heroTerracotta,
                     modifier = Modifier.alignByBaseline()
                 )
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = CurrencyFormatter.formatLkr(totalRecurringLkr).replace("LKR ", ""),
                     style = MaterialTheme.typography.headlineMedium.copy(

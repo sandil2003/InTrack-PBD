@@ -55,6 +55,7 @@ import com.example.intrack.ui.screens.auth.SignUpScreen
 import com.example.intrack.ui.screens.dashboard.DashboardScreen
 import com.example.intrack.ui.screens.expenses.AddExpenseScreen
 import com.example.intrack.ui.screens.expenses.ExpenseAnalyticsScreen
+import com.example.intrack.ui.screens.goal.AddGoalScreen
 import com.example.intrack.ui.screens.goal.GoalDetailScreen
 import com.example.intrack.ui.screens.goal.GoalTrackerScreen
 import com.example.intrack.ui.screens.income.IncomeHubScreen
@@ -83,7 +84,7 @@ fun FinFlowNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Login.route
 
-    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && currentRoute != Screen.AddExpense.route && currentRoute != Screen.AddSubscription.route && !currentRoute.startsWith("edit_expense")
+    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && currentRoute != Screen.AddExpense.route && currentRoute != Screen.AddSubscription.route && currentRoute != Screen.AddGoal.route && !currentRoute.startsWith("edit_expense")
 
     val navigateToRoute: (String) -> Unit = { route ->
         if (currentRoute != route) {
@@ -243,7 +244,23 @@ fun FinFlowNavGraph(
                     onNavigateToGoalDetail = { goalId ->
                         navController.navigate(Screen.GoalDetail.createRoute(goalId))
                     },
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateToAddGoal = {
+                        navController.navigate(Screen.AddGoal.route)
+                    },
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onSignOut = {
+                        navController.navigate(Screen.SignIn.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable(Screen.AddGoal.route) {
+                AddGoalScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onGoalSaved = { navController.popBackStack() }
                 )
             }
 

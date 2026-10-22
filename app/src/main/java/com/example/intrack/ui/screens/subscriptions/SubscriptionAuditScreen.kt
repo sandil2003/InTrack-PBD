@@ -319,7 +319,8 @@ fun RentAndRecurringCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.Bottom
             ) {
                 Text(
                     text = "LKR",
@@ -330,6 +331,7 @@ fun RentAndRecurringCard(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.alignByBaseline()
                 )
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = CurrencyFormatter.formatLkr(totalRecurringLkr).replace("LKR ", ""),
                     style = MaterialTheme.typography.headlineLarge.copy(
