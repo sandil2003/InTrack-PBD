@@ -17,7 +17,7 @@ fun LoginScreen(
     SignInScreen(
         onLoginSuccess = onLoginSuccess,
         onNavigateToSignUp = onNavigateToSignUp,
-        onBackClick = {},
+        onBackClick = null,
         viewModel = viewModel,
         modifier = modifier
     )

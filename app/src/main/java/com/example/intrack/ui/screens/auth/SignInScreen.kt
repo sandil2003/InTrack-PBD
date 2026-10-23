@@ -75,6 +75,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.intrack.ui.common.UiState
 import kotlinx.coroutines.launch
 
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
+
 /**
  * Sign In Screen matching Figma node 2007:30
  */
@@ -83,12 +89,13 @@ import kotlinx.coroutines.launch
 fun SignInScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit,
-    onBackClick: () -> Unit = {},
+    onBackClick: (() -> Unit)? = null,
     viewModel: AuthViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     val authState by viewModel.authState.collectAsState()
     val resetPasswordState by viewModel.resetPasswordState.collectAsState()
+    val showGoogleSetupDialog by viewModel.showGoogleSetupDialog.collectAsState()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -103,9 +110,14 @@ fun SignInScreen(
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
 
+    LaunchedEffect(Unit) {
+        viewModel.checkUser()
+    }
+
     LaunchedEffect(authState) {
         if (authState is UiState.Success) {
             onLoginSuccess()
+            viewModel.resetAuthState()
         }
     }
 
@@ -123,18 +135,27 @@ fun SignInScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .imePadding(),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // 1. Top Bar (Back button, Security Guaranteed Pill, Help button)
-            AuthTopBar(
-                onBackClick = onBackClick,
-                onHelpClick = { showHelpDialog = true }
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 480.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 1. Top Bar (Back button, Security Guaranteed Pill, Help button)
+                AuthTopBar(
+                    onBackClick = onBackClick,
+                    onHelpClick = { showHelpDialog = true }
+                )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -202,6 +223,9 @@ fun SignInScreen(
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
                         )
                     )
 
@@ -226,10 +250,13 @@ fun SignInScreen(
                                     fontWeight = FontWeight.SemiBold
                                 ),
                                 color = AuthTerracotta,
-                                modifier = Modifier.clickable {
-                                    resetEmailInput = email
-                                    showForgotPasswordSheet = true
-                                }
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable {
+                                        resetEmailInput = email
+                                        showForgotPasswordSheet = true
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 4.dp)
                             )
                         },
                         keyboardOptions = KeyboardOptions(
@@ -239,7 +266,7 @@ fun SignInScreen(
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 focusManager.clearFocus()
-                                viewModel.signInWithEmail(email, password, onLoginSuccess)
+                                viewModel.signInWithEmail(email, password)
                             }
                         )
                     )
@@ -286,13 +313,13 @@ fun SignInScreen(
                                     }
                                     IconButton(
                                         onClick = { viewModel.clearError() },
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(28.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Rounded.Close,
                                             contentDescription = "Dismiss error",
                                             tint = Color(0xFF9B1C1C),
-                                            modifier = Modifier.size(14.dp)
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
@@ -306,7 +333,9 @@ fun SignInScreen(
                                     color = AuthTerracotta,
                                     modifier = Modifier
                                         .align(Alignment.End)
-                                        .clickable { viewModel.continueOffline(onLoginSuccess) }
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .clickable { viewModel.continueOffline() }
+                                        .padding(horizontal = 6.dp, vertical = 4.dp)
                                 )
                             }
                         }
@@ -316,7 +345,7 @@ fun SignInScreen(
                     Button(
                         onClick = {
                             focusManager.clearFocus()
-                            viewModel.signInWithEmail(email, password, onLoginSuccess)
+                            viewModel.signInWithEmail(email, password)
                         },
                         enabled = authState !is UiState.Loading,
                         shape = RoundedCornerShape(9999.dp),
@@ -366,7 +395,7 @@ fun SignInScreen(
                             .clickable {
                                 coroutineScope.launch {
                                     snackbarHostState.showSnackbar("Biometric authentication verified.")
-                                    viewModel.continueOffline(onLoginSuccess)
+                                    viewModel.continueOffline()
                                 }
                             },
                         verticalAlignment = Alignment.CenterVertically,
@@ -397,12 +426,12 @@ fun SignInScreen(
             SocialAuthSection(
                 onGoogleClick = {
                     focusManager.clearFocus()
-                    viewModel.signInWithGoogle(context, onLoginSuccess)
+                    viewModel.signInWithGoogle(context)
                 },
                 onAppleClick = {
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Apple ID session initialized.")
-                        viewModel.continueOffline(onLoginSuccess)
+                        viewModel.continueOffline()
                     }
                 },
                 modifier = Modifier.padding(horizontal = 20.dp)
@@ -414,8 +443,7 @@ fun SignInScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 24.dp)
-                    .navigationBarsPadding(),
+                    .padding(bottom = 24.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -433,8 +461,12 @@ fun SignInScreen(
                         fontWeight = FontWeight.Bold
                     ),
                     color = AuthPrimaryOrange,
-                    modifier = Modifier.clickable { onNavigateToSignUp() }
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { onNavigateToSignUp() }
+                        .padding(4.dp)
                 )
+            }
             }
         }
 
@@ -491,7 +523,9 @@ fun SignInScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
                         .padding(bottom = 36.dp)
-                        .navigationBarsPadding(),
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
@@ -543,6 +577,17 @@ fun SignInScreen(
                     }
                 }
             }
+        }
+
+        // Google Sign-In Setup & SHA-1 Helper Modal
+        if (showGoogleSetupDialog) {
+            GoogleSetupModal(
+                onDismiss = { viewModel.dismissGoogleSetupDialog() },
+                onContinueDemo = {
+                    viewModel.dismissGoogleSetupDialog()
+                    viewModel.continueOffline()
+                }
+            )
         }
     }
 }

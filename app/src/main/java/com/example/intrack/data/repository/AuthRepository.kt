@@ -59,7 +59,9 @@ class AuthRepositoryImpl(
                 "updatedAt" to FieldValue.serverTimestamp()
             )
             try {
-                db.collection("users").document(user.uid).set(userProfile).await()
+                kotlinx.coroutines.withTimeoutOrNull(4000L) {
+                    db.collection("users").document(user.uid).set(userProfile).await()
+                }
             } catch (_: Exception) {
                 // If offline or rule initialization, auth user session remains valid
             }
@@ -84,7 +86,9 @@ class AuthRepositoryImpl(
                 "updatedAt" to FieldValue.serverTimestamp()
             )
             try {
-                db.collection("users").document(user.uid).set(userProfile, SetOptions.merge()).await()
+                kotlinx.coroutines.withTimeoutOrNull(4000L) {
+                    db.collection("users").document(user.uid).set(userProfile, SetOptions.merge()).await()
+                }
             } catch (_: Exception) {
                 // Ignore Firestore sync errors so auth session succeeds even offline
             }

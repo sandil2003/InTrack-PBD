@@ -36,21 +36,48 @@ class AuthViewModel(
     private val authRepository: AuthRepository = AuthRepositoryImpl()
 ) : ViewModel() {
 
+    companion object {
+        const val DEBUG_SHA1_FINGERPRINT = "41:22:92:CF:87:CF:84:BA:62:2B:2E:01:FF:06:F6:1D:A2:B9:B0:61"
+        const val DEFAULT_WEB_CLIENT_ID = "527660795071-0i7jrn1s461bs3jdf3a8227aiblrmh37.apps.googleusercontent.com"
+    }
+
     private val _authState = MutableStateFlow<UiState<String>>(UiState.Idle)
     val authState: StateFlow<UiState<String>> = _authState
 
     private val _resetPasswordState = MutableStateFlow<UiState<String>>(UiState.Idle)
     val resetPasswordState: StateFlow<UiState<String>> = _resetPasswordState
 
+    private val _showGoogleSetupDialog = MutableStateFlow(false)
+    val showGoogleSetupDialog: StateFlow<Boolean> = _showGoogleSetupDialog
+
     init {
         checkUser()
     }
 
-    private fun checkUser() {
+    fun checkUser() {
         val currentUser = authRepository.getCurrentUser()
         if (currentUser != null) {
             _authState.value = UiState.Success(currentUser.uid)
+        } else {
+            _authState.value = UiState.Idle
         }
+    }
+
+    fun signOut() {
+        authRepository.signOut()
+        _authState.value = UiState.Idle
+    }
+
+    fun resetAuthState() {
+        _authState.value = UiState.Idle
+    }
+
+    fun triggerGoogleSetupDialog() {
+        _showGoogleSetupDialog.value = true
+    }
+
+    fun dismissGoogleSetupDialog() {
+        _showGoogleSetupDialog.value = false
     }
 
     fun signInWithEmail(
@@ -182,13 +209,8 @@ class AuthViewModel(
         onSuccess: () -> Unit = {}
     ) {
         val serverClientId = getWebClientId(context)
-        if (serverClientId.isBlank() || serverClientId.contains("webclientid")) {
-            _authState.value = UiState.Error(
-                "Google Sign-In requires your Web Client ID from Firebase Console.\n\n" +
-                "1. In Firebase Console, add your SHA-1 to Android App.\n" +
-                "2. Go to Authentication > Sign-in method > Google and copy the Web Client ID.\n" +
-                "3. Paste it into strings.xml (server_client_id) or replace google-services.json."
-            )
+        if (serverClientId.isBlank()) {
+            _showGoogleSetupDialog.value = true
             return
         }
 
@@ -217,18 +239,7 @@ class AuthViewModel(
                 ) {
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                     val idToken = googleIdTokenCredential.idToken
-
-                    val authResult = authRepository.signInWithGoogle(idToken)
-                    authResult.fold(
-                        onSuccess = { user ->
-                            _authState.value = UiState.Success(user.uid)
-                            onSuccess()
-                        },
-                        onFailure = { throwable ->
-                            val message = mapAuthException(throwable)
-                            _authState.value = UiState.Error(message, throwable)
-                        }
-                    )
+                    signInWithGoogleToken(idToken, onSuccess)
                 } else {
                     _authState.value = UiState.Error("Unexpected credential type received.")
                 }
@@ -239,11 +250,41 @@ class AuthViewModel(
                 _authState.value = UiState.Error("No Google accounts found on this device.")
             } catch (e: GetCredentialException) {
                 val msg = e.message ?: "Google Sign-In failed."
-                _authState.value = UiState.Error(msg, e)
+                if (msg.contains("developer error", ignoreCase = true) ||
+                    msg.contains("10:", ignoreCase = true) ||
+                    msg.contains("12500", ignoreCase = true) ||
+                    msg.contains("fingerprint", ignoreCase = true) ||
+                    msg.contains("SHA-1", ignoreCase = true)
+                ) {
+                    _authState.value = UiState.Idle
+                    _showGoogleSetupDialog.value = true
+                } else {
+                    _authState.value = UiState.Error(msg, e)
+                }
             } catch (e: Exception) {
                 val msg = e.message ?: "An unexpected error occurred during Google Sign-In."
                 _authState.value = UiState.Error(msg, e)
             }
+        }
+    }
+
+    fun signInWithGoogleToken(
+        idToken: String,
+        onSuccess: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _authState.value = UiState.Loading
+            val authResult = authRepository.signInWithGoogle(idToken)
+            authResult.fold(
+                onSuccess = { user ->
+                    _authState.value = UiState.Success(user.uid)
+                    onSuccess()
+                },
+                onFailure = { throwable ->
+                    val message = mapAuthException(throwable)
+                    _authState.value = UiState.Error(message, throwable)
+                }
+            )
         }
     }
 
@@ -252,15 +293,16 @@ class AuthViewModel(
         val defaultIdRes = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
         if (defaultIdRes != 0) {
             val id = context.getString(defaultIdRes)
-            if (id.isNotBlank()) return id
+            if (id.isNotBlank() && !id.contains("webclientid")) return id
         }
         // 2. Fallback to server_client_id in strings.xml
         val customIdRes = context.resources.getIdentifier("server_client_id", "string", context.packageName)
         if (customIdRes != 0) {
             val id = context.getString(customIdRes)
-            if (id.isNotBlank()) return id
+            if (id.isNotBlank() && !id.contains("webclientid")) return id
         }
-        return ""
+        // 3. Fallback to intrack-finance web client ID
+        return DEFAULT_WEB_CLIENT_ID
     }
 
     fun clearError() {

@@ -113,10 +113,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.intrack.data.model.ExpenseEntity
+import com.example.intrack.data.model.GoalEntity
 import com.example.intrack.data.model.SubscriptionEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.components.ProfileSettingsBottomSheet
+import com.example.intrack.ui.screens.goal.GoalViewModel
 import com.example.intrack.ui.screens.subscriptions.AddSubscriptionBottomSheet
 import com.example.intrack.ui.screens.subscriptions.ViewSubscriptionBottomSheet
 import com.example.intrack.ui.screens.subscriptions.SubscriptionViewModel
@@ -161,6 +163,7 @@ fun ExpenseAnalyticsScreen(
     onSignOut: () -> Unit = {},
     viewModel: ExpenseViewModel = viewModel(),
     subscriptionViewModel: SubscriptionViewModel = viewModel(),
+    goalViewModel: GoalViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     val initialViewTab = if (initialTab.equals("subscriptions", ignoreCase = true)) {
@@ -172,6 +175,14 @@ fun ExpenseAnalyticsScreen(
 
     val expensesState by viewModel.expensesState.collectAsState()
     val subscriptionsState by subscriptionViewModel.subscriptionsState.collectAsState()
+    val goalsState by goalViewModel.goalsState.collectAsState()
+
+    val activeGoal = remember(goalsState) {
+        (goalsState as? UiState.Success<List<GoalEntity>>)?.data?.find { !it.isCompleted }
+            ?: (goalsState as? UiState.Success<List<GoalEntity>>)?.data?.firstOrNull()
+            ?: GoalEntity(title = "MacBook Pro M4 Fund", monthlyTargetRunRateLkr = 40833.33)
+    }
+    val monthlyGoalRunRate = if (activeGoal.monthlyTargetRunRateLkr > 0) activeGoal.monthlyTargetRunRateLkr else 40833.33
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -255,23 +266,19 @@ fun ExpenseAnalyticsScreen(
 
         if (selectedExpense != null) {
             val exp = selectedExpense!!
-            EditExpenseSheet(
+            FigmaTransactionDetailSheet(
                 expense = exp,
+                activeGoal = activeGoal,
                 onDismiss = { selectedExpense = null },
-                onUpdateExpense = { updatedExpense ->
-                    viewModel.updateExpense(updatedExpense)
+                onEdit = {
+                    val toEdit = exp
                     selectedExpense = null
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Updated transaction '${updatedExpense.title}'.")
-                    }
+                    expenseToEdit = toEdit
                 },
-                onDeleteExpense = { toDelete ->
-                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                    viewModel.deleteExpense(currentUid, toDelete.id)
+                onDelete = {
+                    val toDel = exp
                     selectedExpense = null
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Deleted transaction '${toDelete.title}'.")
-                    }
+                    expenseToDelete = toDel
                 }
             )
         }
@@ -536,13 +543,34 @@ fun ExpenseAnalyticsScreen(
                                 DateUtils.matchesMonth(it.dateSpentMillis, selectedMonth)
                             }
 
-                            val totalExpense = monthExpenses.sumOf { it.amountLkr }
-                            val committed = monthExpenses.filter { it.commitmentType == "COMMITTED" }.sumOf { it.amountLkr }
-                            val discretionary = monthExpenses.filter { it.commitmentType == "DISCRETIONARY" }.sumOf { it.amountLkr }
+                            // Outflow expenses exclude internal transfers (e.g. ATM cash withdrawals) to prevent double counting
+                            val outflowExpenses = monthExpenses.filter { !it.isInternalTransfer() }
+
+                            val totalExpense = outflowExpenses.sumOf { it.amountLkr }
+                            val committed = outflowExpenses.filter { it.isCommittedExpense() }.sumOf { it.amountLkr }
+                            val discretionary = outflowExpenses.filter { it.isDiscretionaryExpense() }.sumOf { it.amountLkr }
 
                             val cardPrimaryTotal = monthExpenses.filter { it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) }.sumOf { it.amountLkr }
                             val secondaryAccountTotal = monthExpenses.filter { it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true) }.sumOf { it.amountLkr }
                             val cashTotal = monthExpenses.filter { it.paymentAccount.equals("CASH", ignoreCase = true) }.sumOf { it.amountLkr }
+
+                            // Calculate discretionary dining & coffee outflow for the Shock Insight Banner
+                            val diningCoffeeDiscretionaryTotal = monthExpenses.filter { expense ->
+                                val isDiningOrCoffee = expense.category.equals("DINING_OUT", ignoreCase = true) ||
+                                        expense.category.equals("DINING_IN", ignoreCase = true) ||
+                                        expense.title.contains("coffee", ignoreCase = true) ||
+                                        expense.title.contains("cafe", ignoreCase = true) ||
+                                        expense.title.contains("dining", ignoreCase = true) ||
+                                        expense.title.contains("dinner", ignoreCase = true) ||
+                                        expense.title.contains("lunch", ignoreCase = true) ||
+                                        expense.title.contains("breakfast", ignoreCase = true) ||
+                                        expense.title.contains("botanik", ignoreCase = true) ||
+                                        expense.title.contains("restaurant", ignoreCase = true)
+                                isDiningOrCoffee && expense.isDiscretionaryExpense()
+                            }.sumOf { it.amountLkr }
+
+                            val diningPercentOfGoal = if (monthlyGoalRunRate > 0) ((diningCoffeeDiscretionaryTotal / monthlyGoalRunRate) * 100).toInt() else 0
+                            val shouldShowShockBanner = diningCoffeeDiscretionaryTotal >= 6000.0 && diningPercentOfGoal >= 15
 
                             val categoryBreakdownItems = remember(monthExpenses) {
                                 calculateCategoryBreakdown(monthExpenses)
@@ -550,12 +578,14 @@ fun ExpenseAnalyticsScreen(
 
                             val filteredExpenses = monthExpenses.filter { expense ->
                                 val matchesType = when (selectedTypeFilter) {
-                                    "COMMITTED" -> expense.commitmentType == "COMMITTED"
-                                    "DISCRETIONARY" -> expense.commitmentType == "DISCRETIONARY"
+                                    "COMMITTED" -> expense.isCommittedExpense()
+                                    "DISCRETIONARY" -> expense.isDiscretionaryExpense()
+                                    "TRANSFER" -> expense.isInternalTransfer()
                                     else -> true
                                 }
                                 val matchesCategory = when (selectedCategoryFilter) {
                                     "ALL" -> true
+                                    "ATM_WITHDRAWAL" -> expense.isInternalTransfer() || expense.category.equals("ATM_WITHDRAWAL", ignoreCase = true)
                                     else -> expense.category.equals(selectedCategoryFilter, ignoreCase = true)
                                 }
                                 val matchesAccount = when (selectedAccountFilter) {
@@ -687,7 +717,8 @@ fun ExpenseAnalyticsScreen(
                                                     "TRANSPORT" to "Transport",
                                                     "RENT" to "Housing",
                                                     "SUBSCRIPTION" to "Subscriptions",
-                                                    "UTILITIES" to "Utilities"
+                                                    "UTILITIES" to "Utilities",
+                                                    "ATM_WITHDRAWAL" to "ATM / Transfers"
                                                 ).forEach { (key, label) ->
                                                     val isSelected = selectedCategoryFilter == key
                                                     FigmaFilterPill(
@@ -701,6 +732,17 @@ fun ExpenseAnalyticsScreen(
                                                 }
                                             }
                                         }
+                                    }
+                                }
+
+                                // Item 2b: Dynamic Shock Insight Banner when dining/coffee exceeds threshold
+                                if (shouldShowShockBanner) {
+                                    item(key = "shock_insight_banner") {
+                                        FigmaShockInsightBanner(
+                                            diningCoffeeTotal = diningCoffeeDiscretionaryTotal,
+                                            goalRunRate = monthlyGoalRunRate,
+                                            goalTitle = activeGoal.title
+                                        )
                                     }
                                 }
 
@@ -1255,29 +1297,32 @@ fun FigmaTransactionCard(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val accountLabel = when (expense.paymentAccount.uppercase()) {
-        "CARD_PRIMARY" -> "Card Primary"
-        "ACCOUNT_SECONDARY" -> "Bank Primary"
-        "CASH" -> "Cash"
+    val isInternalTransfer = expense.isInternalTransfer()
+    val isCommitted = expense.isCommittedExpense()
+
+    val accountLabel = when {
+        isInternalTransfer -> "➔ Cash Wallet"
+        expense.paymentAccount.uppercase() == "CARD_PRIMARY" -> "Card Primary"
+        expense.paymentAccount.uppercase() == "ACCOUNT_SECONDARY" -> "Bank Primary"
+        expense.paymentAccount.uppercase() == "CASH" -> "Cash"
         else -> expense.paymentAccount.replace("_", " ")
     }
 
-    val displayCategory = when (expense.category.uppercase()) {
-        "DINING_OUT" -> "Dining"
-        "TRANSPORT" -> "Transport"
-        "RENT" -> "Housing"
-        "SUBSCRIPTION" -> "Subscription"
-        "UTILITIES" -> "Utilities"
-        "MISC" -> "Groceries"
+    val displayCategory = when {
+        isInternalTransfer -> "Internal Transfer"
+        expense.category.uppercase() == "DINING_OUT" -> "Dining"
+        expense.category.uppercase() == "TRANSPORT" -> "Transport"
+        expense.category.uppercase() == "RENT" -> "Housing"
+        expense.category.uppercase() == "SUBSCRIPTION" -> "Subscription"
+        expense.category.uppercase() == "UTILITIES" -> "Utilities"
+        expense.category.uppercase() == "MISC" -> "Groceries"
         else -> expense.category
     }
-
-    val isCommitted = expense.commitmentType.equals("COMMITTED", ignoreCase = true)
 
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, FigmaBorder),
+        border = BorderStroke(1.dp, if (isInternalTransfer) Color(0xFFBFDBFE) else FigmaBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = modifier
             .fillMaxWidth()
@@ -1315,7 +1360,7 @@ fun FigmaTransactionCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
-                            .background(FigmaIconCircleBg)
+                            .background(if (isInternalTransfer) Color(0xFFEFF6FF) else FigmaIconCircleBg)
                             .padding(horizontal = 6.dp, vertical = 1.dp)
                     ) {
                         Text(
@@ -1324,7 +1369,7 @@ fun FigmaTransactionCard(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = FigmaMutedBrown
+                            color = if (isInternalTransfer) Color(0xFF1E40AF) else FigmaMutedBrown
                         )
                     }
 
@@ -1344,27 +1389,51 @@ fun FigmaTransactionCard(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = "- LKR ${CurrencyFormatter.formatLkr(expense.amountLkr).replace("LKR ", "")}",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = FigmaDarkText,
-                    maxLines = 1,
-                    softWrap = false
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = if (isCommitted) "Essentials" else displayCategory,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        fontWeight = if (isCommitted) FontWeight.SemiBold else FontWeight.Medium
-                    ),
-                    color = if (isCommitted) FigmaTerracotta else FigmaMutedSlate,
-                    maxLines = 1,
-                    softWrap = false
-                )
+                if (isInternalTransfer) {
+                    Text(
+                        text = "⇄ LKR ${CurrencyFormatter.formatLkr(expense.amountLkr).replace("LKR ", "")}",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color(0xFF2563EB),
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Transfer to Cash",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color(0xFF2563EB),
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                } else {
+                    Text(
+                        text = "- LKR ${CurrencyFormatter.formatLkr(expense.amountLkr).replace("LKR ", "")}",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = FigmaDarkText,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (isCommitted) "Essentials" else displayCategory,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = if (isCommitted) FontWeight.SemiBold else FontWeight.Medium
+                        ),
+                        color = if (isCommitted) FigmaTerracotta else FigmaMutedSlate,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             }
         }
     }
@@ -2133,12 +2202,17 @@ fun FigmaSubscriptionItemCard(
 @Composable
 fun FigmaTransactionDetailSheet(
     expense: ExpenseEntity,
+    activeGoal: GoalEntity = GoalEntity(title = "MacBook Pro M4 Fund", monthlyTargetRunRateLkr = 40833.33),
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val haptics = LocalHapticFeedback.current
+    val isTransfer = expense.isInternalTransfer()
+    val isCommitted = expense.isCommittedExpense()
+
     val categoryIcon: ImageVector = when {
+        isTransfer || expense.category == "ATM_WITHDRAWAL" -> Icons.Default.Payments
         expense.title.contains("ATM", ignoreCase = true) || (expense.paymentAccount.equals("CASH", ignoreCase = true) && expense.category.equals("MISC", ignoreCase = true)) -> Icons.Default.Payments
         expense.category.uppercase() == "TRANSPORT" -> Icons.Default.DirectionsCar
         expense.category.uppercase() == "DINING_OUT" -> Icons.Default.LocalCafe
@@ -2155,6 +2229,7 @@ fun FigmaTransactionDetailSheet(
     }
 
     val displayCategory = when (expense.category.uppercase()) {
+        "ATM_WITHDRAWAL" -> "ATM / Cash Withdrawal"
         "DINING_OUT" -> "Dining Out"
         "TRANSPORT" -> "Transportation"
         "RENT" -> "Housing / Rent"
@@ -2164,7 +2239,6 @@ fun FigmaTransactionDetailSheet(
         else -> expense.category
     }
 
-    val isCommitted = expense.commitmentType.equals("COMMITTED", ignoreCase = true)
     val formattedDateTime = formatFullDateTime(expense.dateSpentMillis)
 
     ModalBottomSheet(
@@ -2250,12 +2324,14 @@ fun FigmaTransactionDetailSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Hero Outflow Amount Card
+            // Hero Outflow / Transfer Amount Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFBF8F5)),
-                border = BorderStroke(1.dp, FigmaBorder)
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isTransfer) Color(0xFFF0F5FF) else Color(0xFFFBF8F5)
+                ),
+                border = BorderStroke(1.dp, if (isTransfer) Color(0xFFBFDBFE) else FigmaBorder)
             ) {
                 Column(
                     modifier = Modifier
@@ -2268,40 +2344,118 @@ fun FigmaTransactionDetailSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "EXPENSE AMOUNT",
+                            text = if (isTransfer) "INTERNAL TRANSFER" else "EXPENSE AMOUNT",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.5.sp
                             ),
-                            color = FigmaMutedBrown
+                            color = if (isTransfer) Color(0xFF2563EB) else FigmaMutedBrown
                         )
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(999.dp))
-                                .background(if (isCommitted) Color(0xFFF7EBE6) else Color(0xFFEDE8E3))
+                                .background(
+                                    when {
+                                        isTransfer -> Color(0xFFDBEAFE)
+                                        isCommitted -> Color(0xFFF7EBE6)
+                                        else -> Color(0xFFEDE8E3)
+                                    }
+                                )
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
-                                text = if (isCommitted) "ESSENTIALS" else "LIFESTYLE",
+                                text = when {
+                                    isTransfer -> "CASH MOVEMENT"
+                                    isCommitted -> "ESSENTIALS"
+                                    else -> "LIFESTYLE"
+                                },
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = if (isCommitted) FigmaTerracotta else FigmaDarkText
+                                color = when {
+                                    isTransfer -> Color(0xFF1D4ED8)
+                                    isCommitted -> FigmaTerracotta
+                                    else -> FigmaDarkText
+                                }
                             )
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "- ${CurrencyFormatter.formatLkr(expense.amountLkr)}",
+                        text = if (isTransfer) "⇄ ${CurrencyFormatter.formatLkr(expense.amountLkr)}" else "- ${CurrencyFormatter.formatLkr(expense.amountLkr)}",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontSize = 26.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.5).sp
                         ),
-                        color = FigmaTerracotta
+                        color = if (isTransfer) Color(0xFF2563EB) else FigmaTerracotta
                     )
+                }
+            }
+
+            // Transfer explanation notification banner
+            if (isTransfer) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "ℹ️", fontSize = 18.sp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Internal Transfer to Cash Wallet. Excluded from monthly outflow totals to prevent double-counting when spending cash.",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 12.5.sp,
+                                lineHeight = 17.sp,
+                                color = Color(0xFF475569)
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Goal Opportunity Cost Chip (for discretionary lifestyle expenses)
+            if (!isCommitted && !isTransfer) {
+                val goalRunRate = if (activeGoal.monthlyTargetRunRateLkr > 0) activeGoal.monthlyTargetRunRateLkr else 40833.33
+                val costPercentage = ((expense.amountLkr / goalRunRate) * 100).toInt()
+                val percentDisplay = if (costPercentage > 0) "$costPercentage%" else "< 1%"
+                val itemTitle = if (expense.title.isNotBlank() && !expense.title.equals("Expense", ignoreCase = true)) expense.title.lowercase() else "item"
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9F5)),
+                    border = BorderStroke(1.dp, FigmaTerracotta.copy(alpha = 0.35f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "🎯", fontSize = 18.sp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "This ${CurrencyFormatter.formatLkr(expense.amountLkr)} $itemTitle equals $percentDisplay of your monthly ${activeGoal.title} contribution.",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 17.sp,
+                                color = FigmaDarkText
+                            )
+                        )
+                    }
                 }
             }
 
@@ -2392,10 +2546,18 @@ fun FigmaTransactionDetailSheet(
                             color = FigmaMutedBrown
                         )
                         Text(
-                            text = if (isCommitted) "Committed (Essentials)" else "Discretionary (Lifestyle)",
+                            text = when {
+                                isTransfer -> "Internal Transfer (Non-Outflow)"
+                                isCommitted -> "Committed (Essentials)"
+                                else -> "Discretionary (Lifestyle)"
+                            },
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (isCommitted) FigmaTerracotta else FigmaDarkText
+                                color = when {
+                                    isTransfer -> Color(0xFF2563EB)
+                                    isCommitted -> FigmaTerracotta
+                                    else -> FigmaDarkText
+                                }
                             )
                         )
                     }
@@ -2414,7 +2576,11 @@ fun FigmaTransactionDetailSheet(
                             color = FigmaMutedBrown
                         )
                         Text(
-                            text = if (expense.isRecurring) "Recurring Obligation" else "One-Time Outflow",
+                            text = when {
+                                isTransfer -> "Internal Cash Movement"
+                                expense.isRecurring -> "Recurring Obligation"
+                                else -> "One-Time Outflow"
+                            },
                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                             color = FigmaDarkText
                         )
@@ -2886,6 +3052,118 @@ fun FigmaAutoDebitAlertBanner(
                     ),
                     color = FigmaTerracotta
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Dynamic Shock Insight Banner matching InTrack Figma Design Language:
+ * Displays when discretionary dining/coffee spending exceeds threshold,
+ * showing the exact percentage of the user's active goal (e.g. MacBook Pro M4 Fund) monthly requirement.
+ */
+@Composable
+fun FigmaShockInsightBanner(
+    diningCoffeeTotal: Double,
+    goalRunRate: Double,
+    goalTitle: String,
+    modifier: Modifier = Modifier
+) {
+    val percentage = if (goalRunRate > 0) ((diningCoffeeTotal / goalRunRate) * 100).toInt() else 0
+
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7ED)),
+        border = BorderStroke(1.5.dp, Color(0xFFFDBA74)),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(text = "⚠️", fontSize = 16.sp)
+                    Text(
+                        text = "LIFESTYLE IMPACT ALERT",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        ),
+                        color = Color(0xFFC2410C)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color(0xFFFFEDD5))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "$percentage% of Goal Pace",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color(0xFFC2410C)
+                    )
+                }
+            }
+
+            Text(
+                text = "High Lifestyle Outflow: You've spent ${CurrencyFormatter.formatLkr(diningCoffeeTotal)} on Dining & Coffee this month. This accounts for $percentage% of your monthly $goalTitle requirement.",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 18.sp
+                ),
+                color = Color(0xFF7C2D12)
+            )
+
+            // Progress bar showing how much of the monthly goal run-rate has been diverted into dining/coffee
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                val progressFraction = (diningCoffeeTotal / goalRunRate).toFloat().coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFED7AA))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction = progressFraction)
+                            .height(6.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEA580C))
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Dining Outflow: ${CurrencyFormatter.formatLkr(diningCoffeeTotal)}",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = Color(0xFF9A3412)
+                    )
+                    Text(
+                        text = "Monthly Goal Pace: ${CurrencyFormatter.formatLkr(goalRunRate)}",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = Color(0xFF9A3412)
+                    )
+                }
             }
         }
     }

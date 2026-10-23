@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">InTrack</string>
-    <!-- OAuth 2.0 Web Client ID from Firebase Console (Authentication > Sign-in method > Google > Web SDK config) -->
-    <!-- You can either paste it here or download the updated google-services.json from Firebase Console -->
-    <string name="server_client_id">527660795071-webclientid.apps.googleusercontent.com</string>
+    <!-- OAuth 2.0 Web Client ID from Firebase Console (intrack-finance) -->
+    <string name="server_client_id">527660795071-0i7jrn1s461bs3jdf3a8227aiblrmh37.apps.googleusercontent.com</string>
 </resources>

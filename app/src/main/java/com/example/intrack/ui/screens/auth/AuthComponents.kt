@@ -1,5 +1,9 @@
 package com.example.intrack.ui.screens.auth
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -7,6 +11,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,7 +91,7 @@ val AuthPrimaryOrange = Color(0xFFFF5722)
  */
 @Composable
 fun AuthTopBar(
-    onBackClick: () -> Unit,
+    onBackClick: (() -> Unit)? = null,
     onHelpClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -85,21 +103,25 @@ fun AuthTopBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Back Button (40x40 circular white button with subtle border)
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(Color.White)
-                .border(1.dp, AuthBorder, CircleShape)
-                .clickable { onBackClick() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "Back",
-                tint = AuthDarkText,
-                modifier = Modifier.size(18.dp)
-            )
+        if (onBackClick != null) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .border(1.dp, AuthBorder, CircleShape)
+                    .clickable { onBackClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    tint = AuthDarkText,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        } else {
+            Spacer(modifier = Modifier.size(40.dp))
         }
 
         // Security Guaranteed Pill
@@ -261,7 +283,10 @@ fun CapsuleInputField(
                 )
 
                 // Input Text
-                Box(modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart
+                ) {
                     if (value.isEmpty()) {
                         Text(
                             text = placeholder,
@@ -292,13 +317,13 @@ fun CapsuleInputField(
                 if (isPassword) {
                     IconButton(
                         onClick = onTogglePasswordVisibility,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
                             imageVector = if (isPasswordVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
                             contentDescription = if (isPasswordVisible) "Hide password" else "Show password",
                             tint = AuthMutedText,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -401,4 +426,189 @@ fun AppleLogo(modifier: Modifier = Modifier) {
         contentDescription = "Apple Logo",
         modifier = modifier
     )
+}
+
+/**
+ * Bottom Sheet displaying Google Sign-In setup details and 1-tap SHA-1 copy
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GoogleSetupModal(
+    onDismiss: () -> Unit,
+    onContinueDemo: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var isCopied by remember { mutableStateOf(false) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 36.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header Row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GoogleLogo(modifier = Modifier.size(28.dp))
+                Column {
+                    Text(
+                        text = "Google Sign-In Setup",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        ),
+                        color = AuthDarkText
+                    )
+                    Text(
+                        text = "Firebase Authentication Integration",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuthMutedText
+                    )
+                }
+            }
+
+            Text(
+                text = "To enable Google Sign-In with Firebase, register your debug SHA-1 certificate in the Firebase Console:",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 13.5.sp,
+                    lineHeight = 19.sp
+                ),
+                color = AuthDarkText
+            )
+
+            // SHA-1 Card with Copy Button
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = AuthSoftPeach),
+                border = BorderStroke(1.dp, Color(0xFFF0DCD3)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "DEBUG SHA-1 CERTIFICATE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = AuthTerracotta
+                        )
+
+                        // Copy Button
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isCopied) Color(0xFFE6F4EA) else Color.White)
+                                .border(1.dp, if (isCopied) Color(0xFF34A853) else AuthBorder, RoundedCornerShape(8.dp))
+                                .clickable {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("InTrack SHA-1", AuthViewModel.DEBUG_SHA1_FINGERPRINT)
+                                    clipboard.setPrimaryClip(clip)
+                                    isCopied = true
+                                    Toast.makeText(context, "SHA-1 copied to clipboard!", Toast.LENGTH_SHORT).show()
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isCopied) Icons.Rounded.CheckCircle else Icons.Rounded.ContentCopy,
+                                contentDescription = "Copy SHA-1",
+                                tint = if (isCopied) Color(0xFF1E8E3E) else AuthDarkText,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = if (isCopied) "Copied!" else "Copy SHA-1",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = if (isCopied) Color(0xFF1E8E3E) else AuthDarkText
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = AuthViewModel.DEBUG_SHA1_FINGERPRINT,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.5.sp
+                        ),
+                        color = Color(0xFF1B1C1A)
+                    )
+                }
+            }
+
+            // Quick Steps list
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Steps in Firebase Console:",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = AuthDarkText
+                )
+                Text(
+                    text = "1. In Firebase Console, go to Project Settings > General > com.example.intrack.\n2. Click 'Add fingerprint' and paste the copied SHA-1.\n3. Web Client ID is already configured — Google Sign-In will authenticate immediately!",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp
+                    ),
+                    color = AuthMutedText
+                )
+            }
+
+            // Primary action button
+            Button(
+                onClick = onContinueDemo,
+                shape = RoundedCornerShape(9999.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AuthPrimaryOrange,
+                    contentColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text(
+                    text = "Continue with Google (Demo Session)",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
+
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Close",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = AuthMutedText
+                )
+            }
+        }
+    }
 }
