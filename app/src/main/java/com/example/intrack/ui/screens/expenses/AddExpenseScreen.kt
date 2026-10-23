@@ -46,9 +46,14 @@ import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.LocalCafe
+import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material.icons.rounded.Restaurant
+import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.Spa
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -187,6 +192,7 @@ fun AddExpenseContent(
     var amountInput by remember { mutableStateOf("4850.00") }
     var noteText by remember { mutableStateOf("") }
     var isRecurring by remember { mutableStateOf(false) }
+    var commitmentType by remember { mutableStateOf("DISCRETIONARY") }
     var selectedDateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showNewTagDialog by remember { mutableStateOf(false) }
@@ -200,7 +206,9 @@ fun AddExpenseContent(
             ExpenseCategoryItem("TRANSPORT", "Transport", Icons.Rounded.DirectionsCar),
             ExpenseCategoryItem("MISC", "Groceries", Icons.Rounded.ShoppingCart),
             ExpenseCategoryItem("UTILITIES", "Utilities", Icons.Rounded.Bolt),
-            ExpenseCategoryItem("LIFESTYLE", "Lifestyle", Icons.Rounded.Spa)
+            ExpenseCategoryItem("RENT", "Rent", Icons.Rounded.Home),
+            ExpenseCategoryItem("LIFESTYLE", "Lifestyle", Icons.Rounded.Spa),
+            ExpenseCategoryItem("ATM_WITHDRAWAL", "ATM / Cash", Icons.Rounded.Payments)
         )
     }
     var selectedCategoryKey by remember { mutableStateOf("DINING_OUT") }
@@ -461,7 +469,22 @@ fun AddExpenseContent(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
-                            ) { selectedCategoryKey = category.key }
+                            ) {
+                                selectedCategoryKey = category.key
+                                // Smart auto-defaulting based on category
+                                when (category.key) {
+                                    "RENT", "UTILITIES", "MISC" -> {
+                                        commitmentType = "COMMITTED"
+                                    }
+                                    "ATM_WITHDRAWAL" -> {
+                                        commitmentType = "TRANSFER"
+                                        selectedAccountKey = "CARD_PRIMARY"
+                                    }
+                                    "DINING_OUT", "LIFESTYLE", "TRANSPORT" -> {
+                                        commitmentType = "DISCRETIONARY"
+                                    }
+                                }
+                            }
                             .padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -484,7 +507,191 @@ fun AddExpenseContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 4a. ATM / Cash Withdrawal notice if selected
+        if (selectedCategoryKey == "ATM_WITHDRAWAL") {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFFEFF6FF))
+                    .border(1.dp, Color(0xFFBFDBFE), RoundedCornerShape(14.dp))
+                    .padding(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFDBEAFE)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.SwapHoriz,
+                            contentDescription = null,
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Internal Transfer (Non-Expense)",
+                            fontFamily = PlusJakartaSansFontFamily,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E40AF)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Transfers money to your Cash wallet. Excluded from expense outflows to prevent double-counting when spent later.",
+                            fontFamily = PlusJakartaSansFontFamily,
+                            fontSize = 11.sp,
+                            color = Color(0xFF3B82F6),
+                            lineHeight = 15.sp
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+        }
+
+        // 4b. Explicit "Commitment Type" Toggle Card (Essentials/Committed vs Lifestyle/Discretionary)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "COMMITMENT TYPE",
+                    fontFamily = PlusJakartaSansFontFamily,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF585F6B),
+                    letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = when (commitmentType) {
+                        "COMMITTED" -> "Committed (Bills & Needs)"
+                        "TRANSFER" -> "Internal Transfer"
+                        else -> "Discretionary (Wants & Lifestyle)"
+                    },
+                    fontFamily = PlusJakartaSansFontFamily,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (commitmentType == "COMMITTED") Color(0xFFB52705) else Color(0xFF6B5B53)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Option 1: Essentials / Committed
+                val isCommittedSelected = commitmentType == "COMMITTED"
+                val committedBg = if (isCommittedSelected) Color(0xFFF5DED4) else Color(0xFFFBF9F5)
+                val committedBorder = if (isCommittedSelected) Color(0xFFB52705) else Color(0xFFE4E2DE)
+                val committedText = if (isCommittedSelected) Color(0xFFB52705) else Color(0xFF585F6B)
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(committedBg)
+                        .border(if (isCommittedSelected) 1.5.dp else 1.dp, committedBorder, RoundedCornerShape(12.dp))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { commitmentType = "COMMITTED" }
+                        .padding(vertical = 10.dp, horizontal = 10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Security,
+                            contentDescription = "Committed",
+                            tint = committedText,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "Committed",
+                                fontFamily = PlusJakartaSansFontFamily,
+                                fontSize = 12.sp,
+                                fontWeight = if (isCommittedSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                color = committedText
+                            )
+                            Text(
+                                text = "Rent, bills, groceries",
+                                fontFamily = PlusJakartaSansFontFamily,
+                                fontSize = 10.sp,
+                                color = Color(0xFF8C7E75)
+                            )
+                        }
+                    }
+                }
+
+                // Option 2: Lifestyle / Discretionary
+                val isDiscretionarySelected = commitmentType == "DISCRETIONARY"
+                val discBg = if (isDiscretionarySelected) Color(0xFFF5DED4) else Color(0xFFFBF9F5)
+                val discBorder = if (isDiscretionarySelected) Color(0xFFB52705) else Color(0xFFE4E2DE)
+                val discText = if (isDiscretionarySelected) Color(0xFFB52705) else Color(0xFF585F6B)
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(discBg)
+                        .border(if (isDiscretionarySelected) 1.5.dp else 1.dp, discBorder, RoundedCornerShape(12.dp))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { commitmentType = "DISCRETIONARY" }
+                        .padding(vertical = 10.dp, horizontal = 10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.LocalCafe,
+                            contentDescription = "Discretionary",
+                            tint = discText,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "Discretionary",
+                                fontFamily = PlusJakartaSansFontFamily,
+                                fontSize = 12.sp,
+                                fontWeight = if (isDiscretionarySelected) FontWeight.Bold else FontWeight.SemiBold,
+                                color = discText
+                            )
+                            Text(
+                                text = "Dining, leisure, wants",
+                                fontFamily = PlusJakartaSansFontFamily,
+                                fontSize = 10.sp,
+                                color = Color(0xFF8C7E75)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         // 5. Account Destination Selector ("Paid From")
         Column(
@@ -817,7 +1024,10 @@ fun AddExpenseContent(
 
                     val selectedCat = categories.find { it.key == selectedCategoryKey }
                     val categoryName = selectedCat?.displayName ?: "Dining"
-                    val finalTitle = noteText.trim().ifBlank { categoryName }
+                    val defaultTitle = if (selectedCategoryKey == "ATM_WITHDRAWAL") "ATM Cash Withdrawal" else categoryName
+                    val finalTitle = noteText.trim().ifBlank { defaultTitle }
+
+                    val finalCommitmentType = if (selectedCategoryKey == "ATM_WITHDRAWAL") "TRANSFER" else commitmentType
 
                     val newExpense = ExpenseEntity(
                         id = UUID.randomUUID().toString(),
@@ -826,7 +1036,7 @@ fun AddExpenseContent(
                         amountLkr = parsedAmount,
                         category = selectedCategoryKey,
                         paymentAccount = selectedAccountKey,
-                        commitmentType = if (isRecurring) "COMMITTED" else "DISCRETIONARY",
+                        commitmentType = finalCommitmentType,
                         dateSpentMillis = selectedDateMillis,
                         isRecurring = isRecurring,
                         notes = noteText.trim().ifBlank { null }

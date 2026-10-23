@@ -52,12 +52,13 @@ data class CategorySpendingItem(
 )
 
 fun calculateCategoryBreakdown(expenses: List<ExpenseEntity>): List<CategorySpendingItem> {
-    if (expenses.isEmpty()) return emptyList()
+    val outflowOnly = expenses.filter { !it.isInternalTransfer() }
+    if (outflowOnly.isEmpty()) return emptyList()
 
-    val total = expenses.sumOf { it.amountLkr }
+    val total = outflowOnly.sumOf { it.amountLkr }
     if (total <= 0.0) return emptyList()
 
-    val grouped = expenses.groupBy { it.category.uppercase() }
+    val grouped = outflowOnly.groupBy { it.category.uppercase() }
 
     return grouped.map { (catKey, list) ->
         val catTotal = list.sumOf { it.amountLkr }

@@ -153,8 +153,10 @@ fun IncomeHubScreen(
                 EmptyStateView(
                     title = "Error Loading Incomes",
                     message = errorMsg,
-                    actionLabel = "Retry",
-                    onActionClick = { viewModel.loadIncomes("guest_user") },
+                    onActionClick = {
+                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                        viewModel.loadIncomes(currentUid)
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
             }

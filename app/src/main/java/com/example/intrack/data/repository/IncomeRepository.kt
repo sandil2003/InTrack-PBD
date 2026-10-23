@@ -42,12 +42,14 @@ class IncomeRepositoryImpl(
                 isSeeding = true
                 val sampleList = getInitialSampleIncomes(userId)
                 trySend(sampleList)
-                val batch = db.batch()
-                sampleList.forEach { sampleItem ->
-                    val docRef = collection.document(sampleItem.id)
-                    batch.set(docRef, sampleItem)
-                }
-                batch.commit()
+                try {
+                    val batch = db.batch()
+                    sampleList.forEach { sampleItem ->
+                        val docRef = collection.document(sampleItem.id)
+                        batch.set(docRef, sampleItem)
+                    }
+                    batch.commit()
+                } catch (_: Exception) {}
             } else {
                 trySend(list)
             }
@@ -62,7 +64,8 @@ class IncomeRepositoryImpl(
             } else {
                 db.collection("incomes")
             }
-            collection.add(income).await()
+            val docRef = if (income.id.isNotBlank()) collection.document(income.id) else collection.document()
+            docRef.set(income.copy(id = docRef.id)).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

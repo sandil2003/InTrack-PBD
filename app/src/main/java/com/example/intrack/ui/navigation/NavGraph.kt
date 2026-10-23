@@ -127,7 +127,7 @@ fun FinFlowNavGraph(
                 SignInScreen(
                     onLoginSuccess = {
                         navController.navigate(Screen.Dashboard.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
+                            popUpTo(0) { inclusive = true }
                         }
                     },
                     onNavigateToSignUp = {

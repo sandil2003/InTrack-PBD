@@ -211,8 +211,10 @@ fun DashboardScreen(
                 EmptyStateView(
                     title = "Unable to Load Dashboard",
                     message = error,
-                    actionLabel = "Retry",
-                    onActionClick = { viewModel.loadDashboard("guest_user") },
+                    onActionClick = {
+                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                        viewModel.loadDashboard(currentUid)
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
             }

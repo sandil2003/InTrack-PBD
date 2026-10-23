@@ -64,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -76,6 +77,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.intrack.ui.common.UiState
 import kotlinx.coroutines.launch
+
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.focus.FocusDirection
 
 /**
  * Sign Up Screen matching Figma node 2007:121
@@ -90,6 +96,7 @@ fun SignUpScreen(
     modifier: Modifier = Modifier
 ) {
     val authState by viewModel.authState.collectAsState()
+    val showGoogleSetupDialog by viewModel.showGoogleSetupDialog.collectAsState()
 
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -107,10 +114,16 @@ fun SignUpScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.checkUser()
+    }
 
     LaunchedEffect(authState) {
         if (authState is UiState.Success) {
             onSignUpSuccess()
+            viewModel.resetAuthState()
         }
     }
 
@@ -120,18 +133,27 @@ fun SignUpScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .imePadding(),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // 1. Top Bar (Back button, Security Guaranteed Pill, Help button)
-            AuthTopBar(
-                onBackClick = onBackClick,
-                onHelpClick = { showHelpDialog = true }
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 480.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 1. Top Bar (Back button, Security Guaranteed Pill, Help button)
+                AuthTopBar(
+                    onBackClick = onBackClick,
+                    onHelpClick = { showHelpDialog = true }
+                )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -199,6 +221,9 @@ fun SignUpScreen(
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Words,
                             imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
                         )
                     )
 
@@ -215,6 +240,9 @@ fun SignUpScreen(
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
                         )
                     )
 
@@ -238,7 +266,7 @@ fun SignUpScreen(
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 focusManager.clearFocus()
-                                viewModel.signUpWithEmail(name, email, password, isTermsAccepted, onSignUpSuccess)
+                                viewModel.signUpWithEmail(name, email, password, isTermsAccepted)
                             }
                         )
                     )
@@ -297,26 +325,29 @@ fun SignUpScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.Top,
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                isTermsAccepted = !isTermsAccepted
+                                viewModel.clearError()
+                            }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         // Custom Checkbox
                         Box(
                             modifier = Modifier
-                                .padding(top = 2.dp)
-                                .size(18.dp)
-                                .clip(RoundedCornerShape(4.dp))
+                                .size(20.dp)
+                                .clip(RoundedCornerShape(6.dp))
                                 .background(if (isTermsAccepted) AuthPrimaryOrange else Color.Transparent)
                                 .border(
                                     1.5.dp,
                                     if (isTermsAccepted) AuthPrimaryOrange else Color(0xFF8C827A),
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .clickable {
-                                    isTermsAccepted = !isTermsAccepted
-                                    viewModel.clearError()
-                                },
+                                    RoundedCornerShape(6.dp)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             if (isTermsAccepted) {
@@ -324,7 +355,7 @@ fun SignUpScreen(
                                     imageVector = Icons.Rounded.Check,
                                     contentDescription = "Accepted",
                                     tint = Color.White,
-                                    modifier = Modifier.size(13.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
@@ -414,13 +445,13 @@ fun SignUpScreen(
                                     }
                                     IconButton(
                                         onClick = { viewModel.clearError() },
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(28.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Rounded.Close,
                                             contentDescription = "Dismiss error",
                                             tint = Color(0xFF9B1C1C),
-                                            modifier = Modifier.size(14.dp)
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
@@ -434,7 +465,9 @@ fun SignUpScreen(
                                     color = AuthTerracotta,
                                     modifier = Modifier
                                         .align(Alignment.End)
-                                        .clickable { viewModel.continueOffline(onSignUpSuccess) }
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .clickable { viewModel.continueOffline() }
+                                        .padding(horizontal = 6.dp, vertical = 4.dp)
                                 )
                             }
                         }
@@ -444,7 +477,7 @@ fun SignUpScreen(
                     Button(
                         onClick = {
                             focusManager.clearFocus()
-                            viewModel.signUpWithEmail(name, email, password, isTermsAccepted, onSignUpSuccess)
+                            viewModel.signUpWithEmail(name, email, password, isTermsAccepted)
                         },
                         enabled = authState !is UiState.Loading,
                         shape = RoundedCornerShape(9999.dp),
@@ -490,15 +523,13 @@ fun SignUpScreen(
             // 4. Social Authentication Options
             SocialAuthSection(
                 onGoogleClick = {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Google Sign-In initialized.")
-                        viewModel.continueOffline(onSignUpSuccess)
-                    }
+                    focusManager.clearFocus()
+                    viewModel.signInWithGoogle(context)
                 },
                 onAppleClick = {
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Apple ID session initialized.")
-                        viewModel.continueOffline(onSignUpSuccess)
+                        viewModel.continueOffline()
                     }
                 },
                 modifier = Modifier.padding(horizontal = 20.dp)
@@ -510,8 +541,7 @@ fun SignUpScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 24.dp)
-                    .navigationBarsPadding(),
+                    .padding(bottom = 24.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -529,8 +559,12 @@ fun SignUpScreen(
                         fontWeight = FontWeight.Bold
                     ),
                     color = AuthPrimaryOrange,
-                    modifier = Modifier.clickable { onNavigateToSignIn() }
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { onNavigateToSignIn() }
+                        .padding(4.dp)
                 )
+            }
             }
         }
 
@@ -584,7 +618,9 @@ fun SignUpScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
                         .padding(bottom = 36.dp)
-                        .navigationBarsPadding(),
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Row(
@@ -621,6 +657,17 @@ fun SignUpScreen(
                     }
                 }
             }
+        }
+
+        // Google Sign-In Setup & SHA-1 Helper Modal
+        if (showGoogleSetupDialog) {
+            GoogleSetupModal(
+                onDismiss = { viewModel.dismissGoogleSetupDialog() },
+                onContinueDemo = {
+                    viewModel.dismissGoogleSetupDialog()
+                    viewModel.continueOffline()
+                }
+            )
         }
     }
 }

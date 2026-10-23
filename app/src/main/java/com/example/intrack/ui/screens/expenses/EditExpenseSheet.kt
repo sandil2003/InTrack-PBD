@@ -813,7 +813,8 @@ fun EditExpenseContent(
                             "RENT" to ("Housing / Rent" to Icons.Rounded.Home),
                             "UTILITIES" to ("Utilities" to Icons.Rounded.Payments),
                             "SUBSCRIPTION" to ("Subscriptions" to Icons.Rounded.Receipt),
-                            "MISC" to ("Groceries & Misc" to Icons.Rounded.ShoppingCart)
+                            "MISC" to ("Groceries & Misc" to Icons.Rounded.ShoppingCart),
+                            "ATM_WITHDRAWAL" to ("ATM / Cash" to Icons.Rounded.Payments)
                         )
                         Row(
                             modifier = Modifier

@@ -154,7 +154,10 @@ fun GoalTrackerScreen(
                         title = "Error Loading Goals",
                         message = errorMsg,
                         actionLabel = "Retry",
-                        onActionClick = { viewModel.loadGoals("guest_user") }
+                        onActionClick = {
+                            val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                            viewModel.loadGoals(currentUid)
+                        }
                     )
                 }
                 is UiState.Empty -> {
@@ -251,7 +254,8 @@ fun GoalTrackerScreen(
         AddGoalBottomSheet(
             onDismiss = { showAddGoalDialog = false },
             onSubmit = { newGoal ->
-                viewModel.addGoal(newGoal)
+                val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                viewModel.addGoal(newGoal.copy(userId = currentUid))
                 showAddGoalDialog = false
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Created financial goal '${newGoal.title}'!")

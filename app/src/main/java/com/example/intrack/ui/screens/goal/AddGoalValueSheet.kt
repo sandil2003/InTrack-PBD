@@ -67,9 +67,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.intrack.data.model.GoalContributionEntity
 import com.example.intrack.data.model.GoalEntity
 import com.example.intrack.ui.theme.*
 import com.example.intrack.util.CurrencyFormatter
+import com.example.intrack.util.DateUtils
 
 data class IncomeChannelOption(
     val id: String,
@@ -82,7 +84,8 @@ data class IncomeChannelOption(
 data class ContributionRecord(
     val title: String,
     val amountLkr: Double,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val subtitle: String = ""
 )
 
 /**
@@ -99,8 +102,9 @@ data class ContributionRecord(
 @Composable
 fun AddGoalValueSheet(
     goal: GoalEntity,
+    contributions: List<GoalContributionEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onConfirmDeposit: (amountLkr: Double, sourceId: String, autoSweep: Boolean) -> Unit,
+    onConfirmDeposit: (amountLkr: Double, sourceId: String, sourceTitle: String, autoSweep: Boolean) -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     var depositAmount by remember { mutableDoubleStateOf(25000.0) }
@@ -143,12 +147,29 @@ fun AddGoalValueSheet(
         )
     }
 
-    val recentContributions = remember {
-        listOf(
-            ContributionRecord("From React SME Project", 15000.0, Icons.Rounded.LaptopMac),
-            ContributionRecord("From Monthly Salary Sweep", 10000.0, Icons.Rounded.AccountBalance),
-            ContributionRecord("From AdSense Payout", 6200.0, Icons.Rounded.Language)
-        )
+    val recentContributions = remember(contributions) {
+        if (contributions.isNotEmpty()) {
+            contributions.take(3).map { c ->
+                val icon = when (c.sourceId) {
+                    "freelance_milestone" -> Icons.Rounded.LaptopMac
+                    "monthly_salary" -> Icons.Rounded.AccountBalance
+                    "adsense_usd" -> Icons.Rounded.Language
+                    "crypto_profit" -> Icons.Rounded.CurrencyBitcoin
+                    else -> Icons.Rounded.Savings
+                }
+                ContributionRecord(
+                    title = c.sourceTitle,
+                    amountLkr = c.amountLkr,
+                    icon = icon,
+                    subtitle = DateUtils.formatDate(c.timestampMillis)
+                )
+            }
+        } else {
+            listOf(
+                ContributionRecord("Initial Allocation (Card Primary)", 10000.0, Icons.Rounded.AccountBalance, "14 days ago"),
+                ContributionRecord("React SME Milestone Sweep", 1200.0, Icons.Rounded.LaptopMac, "5 days ago")
+            )
+        }
     }
 
     ModalBottomSheet(
@@ -598,14 +619,25 @@ fun AddGoalValueSheet(
                                 )
                             }
 
-                            Text(
-                                text = record.title,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                color = FigmaDarkText
-                            )
+                            Column {
+                                Text(
+                                    text = record.title,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = FigmaDarkText
+                                )
+                                if (record.subtitle.isNotBlank()) {
+                                    Text(
+                                        text = record.subtitle,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 11.sp
+                                        ),
+                                        color = FigmaMutedSlate
+                                    )
+                                }
+                            }
                         }
 
                         Text(
@@ -626,7 +658,9 @@ fun AddGoalValueSheet(
             InTrackPrimaryButton(
                 onClick = {
                     if (depositAmount > 0) {
-                        onConfirmDeposit(depositAmount, selectedSourceId, autoSweepEnabled)
+                        val selectedChannel = incomeChannels.find { it.id == selectedSourceId }
+                        val sourceTitle = selectedChannel?.title ?: "Direct Deposit"
+                        onConfirmDeposit(depositAmount, selectedSourceId, sourceTitle, autoSweepEnabled)
                     }
                 },
                 enabled = depositAmount > 0

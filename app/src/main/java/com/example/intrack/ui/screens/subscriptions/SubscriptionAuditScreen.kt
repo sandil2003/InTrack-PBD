@@ -152,8 +152,10 @@ fun SubscriptionAuditScreen(
                 EmptyStateView(
                     title = "Error Loading Subscriptions",
                     message = errorMsg,
-                    actionLabel = "Retry",
-                    onActionClick = { viewModel.loadSubscriptions("guest_user") },
+                    onActionClick = {
+                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                        viewModel.loadSubscriptions(currentUid)
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
