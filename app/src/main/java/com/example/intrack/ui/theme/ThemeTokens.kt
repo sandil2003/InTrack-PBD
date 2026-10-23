@@ -20,15 +20,15 @@ val FigmaMutedSlate = Color(0xFF585F6B)
 val FigmaMutedBrown = Color(0xFF6B5E57)
 val FigmaNoteBrown = Color(0xFF5B413B)
 
-// Brand & Accent Colors
-val FigmaTerracotta = Color(0xFFB52705)
+// Brand & Accent Colors - Unified Sunset Tangerine Theme
+val FigmaTerracotta = BrandTangerine
 val FigmaTerracottaOrange = Color(0xFFFF5C38)
 val FigmaLightOrange = Color(0xFFFF5C38) // Light orange used in the Expenses edit transaction button (FigmaPrimary)
 val FigmaButtonOrange = FigmaLightOrange
-val FigmaSoftPeach = Color(0xFFF7EBE6)
-val FigmaPeachBar = Color(0xFFE3BEB6)
-val FigmaSoftPillActive = FigmaSoftPeach
-val FigmaActiveText = FigmaTerracotta
+val FigmaSoftPeach = BrandTangerineContainer
+val FigmaPeachBar = Color(0xFFFDBA74)
+val FigmaSoftPillActive = BrandTangerineContainer
+val FigmaActiveText = BrandTangerineOnContainer
 
 // Borders, Dividers & Component Backdrops
 val FigmaBorder = Color(0xFFEDE8E3)

@@ -676,10 +676,9 @@ fun GoalDetailScreen(
 
                     // --- 3. Milestones Stepper ---
                     item {
-                        Card(
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(1.dp, FigmaBorder),
+                        InTrackCard(
+                            shape = InTrackMediumCardShape,
+                            elevation = 0.5.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(18.dp)) {

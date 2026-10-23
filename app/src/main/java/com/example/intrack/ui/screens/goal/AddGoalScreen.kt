@@ -172,9 +172,9 @@ fun AddGoalContent(
     val focusManager = LocalFocusManager.current
 
     // Form states
-    var title by remember { mutableStateOf("MacBook Pro M4") }
-    var targetAmountInput by remember { mutableStateOf("490000.00") }
-    var initialDepositInput by remember { mutableStateOf("10000.00") }
+    var title by remember { mutableStateOf("") }
+    var targetAmountInput by remember { mutableStateOf("") }
+    var initialDepositInput by remember { mutableStateOf("") }
     var selectedCategoryKey by remember { mutableStateOf("TECH") }
     var selectedAccountKey by remember { mutableStateOf("CARD_PRIMARY") }
     var remindPace by remember { mutableStateOf(true) }

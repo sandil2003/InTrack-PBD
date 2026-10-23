@@ -79,6 +79,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -142,6 +143,7 @@ fun EditExpenseSheet(
     onDismiss: () -> Unit,
     onUpdateExpense: (ExpenseEntity) -> Unit,
     onDeleteExpense: (ExpenseEntity) -> Unit,
+    initialEditingMode: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -158,7 +160,8 @@ fun EditExpenseSheet(
             expense = expense,
             onDismiss = onDismiss,
             onUpdateExpense = onUpdateExpense,
-            onDeleteExpense = onDeleteExpense
+            onDeleteExpense = onDeleteExpense,
+            initialEditingMode = initialEditingMode
         )
     }
 }
@@ -173,13 +176,8 @@ fun EditExpenseScreen(
     expenseViewModel: ExpenseViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
-    val expensesState = expenseViewModel.expensesState
-    var expense by remember { mutableStateOf<ExpenseEntity?>(null) }
-
-    val currentState = expensesState.value
-    if (currentState is UiState.Success) {
-        expense = currentState.data.find { it.id == expenseId }
-    }
+    val expensesState by expenseViewModel.expensesState.collectAsState()
+    val expense = (expensesState as? UiState.Success<List<ExpenseEntity>>)?.data?.find { it.id == expenseId }
 
     Box(
         modifier = modifier
@@ -196,16 +194,18 @@ fun EditExpenseScreen(
                     .background(Color.White)
             ) {
                 EditExpenseContent(
-                    expense = expense!!,
+                    expense = expense,
                     onDismiss = onNavigateBack,
                     onUpdateExpense = { updated ->
                         expenseViewModel.updateExpense(updated)
                         onNavigateBack()
                     },
                     onDeleteExpense = { toDelete ->
-                        expenseViewModel.deleteExpense(toDelete.userId, toDelete.id)
+                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                        expenseViewModel.deleteExpense(toDelete.userId.ifBlank { currentUid }, toDelete.id)
                         onNavigateBack()
-                    }
+                    },
+                    initialEditingMode = true
                 )
             }
         } else {
@@ -226,6 +226,7 @@ fun EditExpenseContent(
     onDismiss: () -> Unit,
     onUpdateExpense: (ExpenseEntity) -> Unit,
     onDeleteExpense: (ExpenseEntity) -> Unit,
+    initialEditingMode: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -234,7 +235,7 @@ fun EditExpenseContent(
     val focusManager = LocalFocusManager.current
 
     // Toggle between View Mode and Edit Mode
-    var isEditingMode by remember { mutableStateOf(false) }
+    var isEditingMode by remember(initialEditingMode) { mutableStateOf(initialEditingMode) }
     var isSaving by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
@@ -248,6 +249,7 @@ fun EditExpenseContent(
         }
         mutableStateOf(formatted)
     }
+    var amountError by remember { mutableStateOf<String?>(null) }
     var editCategory by remember(expense) { mutableStateOf(expense.category) }
     var editAccount by remember(expense) { mutableStateOf(expense.paymentAccount) }
     var editCommitment by remember(expense) { mutableStateOf(expense.commitmentType) }
@@ -409,7 +411,6 @@ fun EditExpenseContent(
                             overflow = TextOverflow.Ellipsis
                         )
                         Spacer(modifier = Modifier.height(3.dp))
-                        
                     }
 
                     // Hero Total Debited Card
@@ -440,7 +441,20 @@ fun EditExpenseContent(
                                     maxLines = 1
                                 )
 
-
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isCommitted) FigmaPeachTint else Color(0xFFEDE8E3))
+                                        .padding(horizontal = 8.dp, vertical = 2.5.dp)
+                                ) {
+                                    Text(
+                                        text = if (isCommitted) "COMMITTED" else "DISCRETIONARY",
+                                        fontFamily = PlusJakartaSansFontFamily,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isCommitted) FigmaRust else FigmaDark
+                                    )
+                                }
                             }
 
                             // Amount Display (Baseline aligned like in ViewSubscriptionSheet)
@@ -509,7 +523,7 @@ fun EditExpenseContent(
                                     color = FigmaSubtle
                                 )
                                 Text(
-                                    text = "4.2% of October $categoryDisplay Budget",
+                                    text = if (isCommitted) "Obligation" else "Flexible",
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 12.sp,
                                     color = FigmaMuted,
@@ -581,16 +595,7 @@ fun EditExpenseContent(
                             DetailRowItem(
                                 icon = Icons.Rounded.EditNote,
                                 label = "Notes",
-                                value = if (expense.notes?.isNotBlank() == true) expense.notes!! else "Morning commute to Colombo Fort office"
-                            )
-
-                            HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
-
-                            // Row 5: Location
-                            DetailRowItem(
-                                icon = Icons.Rounded.LocationOn,
-                                label = "Location",
-                                value = "Colombo, Western Province"
+                                value = if (expense.notes?.isNotBlank() == true) expense.notes!! else "None"
                             )
                         }
                     }
@@ -696,7 +701,7 @@ fun EditExpenseContent(
                         }
 
                         IconButton(
-                            onClick = { isEditingMode = false },
+                            onClick = onDismiss,
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
@@ -704,7 +709,7 @@ fun EditExpenseContent(
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Close,
-                                contentDescription = "Cancel",
+                                contentDescription = "Close",
                                 tint = FigmaDark,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -750,8 +755,11 @@ fun EditExpenseContent(
                                 BasicTextField(
                                     value = editAmountText,
                                     onValueChange = { input ->
-                                        if (input.isEmpty() || input.matches(Regex("^\\d*\\.?\\d{0,2}\$"))) {
-                                            editAmountText = input
+                                        val filtered = input.filter { it.isDigit() || it == '.' || it == ',' }
+                                        val dotCount = filtered.count { it == '.' }
+                                        if (dotCount <= 1) {
+                                            editAmountText = filtered
+                                            amountError = null
                                         }
                                     },
                                     textStyle = TextStyle(
@@ -768,6 +776,16 @@ fun EditExpenseContent(
                                     cursorBrush = SolidColor(FigmaPrimary),
                                     singleLine = true,
                                     modifier = Modifier.alignByBaseline()
+                                )
+                            }
+                            if (amountError != null) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = amountError!!,
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = FigmaDestructive
                                 )
                             }
                         }
@@ -827,7 +845,15 @@ fun EditExpenseContent(
                                 val isSelected = editCategory.equals(catKey, ignoreCase = true)
                                 FilterChip(
                                     selected = isSelected,
-                                    onClick = { editCategory = catKey },
+                                    onClick = {
+                                        editCategory = catKey
+                                        if (catKey == "ATM_WITHDRAWAL") {
+                                            editCommitment = "TRANSFER"
+                                            editAccount = "CARD_PRIMARY"
+                                        } else if (editCommitment == "TRANSFER") {
+                                            editCommitment = if (catKey in listOf("RENT", "UTILITIES", "MISC")) "COMMITTED" else "DISCRETIONARY"
+                                        }
+                                    },
                                     label = {
                                         Text(
                                             text = name,
@@ -1043,7 +1069,7 @@ fun EditExpenseContent(
                         OutlinedTextField(
                             value = editNotes,
                             onValueChange = { editNotes = it },
-                            placeholder = { Text("Add notes or location...", color = FigmaSubtle) },
+                            placeholder = { Text("Add note (optional)", color = FigmaSubtle) },
                             shape = RoundedCornerShape(14.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = FigmaPrimary,
@@ -1061,7 +1087,12 @@ fun EditExpenseContent(
                     // Buttons: Save Changes and Cancel
                     Button(
                         onClick = {
-                            val parsedAmount = editAmountText.toDoubleOrNull() ?: expense.amountLkr
+                            val cleanRaw = editAmountText.replace(",", "").trim()
+                            val parsedAmount = cleanRaw.toDoubleOrNull()
+                            if (parsedAmount == null || parsedAmount <= 0.0) {
+                                amountError = "Enter a valid amount"
+                                return@Button
+                            }
                             val updated = expense.copy(
                                 title = editTitle.ifBlank { expense.title },
                                 amountLkr = parsedAmount,
@@ -1077,7 +1108,7 @@ fun EditExpenseContent(
                                 onUpdateExpense(updated)
                                 isSaving = false
                                 isEditingMode = false
-                                Toast.makeText(context, "Transaction updated successfully!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show()
                             }
                         },
                         shape = RoundedCornerShape(28.dp),
@@ -1161,11 +1192,10 @@ fun EditExpenseContent(
             },
             text = {
                 Text(
-                    text = "Are you sure you want to delete '${expense.title}' (- LKR ${String.format(Locale.US, "%,.2f", expense.amountLkr)})? This transaction will be permanently removed from your ledger.",
+                    text = "Permanently delete '${expense.title}'?",
                     fontFamily = PlusJakartaSansFontFamily,
-                    fontSize = 13.5.sp,
-                    color = FigmaMuted,
-                    lineHeight = 20.sp
+                    fontSize = 14.sp,
+                    color = FigmaMuted
                 )
             },
             confirmButton = {

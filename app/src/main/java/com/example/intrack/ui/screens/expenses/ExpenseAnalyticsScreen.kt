@@ -321,7 +321,7 @@ fun ExpenseAnalyticsScreen(
                 },
                 text = {
                     Text(
-                        text = "Are you sure you want to delete '${exp.title}' (${CurrencyFormatter.formatLkr(exp.amountLkr)})? This action cannot be undone.",
+                        text = "Permanently delete '${exp.title}'?",
                         style = MaterialTheme.typography.bodyMedium,
                         color = FigmaMutedBrown
                     )
@@ -518,7 +518,7 @@ fun ExpenseAnalyticsScreen(
                         is UiState.Error -> {
                             val errorMsg = (expensesState as UiState.Error).message
                             EmptyStateView(
-                                title = "Error Loading Expenses",
+                                title = "Failed to Load Expenses",
                                 message = errorMsg,
                                 actionLabel = "Retry",
                                 onActionClick = {
@@ -529,8 +529,8 @@ fun ExpenseAnalyticsScreen(
                         }
                         is UiState.Empty -> {
                             EmptyStateView(
-                                title = "No Expense Records Found",
-                                message = "No expense data available to display analytics.",
+                                title = "No Expenses",
+                                message = "No transactions logged for this period.",
                                 actionLabel = "Log Expense",
                                 onActionClick = { showAddDialog = true }
                             )
@@ -779,13 +779,13 @@ fun ExpenseAnalyticsScreen(
                                 if (filteredExpenses.isEmpty()) {
                                     item {
                                         EmptyStateView(
-                                            title = "No matching expenses",
-                                            message = "No transactions found with current filters."
+                                            title = "No Transactions",
+                                            message = "No matches for active filters."
                                         )
                                     }
                                 } else {
                                     groupedExpenses.forEach { (dateGroup, expensesInGroup) ->
-                                        item(key = "header_$dateGroup") {
+                                         item(key = "header_$dateGroup") {
                                             Text(
                                                 text = dateGroup,
                                                 style = MaterialTheme.typography.labelSmall.copy(
@@ -802,7 +802,8 @@ fun ExpenseAnalyticsScreen(
                                                 onClick = {
                                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                                     selectedExpense = expense
-                                                }
+                                                },
+                                                modifier = Modifier.animateItem()
                                             )
                                         }
                                     }
@@ -846,7 +847,7 @@ fun ExpenseAnalyticsScreen(
                         is UiState.Error -> {
                             val errorMsg = (subscriptionsState as UiState.Error).message
                             EmptyStateView(
-                                title = "Error Loading Subscriptions",
+                                title = "Failed to Load Subscriptions",
                                 message = errorMsg,
                                 actionLabel = "Retry",
                                 onActionClick = {
@@ -857,8 +858,8 @@ fun ExpenseAnalyticsScreen(
                         }
                         is UiState.Empty -> {
                             EmptyStateView(
-                                title = "No Subscriptions Found",
-                                message = "No fixed obligations or auto-debits recorded.",
+                                title = "No Subscriptions",
+                                message = "No recurring bills tracked.",
                                 actionLabel = "Add Subscription",
                                 onActionClick = { showAddSubscriptionDialog = true }
                             )
@@ -1011,8 +1012,8 @@ fun ExpenseAnalyticsScreen(
                                 if (filteredSubs.isEmpty()) {
                                     item {
                                         EmptyStateView(
-                                            title = "No items in this filter",
-                                            message = "All subscriptions in this category are up to date."
+                                            title = "No Subscriptions",
+                                            message = "No items match filter."
                                         )
                                     }
                                 } else {
@@ -1297,6 +1298,14 @@ fun FigmaTransactionCard(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "txn_card_press_scale"
+    )
+
     val isInternalTransfer = expense.isInternalTransfer()
     val isCommitted = expense.isCommittedExpense()
 
@@ -1320,14 +1329,18 @@ fun FigmaTransactionCard(
     }
 
     Card(
+        onClick = onClick,
+        interactionSource = interactionSource,
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, if (isInternalTransfer) Color(0xFFBFDBFE) else FigmaBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .clickable { onClick() }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
     ) {
         Row(
             modifier = Modifier
@@ -1478,341 +1491,7 @@ private fun formatFullDateTime(timeMillis: Long): String {
     return SimpleDateFormat("EEEE, MMMM d, yyyy • hh:mm a", Locale.US).format(Date(timeMillis))
 }
 
-@Composable
-fun AddExpenseDialog(
-    onDismiss: () -> Unit,
-    onSubmit: (ExpenseEntity) -> Unit
-) {
-    var title by remember { mutableStateOf("") }
-    var amountText by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("DINING_OUT") }
-    var selectedCommitment by remember { mutableStateOf("DISCRETIONARY") }
-    var selectedAccount by remember { mutableStateOf("CARD_PRIMARY") }
 
-    val categories = listOf(
-        "DINING_OUT" to "Dining",
-        "TRANSPORT" to "Transport",
-        "RENT" to "Rent",
-        "UTILITIES" to "Utilities",
-        "SUBSCRIPTION" to "Sub",
-        "MISC" to "Misc"
-    )
-    val accounts = listOf(
-        "CARD_PRIMARY" to "Primary Card",
-        "ACCOUNT_SECONDARY" to "Bank Account",
-        "CASH" to "Cash"
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Log Expense",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column {
-                Text(
-                    text = "Commitment Type",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = selectedCommitment == "DISCRETIONARY",
-                        onClick = { selectedCommitment = "DISCRETIONARY" },
-                        label = { Text("Discretionary", style = MaterialTheme.typography.labelSmall) },
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    FilterChip(
-                        selected = selectedCommitment == "COMMITTED",
-                        onClick = { selectedCommitment = "COMMITTED" },
-                        label = { Text("Committed", style = MaterialTheme.typography.labelSmall) },
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Category",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    categories.forEach { (key, label) ->
-                        FilterChip(
-                            selected = selectedCategory == key,
-                            onClick = { selectedCategory = key },
-                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title") },
-                    placeholder = { Text("e.g. Grocery Store") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { amountText = it },
-                    label = { Text("Amount (LKR)") },
-                    placeholder = { Text("2500.00") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Payment Source",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    accounts.forEach { (key, label) ->
-                        FilterChip(
-                            selected = selectedAccount == key,
-                            onClick = { selectedAccount = key },
-                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val amt = amountText.toDoubleOrNull() ?: 0.0
-                    if (title.isNotEmpty() && amt > 0) {
-                        onSubmit(
-                            ExpenseEntity(
-                                title = title,
-                                amountLkr = amt,
-                                category = selectedCategory,
-                                commitmentType = selectedCommitment,
-                                paymentAccount = selectedAccount,
-                                dateSpentMillis = System.currentTimeMillis()
-                            )
-                        )
-                    }
-                },
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Save", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Cancel")
-            }
-        },
-        shape = RoundedCornerShape(16.dp)
-    )
-}
-
-@Composable
-fun EditExpenseDialog(
-    expense: ExpenseEntity,
-    onDismiss: () -> Unit,
-    onSubmit: (ExpenseEntity) -> Unit
-) {
-    var title by remember(expense) { mutableStateOf(expense.title) }
-    var amountText by remember(expense) { mutableStateOf(if (expense.amountLkr > 0) expense.amountLkr.toString() else "") }
-    var selectedCategory by remember(expense) { mutableStateOf(expense.category) }
-    var selectedCommitment by remember(expense) { mutableStateOf(expense.commitmentType) }
-    var selectedAccount by remember(expense) { mutableStateOf(expense.paymentAccount) }
-    var notesText by remember(expense) { mutableStateOf(expense.notes ?: "") }
-
-    val categories = listOf(
-        "DINING_OUT" to "Dining",
-        "TRANSPORT" to "Transport",
-        "RENT" to "Rent",
-        "UTILITIES" to "Utilities",
-        "SUBSCRIPTION" to "Sub",
-        "MISC" to "Misc"
-    )
-    val accounts = listOf(
-        "CARD_PRIMARY" to "Primary Card",
-        "ACCOUNT_SECONDARY" to "Bank Account",
-        "CASH" to "Cash"
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Edit Transaction",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column {
-                Text(
-                    text = "Commitment Type",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = selectedCommitment == "DISCRETIONARY",
-                        onClick = { selectedCommitment = "DISCRETIONARY" },
-                        label = { Text("Discretionary", style = MaterialTheme.typography.labelSmall) },
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    FilterChip(
-                        selected = selectedCommitment == "COMMITTED",
-                        onClick = { selectedCommitment = "COMMITTED" },
-                        label = { Text("Committed", style = MaterialTheme.typography.labelSmall) },
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Category",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    categories.forEach { (key, label) ->
-                        FilterChip(
-                            selected = selectedCategory == key,
-                            onClick = { selectedCategory = key },
-                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title") },
-                    placeholder = { Text("e.g. Grocery Store") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { amountText = it },
-                    label = { Text("Amount (LKR)") },
-                    placeholder = { Text("2500.00") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = notesText,
-                    onValueChange = { notesText = it },
-                    label = { Text("Notes (Optional)") },
-                    placeholder = { Text("e.g. Dinner with team") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Payment Source",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    accounts.forEach { (key, label) ->
-                        FilterChip(
-                            selected = selectedAccount == key,
-                            onClick = { selectedAccount = key },
-                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val amt = amountText.toDoubleOrNull() ?: 0.0
-                    if (title.isNotBlank() && amt > 0) {
-                        onSubmit(
-                            expense.copy(
-                                title = title.trim(),
-                                amountLkr = amt,
-                                category = selectedCategory,
-                                commitmentType = selectedCommitment,
-                                paymentAccount = selectedAccount,
-                                notes = notesText.trim().ifEmpty { null }
-                            )
-                        )
-                    }
-                },
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Save Changes", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Cancel")
-            }
-        },
-        shape = RoundedCornerShape(16.dp)
-    )
-}
 
 /**
  * Expense views switch matching Figma node 2006:55 / 2006:208 with fluid animated indicator
@@ -2413,10 +2092,10 @@ fun FigmaTransactionDetailSheet(
                         Text(text = "ℹ️", fontSize = 18.sp)
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Internal Transfer to Cash Wallet. Excluded from monthly outflow totals to prevent double-counting when spending cash.",
+                            text = "Cash transfer • Excluded from outflows",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.5.sp,
-                                lineHeight = 17.sp,
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp,
                                 color = Color(0xFF475569)
                             )
                         )
@@ -2429,7 +2108,6 @@ fun FigmaTransactionDetailSheet(
                 val goalRunRate = if (activeGoal.monthlyTargetRunRateLkr > 0) activeGoal.monthlyTargetRunRateLkr else 40833.33
                 val costPercentage = ((expense.amountLkr / goalRunRate) * 100).toInt()
                 val percentDisplay = if (costPercentage > 0) "$costPercentage%" else "< 1%"
-                val itemTitle = if (expense.title.isNotBlank() && !expense.title.equals("Expense", ignoreCase = true)) expense.title.lowercase() else "item"
 
                 Spacer(modifier = Modifier.height(12.dp))
                 Card(
@@ -2447,11 +2125,11 @@ fun FigmaTransactionDetailSheet(
                         Text(text = "🎯", fontSize = 18.sp)
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "This ${CurrencyFormatter.formatLkr(expense.amountLkr)} $itemTitle equals $percentDisplay of your monthly ${activeGoal.title} contribution.",
+                            text = "$percentDisplay of monthly ${activeGoal.title} goal",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.5.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
-                                lineHeight = 17.sp,
+                                lineHeight = 16.sp,
                                 color = FigmaDarkText
                             )
                         )
@@ -2547,9 +2225,9 @@ fun FigmaTransactionDetailSheet(
                         )
                         Text(
                             text = when {
-                                isTransfer -> "Internal Transfer (Non-Outflow)"
-                                isCommitted -> "Committed (Essentials)"
-                                else -> "Discretionary (Lifestyle)"
+                                isTransfer -> "Transfer (Cash)"
+                                isCommitted -> "Committed"
+                                else -> "Discretionary"
                             },
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.SemiBold,
@@ -2577,9 +2255,9 @@ fun FigmaTransactionDetailSheet(
                         )
                         Text(
                             text = when {
-                                isTransfer -> "Internal Cash Movement"
-                                expense.isRecurring -> "Recurring Obligation"
-                                else -> "One-Time Outflow"
+                                isTransfer -> "Cash Movement"
+                                expense.isRecurring -> "Recurring"
+                                else -> "One-Time"
                             },
                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                             color = FigmaDarkText
@@ -2918,7 +2596,7 @@ fun FigmaSubscriptionDetailSheet(
                             color = FigmaMutedBrown
                         )
                         Text(
-                            text = if (subscription.paymentAccount != "CASH") "Auto-charged via Bank" else "Manual Payment",
+                            text = if (subscription.paymentAccount != "CASH") "Auto-debit" else "Manual payment",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (subscription.paymentAccount != "CASH") Color(0xFF1B6B38) else FigmaMutedSlate
@@ -3022,7 +2700,7 @@ fun FigmaAutoDebitAlertBanner(
 
                 Column {
                     Text(
-                        text = "Auto-debit alert",
+                        text = "Upcoming Auto-Debit",
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
@@ -3031,7 +2709,7 @@ fun FigmaAutoDebitAlertBanner(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Ensure ${CurrencyFormatter.formatLkr(upcomingAmount)} is buffered by Friday",
+                        text = "${CurrencyFormatter.formatLkr(upcomingAmount)} due Friday",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.5.sp
                         ),
@@ -3094,7 +2772,7 @@ fun FigmaShockInsightBanner(
                 ) {
                     Text(text = "⚠️", fontSize = 16.sp)
                     Text(
-                        text = "LIFESTYLE IMPACT ALERT",
+                        text = "LIFESTYLE IMPACT",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.Bold,
@@ -3111,7 +2789,7 @@ fun FigmaShockInsightBanner(
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = "$percentage% of Goal Pace",
+                        text = "$percentage% of Goal",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
@@ -3122,7 +2800,7 @@ fun FigmaShockInsightBanner(
             }
 
             Text(
-                text = "High Lifestyle Outflow: You've spent ${CurrencyFormatter.formatLkr(diningCoffeeTotal)} on Dining & Coffee this month. This accounts for $percentage% of your monthly $goalTitle requirement.",
+                text = "${CurrencyFormatter.formatLkr(diningCoffeeTotal)} in Dining • $percentage% of $goalTitle",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -3154,12 +2832,12 @@ fun FigmaShockInsightBanner(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Dining Outflow: ${CurrencyFormatter.formatLkr(diningCoffeeTotal)}",
+                        text = "Dining: ${CurrencyFormatter.formatLkr(diningCoffeeTotal)}",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         color = Color(0xFF9A3412)
                     )
                     Text(
-                        text = "Monthly Goal Pace: ${CurrencyFormatter.formatLkr(goalRunRate)}",
+                        text = "Goal Target: ${CurrencyFormatter.formatLkr(goalRunRate)}",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         color = Color(0xFF9A3412)
                     )
