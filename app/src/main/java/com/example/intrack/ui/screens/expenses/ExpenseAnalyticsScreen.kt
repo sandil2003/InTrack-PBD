@@ -118,10 +118,11 @@ import com.example.intrack.data.model.SubscriptionEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.components.ProfileSettingsBottomSheet
-import com.example.intrack.ui.screens.goal.GoalViewModel
+import com.example.intrack.viewmodel.ExpenseViewModel
+import com.example.intrack.viewmodel.GoalViewModel
+import com.example.intrack.viewmodel.SubscriptionViewModel
 import com.example.intrack.ui.screens.subscriptions.AddSubscriptionBottomSheet
 import com.example.intrack.ui.screens.subscriptions.ViewSubscriptionBottomSheet
-import com.example.intrack.ui.screens.subscriptions.SubscriptionViewModel
 import com.example.intrack.ui.theme.*
 import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.util.DateUtils

@@ -1,5 +1,6 @@
 package com.example.intrack.ui.screens.expenses
 
+import com.example.intrack.viewmodel.ExpenseViewModel
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing

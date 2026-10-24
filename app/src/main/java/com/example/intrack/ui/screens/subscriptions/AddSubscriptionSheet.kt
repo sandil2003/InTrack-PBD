@@ -1,5 +1,6 @@
 package com.example.intrack.ui.screens.subscriptions
 
+import com.example.intrack.viewmodel.SubscriptionViewModel
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing

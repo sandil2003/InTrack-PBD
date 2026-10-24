@@ -1,4 +1,4 @@
-package com.example.intrack.ui.screens.auth
+package com.example.intrack.viewmodel
 
 import android.content.Context
 import androidx.compose.ui.graphics.Color

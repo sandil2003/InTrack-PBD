@@ -3,6 +3,7 @@ package com.example.intrack.ui.screens.auth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.intrack.viewmodel.AuthViewModel
 
 /**
  * LoginScreen backwards-compatible wrapper delegating to Figma-accurate SignInScreen

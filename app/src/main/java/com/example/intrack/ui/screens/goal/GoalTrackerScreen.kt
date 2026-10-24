@@ -1,5 +1,6 @@
 package com.example.intrack.ui.screens.goal
 
+import com.example.intrack.viewmodel.GoalViewModel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing

@@ -1,5 +1,7 @@
 package com.example.intrack.ui.screens.auth
 
+import com.example.intrack.viewmodel.PasswordStrengthLevel
+import com.example.intrack.viewmodel.AuthViewModel
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context

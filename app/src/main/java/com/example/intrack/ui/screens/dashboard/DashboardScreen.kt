@@ -1,5 +1,7 @@
 package com.example.intrack.ui.screens.dashboard
 
+import com.example.intrack.viewmodel.DashboardViewModel
+import com.example.intrack.viewmodel.DashboardData
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

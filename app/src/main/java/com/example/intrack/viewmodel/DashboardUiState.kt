@@ -1,4 +1,4 @@
-package com.example.intrack.ui.screens.dashboard
+package com.example.intrack.viewmodel
 
 import com.example.intrack.data.model.ExpenseEntity
 import com.example.intrack.data.model.GoalEntity

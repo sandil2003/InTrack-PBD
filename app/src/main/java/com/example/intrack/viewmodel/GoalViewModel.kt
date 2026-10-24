@@ -1,4 +1,4 @@
-package com.example.intrack.ui.screens.goal
+package com.example.intrack.viewmodel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

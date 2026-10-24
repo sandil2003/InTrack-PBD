@@ -1,4 +1,4 @@
-package com.example.intrack.ui.screens.expenses
+package com.example.intrack.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
