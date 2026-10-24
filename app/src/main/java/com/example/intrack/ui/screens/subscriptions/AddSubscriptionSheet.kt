@@ -1,5 +1,6 @@
 package com.example.intrack.ui.screens.subscriptions
 
+import com.example.intrack.viewmodel.SubscriptionViewModel
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -182,12 +183,12 @@ fun AddSubscriptionContent(
     val focusManager = LocalFocusManager.current
 
     // Form states
-    var providerName by remember { mutableStateOf(initialSubscription?.name ?: "Netflix Premium") }
+    var providerName by remember { mutableStateOf(initialSubscription?.name ?: "") }
     var amountInput by remember {
         mutableStateOf(
             if (initialSubscription != null && initialSubscription.amountLkr > 0) {
                 String.format(Locale.US, "%.2f", initialSubscription.amountLkr)
-            } else "2400.00"
+            } else ""
         )
     }
     var billingFrequency by remember { mutableStateOf(initialSubscription?.billingCycle ?: "Monthly") }
@@ -427,6 +428,18 @@ fun AddSubscriptionContent(
                         ),
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                         cursorBrush = SolidColor(Color.Transparent),
+                        decorationBox = { innerTextField ->
+                            if (amountInput.isEmpty()) {
+                                Text(
+                                    text = "0.00",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = amountFontSize,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFC4BBB5)
+                                )
+                            }
+                            innerTextField()
+                        },
                         modifier = Modifier.weight(1f, fill = false)
                     )
 
@@ -957,9 +970,10 @@ fun AddSubscriptionContent(
                             return@clickable
                         }
 
+                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
                         val newSub = SubscriptionEntity(
                             id = initialSubscription?.id ?: UUID.randomUUID().toString(),
-                            userId = initialSubscription?.userId ?: "",
+                            userId = initialSubscription?.userId?.ifBlank { currentUid } ?: currentUid,
                             name = providerName.trim(),
                             amountLkr = parsedAmount,
                             billingCycle = billingFrequency.uppercase(),

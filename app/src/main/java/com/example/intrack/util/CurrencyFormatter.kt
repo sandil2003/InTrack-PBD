@@ -14,6 +14,13 @@ object CurrencyFormatter {
         return "LKR ${formatter.format(amount)}"
     }
 
+    fun formatLkrWhole(amount: Double): String {
+        val formatter = NumberFormat.getNumberInstance(Locale.US).apply {
+            maximumFractionDigits = 0
+        }
+        return "LKR ${formatter.format(amount)}"
+    }
+
     fun formatUsd(amount: Double): String {
         val formatter = NumberFormat.getNumberInstance(Locale.US).apply {
             minimumFractionDigits = 2

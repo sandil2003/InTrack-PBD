@@ -1,5 +1,6 @@
 package com.example.intrack.ui.screens.goal
 
+import com.example.intrack.viewmodel.GoalViewModel
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -676,10 +677,9 @@ fun GoalDetailScreen(
 
                     // --- 3. Milestones Stepper ---
                     item {
-                        Card(
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(1.dp, FigmaBorder),
+                        InTrackCard(
+                            shape = InTrackMediumCardShape,
+                            elevation = 0.5.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(18.dp)) {

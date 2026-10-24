@@ -583,7 +583,7 @@ fun ViewSubscriptionContent(
                     }
 
                     Text(
-                        text = if (subscription.isAutoPayment) "72h advance reminder active" else "Reminders only",
+                        text = if (subscription.isAutoPayment) "Auto-debit active" else "Manual",
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Normal,
@@ -639,7 +639,7 @@ fun ViewSubscriptionContent(
                     }
 
                     Text(
-                        text = "Lifestyle / Personal",
+                        text = "Discretionary",
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Normal,
@@ -723,7 +723,7 @@ fun ViewSubscriptionContent(
                                 .padding(top = 2.dp)
                         )
                         Text(
-                            text = "Cancellation terms: Cancel anytime before renewal date without cancellation fees. Standing auto-debit terminates immediately upon cancellation.",
+                            text = "Cancel anytime • Auto-debit ends upon cancellation",
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Normal,

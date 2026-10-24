@@ -1,5 +1,6 @@
 package com.example.intrack.ui.screens.expenses
 
+import com.example.intrack.viewmodel.ExpenseViewModel
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -189,7 +190,7 @@ fun AddExpenseContent(
     val focusManager = LocalFocusManager.current
 
     // State
-    var amountInput by remember { mutableStateOf("4850.00") }
+    var amountInput by remember { mutableStateOf("") }
     var noteText by remember { mutableStateOf("") }
     var isRecurring by remember { mutableStateOf(false) }
     var commitmentType by remember { mutableStateOf("DISCRETIONARY") }
@@ -216,9 +217,9 @@ fun AddExpenseContent(
     // Accounts ("Paid From")
     val accounts = remember {
         listOf(
-            ExpenseAccountItem("CARD_PRIMARY", "Card Primary", "LKR 5000", Icons.Rounded.CreditCard),
-            ExpenseAccountItem("CASH", "Cash Wallet", "LKR 9,200", Icons.Rounded.AccountBalanceWallet),
-            ExpenseAccountItem("ACCOUNT_SECONDARY", "Secondary", "LKR 2,500", Icons.Rounded.AccountBalance)
+            ExpenseAccountItem("CARD_PRIMARY", "Card Primary", "Card", Icons.Rounded.CreditCard),
+            ExpenseAccountItem("CASH", "Cash Wallet", "Cash", Icons.Rounded.AccountBalanceWallet),
+            ExpenseAccountItem("ACCOUNT_SECONDARY", "Secondary", "Bank", Icons.Rounded.AccountBalance)
         )
     }
     var selectedAccountKey by remember { mutableStateOf("CARD_PRIMARY") }
@@ -380,6 +381,18 @@ fun AddExpenseContent(
                             onDone = { focusManager.clearFocus() }
                         ),
                         cursorBrush = SolidColor(Color.Transparent),
+                        decorationBox = { innerTextField ->
+                            if (amountInput.isEmpty()) {
+                                Text(
+                                    text = "0.00",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFC4BBB5)
+                                )
+                            }
+                            innerTextField()
+                        },
                         modifier = Modifier.weight(1f, fill = false)
                     )
 
@@ -548,7 +561,7 @@ fun AddExpenseContent(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Transfers money to your Cash wallet. Excluded from expense outflows to prevent double-counting when spent later.",
+                            text = "Transfers to Cash wallet • Excluded from expense outflows",
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 11.sp,
                             color = Color(0xFF3B82F6),
@@ -582,9 +595,9 @@ fun AddExpenseContent(
                 )
                 Text(
                     text = when (commitmentType) {
-                        "COMMITTED" -> "Committed (Bills & Needs)"
-                        "TRANSFER" -> "Internal Transfer"
-                        else -> "Discretionary (Wants & Lifestyle)"
+                        "COMMITTED" -> "Bills & Essentials"
+                        "TRANSFER" -> "Transfer"
+                        else -> "Dining & Lifestyle"
                     },
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 11.sp,
@@ -895,7 +908,7 @@ fun AddExpenseContent(
                     decorationBox = { innerTextField ->
                         if (noteText.isEmpty()) {
                             Text(
-                                text = "Dinner with Design Team at Botanik",
+                                text = "Add note (optional)",
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Normal,
@@ -953,16 +966,16 @@ fun AddExpenseContent(
                     Column {
                         // Title: "Recurring monthly expense?" (12sp, SemiBold 600, #1B1C1A)
                         Text(
-                            text = "Recurring monthly expense?",
+                            text = "Monthly recurring",
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF1B1C1A)
                         )
 
-                        // Subtitle: "Track automatically in Subs category" (12sp, Regular 400, #585F6B)
+                        // Subtitle: "Auto-tracked in Subscriptions" (12sp, Regular 400, #585F6B)
                         Text(
-                            text = "Track automatically in Subs category",
+                            text = "Auto-tracked in Subscriptions",
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Normal,
@@ -1029,9 +1042,10 @@ fun AddExpenseContent(
 
                     val finalCommitmentType = if (selectedCategoryKey == "ATM_WITHDRAWAL") "TRANSFER" else commitmentType
 
+                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
                     val newExpense = ExpenseEntity(
                         id = UUID.randomUUID().toString(),
-                        userId = "",
+                        userId = currentUid,
                         title = finalTitle,
                         amountLkr = parsedAmount,
                         category = selectedCategoryKey,
@@ -1127,7 +1141,7 @@ fun AddExpenseContent(
             text = {
                 Column {
                     Text(
-                        text = "Enter a name for the custom tag:",
+                        text = "Enter tag name:",
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 13.sp,
                         color = Color(0xFF585F6B)

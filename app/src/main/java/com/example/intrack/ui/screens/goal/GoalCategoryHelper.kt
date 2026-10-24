@@ -23,7 +23,7 @@ object GoalCategoryHelper {
             "VEHICLE" -> "Vehicle"
             "HOME" -> "Home & Living"
             "INVESTMENT" -> "Investment"
-            else -> categoryKey.replace("_", " ").lowercase().replaceFirstChar { it.titlecase() }
+            else -> categoryKey.split("_").joinToString(" ") { it.lowercase().replaceFirstChar { c -> c.titlecase() } }
         }
     }
 

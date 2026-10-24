@@ -1,5 +1,6 @@
 package com.example.intrack.ui.screens.auth
 
+import com.example.intrack.viewmodel.AuthViewModel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
