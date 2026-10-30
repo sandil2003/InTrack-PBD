@@ -21,10 +21,10 @@ import androidx.compose.ui.unit.dp
 fun InTrackCard(
     modifier: Modifier = Modifier,
     shape: Shape = InTrackCardShape,
-    containerColor: Color = Color.White,
-    borderColor: Color = FigmaBorder,
-    borderWidth: Dp = 1.dp,
-    elevation: Dp = 0.5.dp,
+    containerColor: Color = AppSurface,
+    borderColor: Color = Color.Transparent,
+    borderWidth: Dp = 0.dp,
+    elevation: Dp = 0.dp,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -39,7 +39,6 @@ fun InTrackCard(
     Card(
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        border = BorderStroke(borderWidth, borderColor),
         elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         modifier = cardModifier
     ) {

@@ -74,7 +74,7 @@ fun ExpenseChartsModal(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Palette synchronized with Figma InTrack theme
-    val figmaScreenBg = Color(0xFFFBF9F6)
+    val figmaScreenBg = Color(0xFFFFFFFF)
     val figmaBorder = Color(0x4DE3BEB6)
     val figmaTerracotta = Color(0xFFB52705)
     val figmaTrackBg = Color(0xFFE4E2DE)

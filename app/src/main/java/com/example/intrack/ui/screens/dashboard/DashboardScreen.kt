@@ -1,7 +1,11 @@
 package com.example.intrack.ui.screens.dashboard
 
+import com.example.intrack.ui.theme.BrandTangerine
 import com.example.intrack.viewmodel.DashboardViewModel
 import com.example.intrack.viewmodel.DashboardData
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,6 +46,14 @@ import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -115,6 +128,11 @@ fun DashboardScreen(
     var showExpenseSheet by remember { mutableStateOf(false) }
     var showNotificationsSheet by remember { mutableStateOf(false) }
     var hasUnreadNotifications by remember { mutableStateOf(true) }
+    var selectedCategoryFilter by remember { mutableStateOf("ALL") }
+    var selectedAccountFilter by remember { mutableStateOf("ALL") }
+    var accountFilterExpanded by remember { mutableStateOf(false) }
+    var categoryFilterExpanded by remember { mutableStateOf(false) }
+    var showActivityFilters by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -221,6 +239,17 @@ fun DashboardScreen(
             is UiState.Success -> {
                 val data = (uiState as UiState.Success<DashboardData>).data
 
+                // Filter & Weekly Grouping for Recent Transactions
+                val filteredRecent = data.recentTransactions.filter { expense ->
+                    val matchesCategory = if (selectedCategoryFilter == "ALL") true else expense.category.equals(selectedCategoryFilter, ignoreCase = true)
+                    val matchesAccount = if (selectedAccountFilter == "ALL") true else expense.paymentAccount.equals(selectedAccountFilter, ignoreCase = true)
+                    matchesCategory && matchesAccount
+                }
+
+                val groupedRecent = remember(filteredRecent) {
+                    filteredRecent.groupBy { formatWeeklyDashboardTimeTier(it.dateSpentMillis) }
+                }
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -311,65 +340,289 @@ fun DashboardScreen(
                         }
                     }
 
+                    // Section Header with Filter Toggle & "See All"
                     item {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = 10.dp),
+                                    .padding(horizontal = 2.dp, vertical = 2.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Recent Transactions",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    text = "RECENT TRANSACTIONS",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.6.sp
+                                    ),
+                                    color = Color(0xFF6B5E57)
                                 )
+
                                 Row(
-                                    modifier = Modifier.clickable { onNavigateToAllTransactions() },
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(
-                                        text = "See All",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = PrimaryGreen,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Spacer(modifier = Modifier.width(2.dp))
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                        contentDescription = null,
-                                        tint = PrimaryGreen,
-                                        modifier = Modifier.size(14.dp)
-                                    )
+                                    val hasActiveFilters = selectedCategoryFilter != "ALL" || selectedAccountFilter != "ALL"
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(30.dp)
+                                            .clip(CircleShape)
+                                            .background(if (showActivityFilters || hasActiveFilters) Color(0xFFF0EBE5) else Color.Transparent)
+                                            .clickable { showActivityFilters = !showActivityFilters },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Tune,
+                                            contentDescription = "Toggle Filters",
+                                            tint = if (showActivityFilters || hasActiveFilters) BrandTangerine else Color(0xFF585F6B),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.clickable { onNavigateToAllTransactions() },
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "See All",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = PrimaryGreen,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                            contentDescription = null,
+                                            tint = PrimaryGreen,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
                                 }
                             }
+                        }
+                    }
 
-                            if (data.recentTransactions.isEmpty()) {
-                                EmptyStateView(
-                                    title = "No recent transactions",
-                                    message = "Logged expenses this week will appear here.",
-                                    actionLabel = "Add Expense",
-                                    onActionClick = { showExpenseSheet = true }
+                    // Toggleable Filters
+                    if (showActivityFilters) {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // 1. Account Dropdown
+                                val accountOptions = listOf(
+                                    "ALL" to "All Accounts",
+                                    "CASH" to "Cash Wallet",
+                                    "CARD_PRIMARY" to "Card Primary",
+                                    "ACCOUNT_SECONDARY" to "Bank Primary"
                                 )
-                            } else {
-                                OutlinedCard(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Column(modifier = Modifier.fillMaxWidth()) {
-                                        data.recentTransactions.forEachIndexed { index, expense ->
-                                            RecentExpenseRow(expense = expense)
-                                            if (index < data.recentTransactions.lastIndex) {
-                                                HorizontalDivider(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                                    thickness = 1.dp
+                                val selectedAccLabel = accountOptions.find { it.first == selectedAccountFilter }?.second ?: "All Accounts"
+
+                                Box(modifier = Modifier.weight(1f)) {
+                                    ExposedDropdownMenuBox(
+                                        expanded = accountFilterExpanded,
+                                        onExpandedChange = { accountFilterExpanded = !accountFilterExpanded },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color.White)
+                                                .border(1.dp, Color(0xFFEDE8E3), RoundedCornerShape(12.dp))
+                                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(
+                                                    text = selectedAccLabel,
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        fontSize = 12.5.sp,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    ),
+                                                    color = Color(0xFF1B1C1A),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+
+                                                Icon(
+                                                    imageVector = Icons.Rounded.ArrowDropDown,
+                                                    contentDescription = "Dropdown",
+                                                    tint = Color(0xFF585F6B),
+                                                    modifier = Modifier.size(18.dp)
                                                 )
                                             }
+                                        }
+
+                                        ExposedDropdownMenu(
+                                            expanded = accountFilterExpanded,
+                                            onDismissRequest = { accountFilterExpanded = false },
+                                            modifier = Modifier.background(Color.White)
+                                        ) {
+                                            accountOptions.forEach { (key, label) ->
+                                                val isSelected = selectedAccountFilter == key
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            text = label,
+                                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                                fontSize = 13.sp,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                            ),
+                                                            color = if (isSelected) BrandTangerine else Color(0xFF1B1C1A)
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        selectedAccountFilter = key
+                                                        accountFilterExpanded = false
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 2. Category Dropdown
+                                val categoryOptions = listOf(
+                                    "ALL" to "All Categories",
+                                    "MISC" to "Groceries",
+                                    "DINING_OUT" to "Dining",
+                                    "TRANSPORT" to "Transport",
+                                    "RENT" to "Housing",
+                                    "SUBSCRIPTION" to "Subscriptions",
+                                    "UTILITIES" to "Utilities"
+                                )
+                                val selectedCatLabel = categoryOptions.find { it.first == selectedCategoryFilter }?.second ?: "All Categories"
+
+                                Box(modifier = Modifier.weight(1f)) {
+                                    ExposedDropdownMenuBox(
+                                        expanded = categoryFilterExpanded,
+                                        onExpandedChange = { categoryFilterExpanded = !categoryFilterExpanded },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color.White)
+                                                .border(1.dp, Color(0xFFEDE8E3), RoundedCornerShape(12.dp))
+                                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(
+                                                    text = selectedCatLabel,
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        fontSize = 12.5.sp,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    ),
+                                                    color = Color(0xFF1B1C1A),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+
+                                                Icon(
+                                                    imageVector = Icons.Rounded.ArrowDropDown,
+                                                    contentDescription = "Dropdown",
+                                                    tint = Color(0xFF585F6B),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+
+                                        ExposedDropdownMenu(
+                                            expanded = categoryFilterExpanded,
+                                            onDismissRequest = { categoryFilterExpanded = false },
+                                            modifier = Modifier.background(Color.White)
+                                        ) {
+                                            categoryOptions.forEach { (key, label) ->
+                                                val isSelected = selectedCategoryFilter == key
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            text = label,
+                                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                                fontSize = 13.sp,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                            ),
+                                                            color = if (isSelected) BrandTangerine else Color(0xFF1B1C1A)
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        selectedCategoryFilter = key
+                                                        categoryFilterExpanded = false
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Transactions List Feed with Weekly Headers
+                    if (filteredRecent.isEmpty()) {
+                        item {
+                            EmptyStateView(
+                                title = "No recent transactions",
+                                message = "Logged expenses matching active filters will appear here.",
+                                actionLabel = "Add Expense",
+                                onActionClick = { showExpenseSheet = true }
+                            )
+                        }
+                    } else {
+                        groupedRecent.forEach { (weekTier, expensesInGroup) ->
+                            item(key = "dashboard_section_$weekTier") {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    // Highlighted Weekly Section Header Row
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 2.dp, vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.Start,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(BrandTangerine.copy(alpha = 0.12f))
+                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = weekTier,
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    letterSpacing = 0.3.sp
+                                                ),
+                                                color = BrandTangerine
+                                            )
+                                        }
+                                    }
+
+                                    // Always visible Flat Transaction Rows
+                                    expensesInGroup.forEachIndexed { index, expense ->
+                                        RecentExpenseRow(expense = expense)
+                                        if (index < expensesInGroup.lastIndex) {
+                                            HorizontalDivider(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                                thickness = 0.8.dp
+                                            )
                                         }
                                     }
                                 }
@@ -434,132 +687,207 @@ fun DashboardScreen(
 @Composable
 fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
     val remainingBalance = totalIncome - totalExpense
+    val isPositive = remainingBalance >= 0
+    val heroColor = if (isPositive) PrimaryGreen else BrandTangerine
+
+    val totalFlow = (totalIncome + totalExpense).coerceAtLeast(1.0)
+    val inflowFraction = (totalIncome / totalFlow).toFloat().coerceIn(0f, 1f)
+
+    val animatedInflowFraction by animateFloatAsState(
+        targetValue = inflowFraction,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "animatedInflowFraction"
+    )
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        border = BorderStroke(1.dp, Color(0xFF1E293B))
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(0.dp, Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF0F172A),
-                            Color(0xFF1E293B)
-                        )
-                    )
-                )
-                .padding(20.dp)
+                .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
-            Text(
-                text = "NET CASH FLOW",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF94A3B8),
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp
-            )
+            // 1. Top Row: Centered "NET CASH FLOW" Header Title
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "NET CASH FLOW",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    color = Color(0xFF6B5E57),
+                    textAlign = TextAlign.Center
+                )
+            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            Text(
-                text = CurrencyFormatter.formatLkr(remainingBalance),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-                letterSpacing = (-0.5).sp
-            )
+            // 2. Centered Hero Balance Amount Row: "LKR XX,XXX.XX"
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    space = 6.dp,
+                    alignment = Alignment.CenterHorizontally
+                ),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = "LKR",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = heroColor,
+                    modifier = Modifier.alignByBaseline()
+                )
+                Text(
+                    text = CurrencyFormatter.formatLkr(remainingBalance).replace("LKR", "").trim(),
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = Color(0xFF1B1C1A),
+                    maxLines = 1,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 3. Multi-segment Progress Bar (Inflow vs Outflow Ratio)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(Color(0xFFE3BEB6))
+            ) {
+                if (animatedInflowFraction > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .weight(animatedInflowFraction.coerceIn(0.01f, 0.99f))
+                            .fillMaxHeight()
+                            .background(PrimaryGreen)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // 4. Subtle Hairline Divider
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 0.8.dp,
+                color = Color(0xFFF2ECE6)
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 5. Inflow vs Outflow Legend Breakdown
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Inflow Pill
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF1E293B).copy(alpha = 0.8f))
-                        .border(1.dp, Color(0xFF334155).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF334155).copy(alpha = 0.6f)),
-                        contentAlignment = Alignment.Center
+                // Inflow
+                Column(horizontalAlignment = Alignment.Start) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                            contentDescription = null,
+                            contentDescription = "Inflow",
                             tint = PrimaryGreen,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
                         Text(
                             text = "Inflow",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF94A3B8)
-                        )
-                        Text(
-                            text = CurrencyFormatter.formatLkr(totalIncome),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = Color(0xFF6B5E57)
                         )
                     }
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(totalIncome),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color(0xFF1B1C1A)
+                    )
                 }
 
-                // Outflow Pill
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF1E293B).copy(alpha = 0.8f))
-                        .border(1.dp, Color(0xFF334155).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF334155).copy(alpha = 0.6f)),
-                        contentAlignment = Alignment.Center
+                // Outflow
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.TrendingDown,
-                            contentDescription = null,
-                            tint = Color(0xFF94A3B8),
-                            modifier = Modifier.size(16.dp)
+                            contentDescription = "Outflow",
+                            tint = Color(0xFFB52705),
+                            modifier = Modifier.size(15.dp)
                         )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
                         Text(
                             text = "Outflow",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF94A3B8)
-                        )
-                        Text(
-                            text = CurrencyFormatter.formatLkr(totalExpense),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = Color(0xFF6B5E57)
                         )
                     }
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(totalExpense),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color(0xFF1B1C1A)
+                    )
                 }
             }
         }
+    }
+}
+
+private fun formatWeeklyDashboardTimeTier(timeMillis: Long): String {
+    val nowCal = java.util.Calendar.getInstance()
+    val txCal = java.util.Calendar.getInstance().apply { timeInMillis = timeMillis }
+
+    val nowYear = nowCal.get(java.util.Calendar.YEAR)
+    val txYear = txCal.get(java.util.Calendar.YEAR)
+    val nowWeek = nowCal.get(java.util.Calendar.WEEK_OF_YEAR)
+    val txWeek = txCal.get(java.util.Calendar.WEEK_OF_YEAR)
+
+    val weekDiff = if (nowYear == txYear) {
+        nowWeek - txWeek
+    } else {
+        val daysDiff = ((nowCal.timeInMillis - txCal.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+        daysDiff / 7
+    }
+
+    return when {
+        weekDiff <= 0 -> "This Week"
+        weekDiff == 1 -> "Last Week"
+        weekDiff == 2 -> "2 Weeks Ago"
+        weekDiff == 3 -> "3 Weeks Ago"
+        else -> "Earlier"
     }
 }
 
@@ -579,7 +907,7 @@ fun QuickActionButtons(
                 .height(48.dp),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
         ) {
             Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(6.dp))
@@ -596,7 +924,7 @@ fun QuickActionButtons(
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            border = BorderStroke(0.dp, Color.Transparent)
         ) {
             Icon(
                 imageVector = Icons.Default.Payments,

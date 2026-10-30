@@ -78,7 +78,7 @@ import com.example.intrack.R
 import com.example.intrack.ui.theme.BrandTangerine
 
 // Color Tokens matching Figma InTrack Auth
-val AuthCanvasBg = Color(0xFFFAF9F5)
+val AuthCanvasBg = Color(0xFFFFFFFF)
 val AuthDarkText = Color(0xFF1B1C1A)
 val AuthMutedText = Color(0xFF6B5B53)
 val AuthBorder = Color(0xFFEDE8E3)
