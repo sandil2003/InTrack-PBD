@@ -227,6 +227,7 @@ fun ExpenseAnalyticsScreen(
                 title = "Expense Analytics",
                 onNavigateToSettings = onNavigateToSettings,
                 onSignOut = onSignOut,
+                showProfileMenu = false,
                 actions = {
                     // Button - Select Date / Month (Figma: 36x36 circular button)
                     Box(
