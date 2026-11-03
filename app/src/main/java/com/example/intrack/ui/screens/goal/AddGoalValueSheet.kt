@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,6 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -146,7 +149,7 @@ fun AddGoalValueSheet(
             )
         )
     }
-
+    val scrollState = rememberScrollState()
     val recentContributions = remember(contributions) {
         if (contributions.isNotEmpty()) {
             contributions.take(3).map { c ->
@@ -195,7 +198,7 @@ fun AddGoalValueSheet(
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // --- Sheet Header (Figma node 2026:1600) ---
+            // Sheet Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -232,16 +235,7 @@ fun AddGoalValueSheet(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Text(
-                            text = "Allocate regular savings or sweep freelance windfalls",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Normal
-                            ),
-                            color = FigmaMutedSlate,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+
                     }
                 }
 
@@ -263,7 +257,7 @@ fun AddGoalValueSheet(
 
             HorizontalDivider(thickness = 0.8.dp, color = FigmaBorder)
 
-            // --- 1. Amount Input Display & Quick Chips (Figma node 2026:1613) ---
+            // 1. Amount Input Display & Quick Chips
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -287,6 +281,8 @@ fun AddGoalValueSheet(
                         .border(1.dp, FigmaBorder, RoundedCornerShape(18.dp))
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     contentAlignment = Alignment.Center
+
+
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -300,7 +296,8 @@ fun AddGoalValueSheet(
                                 fontWeight = FontWeight.Bold
                             ),
                             color = FigmaTerracotta,
-                            modifier = Modifier.padding(end = 8.dp)
+                            textAlign = TextAlign.Center
+
                         )
 
                         OutlinedTextField(
@@ -312,7 +309,8 @@ fun AddGoalValueSheet(
                             textStyle = MaterialTheme.typography.headlineMedium.copy(
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = FigmaDarkText
+                                color = FigmaDarkText,
+                                textAlign = TextAlign.Start
                             ),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
@@ -322,7 +320,9 @@ fun AddGoalValueSheet(
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent
                             ),
-                            modifier = Modifier.fillMaxWidth(0.85f)
+                            modifier = Modifier
+                                .widthIn(min = 40.dp, max = 180.dp) // Adapts to the available amount width
+                                .padding(start = 2.dp) // Small gap between LKR and the amount
                         )
                     }
                 }
@@ -362,7 +362,7 @@ fun AddGoalValueSheet(
                 }
             }
 
-            // --- 2. Source-Linked Income Channel Selector (Figma node 2026:1633) ---
+            // 2. Source-Linked Income Channel Selector
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -373,7 +373,7 @@ fun AddGoalValueSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "SELECT SOURCE / INCOME CHANNEL",
+                        text = "Select Source / Income Channel",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -389,12 +389,6 @@ fun AddGoalValueSheet(
                         fontSize = 10.5.sp
                     )
                 }
-
-                Text(
-                    text = "Tagging your side-hustles accelerates goal momentum and tracks revenue origins.",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = FigmaMutedSlate
-                )
 
                 Spacer(modifier = Modifier.height(2.dp))
 
@@ -558,97 +552,94 @@ fun AddGoalValueSheet(
                 }
             }
 
-            // --- 4. Recent Contribution History Micro-Feed (Figma node 2026:1704) ---
-            Column(
+            // 4. Recent contributions history
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Text(
+                    text = "Recent Contributions",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    color = FigmaMutedSlate
+                )
+            }
+            recentContributions.forEach { record ->
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(FigmaBg)
+                        .border(1.dp, FigmaBorder, RoundedCornerShape(14.dp))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "RECENT CONTRIBUTIONS (${recentContributions.size})",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = FigmaMutedSlate
-                    )
-
-                    Text(
-                        text = "View All",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = FigmaTerracottaOrange,
-                        modifier = Modifier.clickable { /* View details */ }
-                    )
-                }
-
-                recentContributions.forEach { record ->
+                    // Left section: icon + contribution details
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(FigmaBg)
-                            .border(1.dp, FigmaBorder, RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(Color.White),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = record.icon,
-                                    contentDescription = null,
-                                    tint = FigmaTerracotta,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = record.title,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    color = FigmaDarkText
-                                )
-                                if (record.subtitle.isNotBlank()) {
-                                    Text(
-                                        text = record.subtitle,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp
-                                        ),
-                                        color = FigmaMutedSlate
-                                    )
-                                }
-                            }
+                            Icon(
+                                imageVector = record.icon,
+                                contentDescription = null,
+                                tint = FigmaTerracotta,
+                                modifier = Modifier.size(15.dp)
+                            )
                         }
 
-                        Text(
-                            text = "+ ${CurrencyFormatter.formatLkr(record.amountLkr)}",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = FigmaTerracottaOrange
-                        )
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = record.title,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = FigmaDarkText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            if (record.subtitle.isNotBlank()) {
+                                Text(
+                                    text = record.subtitle,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp
+                                    ),
+                                    color = FigmaMutedSlate,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
                     }
+
+                    // Right section: amount always on one line
+                    Text(
+                        text = "+ ${CurrencyFormatter.formatLkr(record.amountLkr)}",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = FigmaTerracottaOrange,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.wrapContentWidth()
+                    )
                 }
             }
 
@@ -666,7 +657,7 @@ fun AddGoalValueSheet(
                 enabled = depositAmount > 0
             ) {
                 Text(
-                    text = "Confirm Deposit • ${CurrencyFormatter.formatLkr(depositAmount)}",
+                    text = " Deposit ${CurrencyFormatter.formatLkr(depositAmount)}",
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold

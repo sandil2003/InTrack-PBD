@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>InTrack - Income Streams Hub</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-fixed": "#251913",
+            "tertiary-fixed": "#dce3f2",
+            "surface-container-lowest": "#ffffff",
+            "on-primary-fixed": "#3d0600",
+            "on-surface-variant": "#5b413b",
+            "surface-dim": "#dbdad6",
+            "secondary": "#6b5b53",
+            "on-tertiary-fixed": "#151c27",
+            "surface-bright": "#fbf9f5",
+            "on-primary": "#ffffff",
+            "background": "#fbf9f5",
+            "on-surface": "#1b1c1a",
+            "tertiary-container": "#8c93a1",
+            "on-secondary": "#ffffff",
+            "primary-container": "#ff5c38",
+            "on-tertiary-container": "#252c37",
+            "surface-container": "#efeeea",
+            "on-primary-fixed-variant": "#8b1900",
+            "secondary-fixed": "#f5ded4",
+            "surface-container-high": "#eae8e4",
+            "secondary-fixed-dim": "#d8c2b9",
+            "secondary-container": "#f5ded4",
+            "inverse-surface": "#30312e",
+            "surface": "#fbf9f5",
+            "surface-variant": "#e4e2de",
+            "surface-tint": "#b52705",
+            "primary-fixed-dim": "#ffb4a3",
+            "surface-container-low": "#f5f3ef",
+            "primary-fixed": "#ffdad2",
+            "on-secondary-fixed-variant": "#52443d",
+            "on-error-container": "#93000a",
+            "error": "#ba1a1a",
+            "on-tertiary": "#ffffff",
+            "outline-variant": "#e3beb6",
+            "primary": "#b52705",
+            "inverse-on-surface": "#f2f0ed",
+            "on-secondary-container": "#726159",
+            "on-tertiary-fixed-variant": "#404753",
+            "on-background": "#1b1c1a",
+            "inverse-primary": "#ffb4a3",
+            "on-primary-container": "#5b0d00",
+            "error-container": "#ffdad6",
+            "tertiary-fixed-dim": "#c0c7d5",
+            "on-error": "#ffffff",
+            "tertiary": "#585f6b",
+            "surface-container-highest": "#e4e2de",
+            "outline": "#8f7069"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-md": "1rem",
+            "gutter": "0.75rem",
+            "space-xs": "0.5rem",
+            "space-xl": "2rem",
+            "space-2xs": "0.25rem",
+            "space-lg": "1.5rem",
+            "margin": "1.25rem",
+            "space-2xl": "2.5rem",
+            "space-sm": "0.75rem"
+          },
+          "fontFamily": {
+            "body-md": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "currency-body": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "display-lg": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "currency-display": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "currency-body": ["16px", { "lineHeight": "22px", "fontWeight": "700" }],
+            "headline-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "500" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "headline-sm": ["17px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "currency-display": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "18px", "fontWeight": "600" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .tnum {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen flex flex-col justify-between selection:bg-secondary-container selection:text-primary">
+<!-- Mobile Frame Container -->
+<div class="relative w-full max-w-md mx-auto min-h-screen flex flex-col bg-background pb-32">
+<!-- Top System & App Header Bar -->
+<header class="sticky top-0 z-40 bg-background/90 backdrop-blur-md px-margin pt-4 pb-2 transition-all">
+<!-- Android Status Bar Placeholder Layout -->
+<div class="flex justify-between items-center text-on-surface-variant font-label-md text-label-md py-1 mb-2">
+<span class="font-bold tracking-tight">19:36</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px]" data-icon="signal_cellular_4_bar">signal_cellular_4_bar</span>
+<span class="material-symbols-outlined text-[15px]" data-icon="wifi">wifi</span>
+<span class="material-symbols-outlined text-[15px]" data-icon="battery_charging_full">battery_charging_full</span>
+</div>
+</div>
+<!-- App Header Structure -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<button aria-label="Go back" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high active:scale-95 transition-all text-on-surface">
+<span class="material-symbols-outlined text-xl" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold tracking-tight text-on-surface">Income Streams</h1>
+</div>
+<div class="flex items-center gap-1.5">
+<button aria-label="Filter streams" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container-high text-on-surface-variant active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-xl" data-icon="filter_list">filter_list</span>
+</button>
+<button class="flex items-center gap-1 bg-surface-container-lowest border border-outline-variant/50 text-primary-container px-3 py-1.5 rounded-full font-label-md text-label-md shadow-sm active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-base" data-icon="add">add</span>
+<span>New</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col gap-space-md px-margin pt-2">
+<!-- 2. Horizontal Month Selector Carousel -->
+<div class="-mx-margin px-margin overflow-x-auto no-scrollbar flex items-center gap-2 py-1">
+<button class="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full font-label-md text-label-md bg-secondary-container text-primary-container border border-primary-container/40 shadow-xs font-bold transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="calendar_month">calendar_month</span>
+<span>October 2026</span>
+</button>
+<button class="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full font-label-md text-label-md bg-surface-container-lowest text-tertiary border border-outline-variant/30 hover:bg-surface-container-low transition-all">
+<span>September 2026</span>
+</button>
+<button class="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full font-label-md text-label-md bg-surface-container-lowest text-tertiary border border-outline-variant/30 hover:bg-surface-container-low transition-all">
+<span>August 2026</span>
+</button>
+</div>
+<!-- 3. Realized Inflow Hero Card -->
+<section class="bg-surface-container-lowest rounded-2xl p-space-md border border-outline-variant/40 shadow-[0_4px_20px_rgba(180,160,140,0.08)] flex flex-col gap-3 relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-label-sm font-bold uppercase tracking-wider text-tertiary">Total Realized Inflow</span>
+<span class="flex items-center gap-1 bg-surface-container-high/60 text-tertiary text-label-sm font-label-sm px-2.5 py-1 rounded-full">
+<span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span>
+<span>Live Ticker</span>
+</span>
+</div>
+<div class="flex flex-col gap-1">
+<div class="text-display-lg font-display-lg font-extrabold text-primary-container tracking-tight tnum">
+            LKR 210,000.00
+          </div>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-[#E8F5E9] text-[#2E7D32]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#2E7D32]"></span>
+              4 Active Streams
+            </span>
+<span class="text-body-sm font-body-sm text-tertiary">Paid to Date</span>
+</div>
+</div>
+<!-- Metric micro-pills -->
+<div class="grid grid-cols-2 gap-2 pt-2 border-t border-outline-variant/20 mt-1">
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-tertiary">Target Pacing</span>
+<span class="font-headline-sm text-headline-sm text-on-surface tnum font-bold">105.2%</span>
+</div>
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-tertiary">Swept to Goals</span>
+<span class="font-headline-sm text-headline-sm text-primary-container tnum font-bold">LKR 13,500</span>
+</div>
+</div>
+</section>
+<!-- 4. Windfall Siphoning Automation Banner -->
+<section class="bg-secondary-container/60 rounded-2xl p-space-md border border-outline-variant/50 relative flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-primary-container/20 flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-base" data-icon="bolt" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface">Windfall Siphoning Active (30%)</h2>
+</div>
+<span class="material-symbols-outlined text-tertiary text-lg cursor-pointer" data-icon="info">info</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+          30% of incoming freelance &amp; crypto profits automatically diverted to your <span class="font-bold text-on-surface">MacBook Pro M4 goal</span> (LKR 13,500 swept this month).
+        </p>
+<div class="pt-1">
+<button class="inline-flex items-center gap-1 font-label-md text-label-md text-primary font-bold hover:underline active:scale-95 transition-transform">
+<span>Configure Sweep</span>
+<span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- 5. Pending Receivables & Overdue Milestones Alert -->
+<section class="bg-surface-container-lowest rounded-2xl p-space-md border border-[#F5C2B4] shadow-[0_4px_16px_rgba(255,92,56,0.06)] flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-[#FFE2DB] text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="priority_high">priority_high</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Pending Milestones (2)</h3>
+</div>
+<span class="px-2.5 py-1 rounded-full text-label-sm font-label-sm font-bold bg-[#FFEBEE] text-error">
+            Action Required
+          </span>
+</div>
+<div class="flex items-baseline justify-between pt-1">
+<div>
+<div class="font-currency-display text-currency-display font-extrabold text-on-surface tnum">LKR 65,000.00</div>
+<div class="text-label-sm font-label-sm text-tertiary">Unpaid Receivables across 2 clients</div>
+</div>
+<button class="flex items-center gap-1 bg-surface-container-lowest border border-outline-variant/60 text-primary-container px-3 py-1.5 rounded-full font-label-md text-label-md font-bold shadow-xs active:scale-95 transition-transform">
+<span>Remind</span>
+<span class="material-symbols-outlined text-sm" data-icon="send">send</span>
+</button>
+</div>
+</section>
+<!-- 6. 4-Channel Income Streams Breakdown -->
+<section class="flex flex-col gap-3 pt-1">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface">Income Channels</h2>
+<span class="text-label-sm font-label-sm text-tertiary">4 configured</span>
+</div>
+<div class="flex flex-col gap-2.5">
+<!-- Channel 1: Primary Salary -->
+<article class="bg-surface-container-lowest rounded-2xl p-space-md border border-outline-variant/30 flex items-center justify-between gap-3 shadow-xs">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-on-surface shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="corporate_fare">corporate_fare</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<h4 class="font-body-lg text-body-lg font-bold text-on-surface leading-tight">Full-Stack Dev Salary</h4>
+</div>
+<span class="text-body-sm font-body-sm text-tertiary">Base LKR 125,000 + LKR 15,000 Bonus · Arrived 25th</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E8F5E9] text-[#2E7D32]">Paid</span>
+<span class="text-[11px] font-label-sm text-tertiary">Commercial Bank</span>
+</div>
+</div>
+</div>
+<div class="text-right shrink-0">
+<span class="font-currency-body text-currency-body font-extrabold text-[#2E7D32] tnum block">+ LKR 140,000.00</span>
+<span class="text-[10px] font-label-sm text-tertiary">Swept 0%</span>
+</div>
+</article>
+<!-- Channel 2: SME Freelance Projects -->
+<article class="bg-surface-container-lowest rounded-2xl p-space-md border border-outline-variant/30 flex items-center justify-between gap-3 shadow-xs">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-on-surface shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="web">web</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<h4 class="font-body-lg text-body-lg font-bold text-on-surface leading-tight">E-Commerce App Redesign</h4>
+</div>
+<span class="text-body-sm font-body-sm text-tertiary">Milestone 2/3 · Invoiced Oct 10</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#FFEBEE] text-error">5d Overdue</span>
+<span class="text-[11px] font-label-sm text-tertiary">Alpha Labs</span>
+</div>
+</div>
+</div>
+<div class="text-right shrink-0">
+<span class="font-currency-body text-currency-body font-extrabold text-on-surface tnum block">LKR 45,000.00</span>
+<span class="text-[10px] font-label-sm text-primary-container font-semibold">Sweep 30%</span>
+</div>
+</article>
+<!-- Channel 3: Google AdSense (USD Normalized) -->
+<article class="bg-surface-container-lowest rounded-2xl p-space-md border border-outline-variant/30 flex items-center justify-between gap-3 shadow-xs">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-on-surface shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="query_stats">query_stats</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<h4 class="font-body-lg text-body-lg font-bold text-on-surface leading-tight">Tech Blog Monetization</h4>
+</div>
+<span class="text-body-sm font-body-sm text-tertiary">USD $58.00 @ 313.80 LKR · Arrived Oct 21</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-secondary-container text-on-surface">USD Inflow</span>
+<span class="text-[11px] font-label-sm text-tertiary">Google Ireland</span>
+</div>
+</div>
+</div>
+<div class="text-right shrink-0">
+<span class="font-currency-body text-currency-body font-extrabold text-[#2E7D32] tnum block">+ LKR 18,200.00</span>
+<span class="text-[10px] font-label-sm text-tertiary">Swept LKR 5,460</span>
+</div>
+</article>
+<!-- Channel 4: Binance Crypto Cashflow -->
+<article class="bg-surface-container-lowest rounded-2xl p-space-md border border-outline-variant/30 flex items-center justify-between gap-3 shadow-xs">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-on-surface shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="currency_bitcoin">currency_bitcoin</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<h4 class="font-body-lg text-body-lg font-bold text-on-surface leading-tight">P2P Fiat Liquidation</h4>
+</div>
+<span class="text-body-sm font-body-sm text-tertiary">Swing profit cashflow · Arrived Oct 18</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E8F5E9] text-[#2E7D32]">Realized</span>
+<span class="text-[11px] font-label-sm text-tertiary">USDT / LKR</span>
+</div>
+</div>
+</div>
+<div class="text-right shrink-0">
+<span class="font-currency-body text-currency-body font-extrabold text-[#2E7D32] tnum block">+ LKR 6,800.00</span>
+<span class="text-[10px] font-label-sm text-tertiary">Swept LKR 2,040</span>
+</div>
+</article>
+</div>
+</section>
+</main>
+<!-- 7. Floating Action Button (FAB) -->
+<div class="fixed bottom-24 right-5 z-40 max-w-md">
+<button aria-label="Log new income stream" class="h-14 px-5 rounded-full bg-primary-container text-on-primary flex items-center gap-2.5 shadow-[0_8px_24px_rgba(255,92,56,0.35)] active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-2xl font-bold" data-icon="add">add</span>
+<span class="font-headline-sm text-headline-sm font-bold tracking-wide">Log Stream</span>
+</button>
+</div>
+<!-- 8. Persistent Docked Bottom Navigation Bar (Shared Component Contract) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter py-space-2xs pb-safe bg-surface/95 dark:bg-surface/95 backdrop-blur-md border-t border-outline-variant/50 dark:border-outline-variant/30 shadow-sm dark:shadow-none">
+<!-- Home Tab (Inactive) -->
+<a class="flex flex-col items-center justify-center text-tertiary dark:text-tertiary px-space-sm py-1 hover:bg-secondary-container/50 dark:hover:bg-secondary-container/30 transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="home">home</span>
+<span class="text-label-sm font-label-sm mt-0.5">Home</span>
+</a>
+<!-- Income Tab (Active - Exact Semantic Mapping) -->
+<a class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary-container text-primary dark:text-primary rounded-xl px-space-sm py-1 font-semibold hover:bg-secondary-container/50 dark:hover:bg-secondary-container/30 transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="account_balance_wallet" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+<span class="text-label-sm font-label-sm mt-0.5">Income</span>
+</a>
+<!-- Expenses Tab (Inactive) -->
+<a class="flex flex-col items-center justify-center text-tertiary dark:text-tertiary px-space-sm py-1 hover:bg-secondary-container/50 dark:hover:bg-secondary-container/30 transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="insert_chart">insert_chart</span>
+<span class="text-label-sm font-label-sm mt-0.5">Expenses</span>
+</a>
+<!-- Subs Tab (Inactive) -->
+<a class="flex flex-col items-center justify-center text-tertiary dark:text-tertiary px-space-sm py-1 hover:bg-secondary-container/50 dark:hover:bg-secondary-container/30 transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="sync">sync</span>
+<span class="text-label-sm font-label-sm mt-0.5">Subs</span>
+</a>
+<!-- Goals Tab (Inactive) -->
+<a class="flex flex-col items-center justify-center text-tertiary dark:text-tertiary px-space-sm py-1 hover:bg-secondary-container/50 dark:hover:bg-secondary-container/30 transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="track_changes">track_changes</span>
+<span class="text-label-sm font-label-sm mt-0.5">Goals</span>
+</a>
+</nav>
+</div>
+</body></html>

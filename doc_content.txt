@@ -1,0 +1,130 @@
+﻿Requirement Analysis
+
+
+Kavindu estimates his monthly income at LKR 160,000–210,000 across four asynchronous channels, yet has only accumulated LKR 11,200 in savings after earning over LKR 1.6M in 12 months. Conventional budgeting apps fail him because they assume a single, fixed monthly paycheck in a single currency.
+
+
+Lens 1: Deconstruction of Income streams
+1. Primary Employment (Semi-Variable Recurring): Deposited on the 25th of each month in LKR. While base compensation is predictable, performance incentives create a variance between LKR 120,000 and LKR 140,000. Kavindu avoids checking his physical payslip. The platform must distinguish between guaranteed baseline cashflow (LKR 120,000) and realized variable bonuses. It is recommended to add a recurring prompt on the 25th for the variable delta input rather than expecting manual entry from scratch.
+2. SME Freelance Engagements (Milestone-Driven & Fragmented): React and WordPress development projects paying LKR 20,000 to LKR 90,000 per project. Payments arrive irregularly, invoices are frequently forgotten, and bank reconciliation between payments and projects fails. The system must decouple earned revenue from realized cash (deposited in the bank). 
+3. AdSense Monetization (Foreign Currency Volatility): Generated from his tech blog, denominated in USD, and converted to LKR at prevailing bank exchange rates upon monthly transfer. Yields fluctuate between LKR 3,500 and LKR 19,000. Kavindu checks his dashboard but never logs the realized deposit. The persistence layer must preserve dual-currency accounting: 
+4. Cryptocurrency Trading (Capital Gains vs. Working Income): Active trading across cryptocurrencies (USDT, ETH) characterized by volatile quarters (gains in Q1, losses in Q3) without a calculated running net position. High-frequency micro-trading cannot be tracked manually without immediate drop-off. The system must record Realized Net P&L Snapshots (closed gains or losses liquidated to fiat/stablecoins) rather than treating gross withdrawals as earned income, preventing paper profits or capital losses from distorting monthly spending power.
+Lens 2: Failure Analysis
+
+
+1. Google Sheets - Manually entered formulas broke upon row insertion; entry overhead too high. By Enforce automatic aggregations via Firestore reactive queries. Implement a "Forgiving Catch-Up" engine where missed days can be balanced with a single unallocated discrepancy adjustment rather than retroactive ledger reconstruction.
+2. Play Store Budgeting App - Hardcoded to USD; single-income paradigm; fixed rigid monthly budget. 
+3. Notes Application - Unlabeled blocks of raw numbers pasted from bank notifications. This will become unreadable in 4 days. By introducing 2-Tap Micro-Logging replaces free-text pasting with interactive categorical quick-action chips on the Android home screen. 
+4. Bank Native App - Captured card only; missed cash and secondary accounts entirely, misclassified PickMe as "Online Retail". Implement Multi-Ledger Aggregation unified logging capturing three payment channels.
+
+
+Lens 3: Goal Progress Visibility 
+Kavindu has a specific, quantified savings goal and a deadline. His previous tools never connected daily financial behaviour to that goal in a visible or motivating way.
+Mathematical Grounding of the MacBook Pro M4 Goal
+* Target Asset: MacBook Pro M4 (Authorized Reseller Configuration).
+* Target Capital Required: LKR 490,000.00.
+* Current Liquid Savings: LKR 11,200.00.
+* Deficit: LKR 478,800.00.
+* Target Timeline: 12 Months (365 Days).
+
+
+Lens 4: Low-Friction Expense Ingestion and Data Fidelity 
+Given that the application cannot import bank data automatically, how should it handle expense entry in a way that minimises friction and maximises long-term user adherence?
+Quick-Action Presets (The "Frequent 4"): Pre-built fast-track buttons for Kavindu's high-frequency spending vectors: PickMe, UberEats, Coffee / Café, and Cash Withdrawal. Tapping opens a numeric keypad with category and channel pre-selected.
+Default Context Inheritance: The application defaults the timestamp to now(), the payment channel to Primary Card (or last used), and the currency to LKR. Entry requires only typing the amount and tapping a single confirmation button.
+Automated Fixed Recurring Commitments: Rent (LKR 34,000 on the 1st), gym auto-debits, and digital subscriptions are managed by an automated scheduler. They are auto-posted to the ledger and simply require confirmation on the dashboard, removing the chore of logging fixed recurring overhead.
+
+
+Lens 5: Structural Spending Distribution and Rapid Self-Awareness
+Kavindu has no concept of his discretionary-to-committed spending ratio. What visualisations or summary views would most efficiently reveal this to a user who does not think in financial categories?
+* UI and UX should design to provide immediate financial self-awareness within seven days. Use charts and matrices.
+* Kavindu does not think in traditional accounting categories. Forcing him to manage dozens of subcategories creates cognitive overload. The system therefore models every outflow under a binary macro-taxonomic model which are Behavioural expenses and Committed expenses.
+Software Requirements Specification (SRS)
+1. System Scope & Purpose
+The Personal Finance Management System is an offline-first, mobile Android application built specifically to address the structural financial ambiguity of users with irregular, multi-channel income streams and impulsive discretionary spending patterns.
+The application unifies multi-currency earnings (LKR, USD, crypto P&L), simplifies manual transaction tracking to under three seconds, enforces visibility over committed versus discretionary outlays, and continuously links daily discretionary habits to a tangible capital goal (MacBook Pro M4: LKR 490,000).
+2. User Persona Summary: Kavindu Silva
+* Role: Junior Software Engineer at a product startup, Colombo, Sri Lanka.
+* Financial Profile: Base salary of LKR 120,000–140,000 arriving on the 25th; irregular SME freelance projects (LKR 20,000–90,000); monthly USD AdSense revenue (LKR 3,500–19,000 equivalent); volatile Binance crypto trading (USDT/ETH).
+* Core Friction Points: Invisible spending, neglected freelance invoicing, unaccounted cash transactions, and a recurring drop-off from financial tracking within two weeks.
+* Target Goal: Accumulate LKR 490,000 for a MacBook Pro M4 within 12 months with only LKR 11,200 currently saved.
+3. Functional Requirements (FR)
+Module 1: Authentication & User State Management (FR-AUTH)
+* FR-AUTH-01: The system shall authenticate users via Firebase Authentication using secure Email and Password credentials.
+* FR-AUTH-02: The system shall maintain an authenticated session state locally, allowing seamless access without network connectivity.
+* FR-AUTH-03: The system shall initialize user preferences upon registration with a default base currency set to Sri Lankan Rupees
+Module 2: Multi-Source & Multi-Currency Income Management (FR-INC)
+* FR-INC-01 (Salary Ingestion): The system shall prompt the user on the 25th of each calendar month with a pre-filled base salary of LKR 120,000, allowing quick adjustment for variable performance bonuses up to LKR 140,000.
+* FR-INC-02 (Freelance Project Tracking): The system shall track SME freelance engagements with attributes: project title, client name, total agreed amount in LKR, payment milestones, due date, and payment status.
+* FR-INC-03 (Receivables Reminder): The system shall display an alert on the dashboard for any freelance milestone that remains in INVOICED status past its due date.
+* FR-INC-04 (Foreign Currency Normalization): The system shall accept AdSense income entries in USD, record the user-specified realized exchange rate at the time of conversion, and compute the normalized base amount in LKR.
+* FR-INC-05 (Crypto Net Position Ledger): The system shall allow the user to record realized crypto trading net outcomes (in USDT or LKR) with an indicator of profit or loss, maintaining a running Year-to-Date (YTD) net position.
+* FR-INC-06 (True Income Aggregation): The system shall compute Total Realized Income for any calendar month by summing cleared salary, paid freelance milestones, normalized AdSense earnings, and realized net crypto P&L.
+Module 3: Low-Friction Expense Logging & Categorization (FR-EXP)
+* FR-EXP-01 (2-Tap Quick Presets): The system shall provide one-tap shortcut buttons on the primary entry screen for frequent categories
+* FR-EXP-02 (Account Channel Allocation): The system shall require every expense entry to be assigned to one of three channels: Primary Bank Card, Cash, or Secondary Account.
+* FR-EXP-03 (Binary Nature Tagging): The system shall tag every outflow as either COMMITTED (non-negotiable survival expenses) or DISCRETIONARY (lifestyle and impulse outlays).
+* FR-EXP-04 (Recurring Expense Scheduler): The system shall automatically generate ledger entries for recurring committed expenses (Apartment Rent of LKR 34,000, secondary-account gym membership, and active software subscriptions) on their due dates.
+* FR-EXP-05 (Subscription Audit): The system shall maintain an active register of recurring digital subscriptions and flag services with an "Unused / Cancel Intent" marker to prompt cancellation.
+Module 4: Dynamic Goal Runway & Capital Allocation (FR-GOAL)
+* FR-GOAL-01 (Goal Configuration): The system shall allow the user to define a primary asset goal with a title (MacBook Pro M4), target cost (LKR 490,000), deadline (12 months), and starting balance (LKR 11,200).
+* FR-GOAL-02 (Required Savings Rate Calculation): The system shall compute and update the required daily and monthly savings run rate necessary to reach the goal by the target date:
+
+
+   * FR-GOAL-03 (Discretionary Impact Feedback): Upon saving any discretionary expense greater than LKR 2,000, the system shall display an inline impact notice indicating how many days the expense adds to the projected goal completion date.
+   * FR-GOAL-04 (Windfall Siphoning): When freelance or ad income is logged, the system shall provide an option to allocate a percentage (e.g., 20%, 30%, 50%) directly to the goal fund.
+Module 5: Financial Analytics & Clarity Dashboards (FR-ANL)
+   * FR-ANL-01 (Committed vs. Discretionary Gauge): The dashboard shall display a visual ratio gauge showing the percentage breakdown of committed versus discretionary spending against total monthly outflow.
+   * FR-ANL-02 (Top Discretionary Outflow Radar): The system shall aggregate and rank discretionary spending categories for the active month, highlighting dining and transport leaks.
+   * FR-ANL-03 (Account Channel Balance Breakdown): The system shall visualize total spending distributed across the three payment channels: Primary Card, Cash, and Secondary Account
+4. Non-Functional Requirements (NFR)
+Performance & Responsiveness (NFR-PERF)
+   * NFR-PERF-01: The application cold-start time to an interactive dashboard state shall not exceed 1.5 seconds on devices meeting the minimum SDK 26 specification.
+   * NFR-PERF-02: Transaction quick-logging shall execute and clear the interface in under 400 milliseconds using optimistic UI updates.
+Security & Data Isolation (NFR-SEC)
+   * NFR-SEC-01: All Firestore database read and write operations must be secured by user-isolated Firestore Security Rules.
+   * NFR-SEC-02: No sensitive financial information or authentication keys shall be logged to the Android system console in release builds.
+Usability & Accessibility (NFR-USE)
+   * NFR-USE-01: The entire user interface must be constructed with Jetpack Compose following Material Design 3 guidelines, supporting dynamic color schemes and high-contrast typography.
+   * NFR-USE-02: Transaction entry shall be executable with one hand via bottom-sheet interactions and keypad-optimized thumb zones.
+Reliability & Offline Availability (NFR-REL)
+   * NFR-REL-01: The application must maintain 100% offline functionality for reading and recording transactions using Room database caching and Firestore offline persistence.
+   * NFR-REL-02: Under network disconnection, the UI must not block or display an unhandled error state, syncing automatically when connectivity is restored.
+
+
+Use case Daiagram
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MVVM architectural diagram

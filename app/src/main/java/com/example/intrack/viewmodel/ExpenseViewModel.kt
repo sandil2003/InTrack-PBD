@@ -43,7 +43,12 @@ class ExpenseViewModel(
     }
 
     fun addExpense(expense: ExpenseEntity) {
-        val currentUid = if (expense.userId.isNotBlank()) expense.userId else (FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user")
+        val currentUid = if (expense.userId.isNotBlank()){
+            expense.userId
+        }
+        else {
+            FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+        }
         val preparedExpense = expense.copy(userId = currentUid)
         viewModelScope.launch {
             expenseRepository.addExpense(preparedExpense)
