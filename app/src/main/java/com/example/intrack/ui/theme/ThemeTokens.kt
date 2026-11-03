@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.dp
 // ==============================================================================
 
 // Background & Canvas Surfaces
-val FigmaBg = Color(0xFFFBF8F5)
+val FigmaBg = Color(0xFFFFFFFF)
 val FigmaCanvasBg = FigmaBg
 val FigmaCardBg = Color(0xFFFFFFFF)
 val FigmaIconCircleBg = Color(0xFFEFECE5)

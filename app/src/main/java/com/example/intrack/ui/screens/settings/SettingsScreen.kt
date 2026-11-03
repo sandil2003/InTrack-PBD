@@ -90,7 +90,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Design Tokens matching Figma node 2015:802
-private val FigmaBg = Color(0xFFFAF9F5)
+private val FigmaBg = Color(0xFFFFFFFF)
 private val FigmaDark = Color(0xFF1B1C1A)
 private val FigmaMuted = Color(0xFF6B5B53)
 private val FigmaSubtle = Color(0xFF8A7B73)

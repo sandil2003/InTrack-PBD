@@ -103,7 +103,8 @@ fun GoalTrackerScreen(
             InTrackTopBar(
                 title = "Goals",
                 onNavigateToSettings = onNavigateToSettings,
-                onSignOut = onSignOut
+                onSignOut = onSignOut,
+                showProfileMenu = false
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),

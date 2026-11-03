@@ -8,11 +8,11 @@ val BrandTangerineDark = Color(0xFFFF7A3D) // Luminous Sunset Orange for dark mo
 val BrandTangerineContainer = Color(0xFFFFEDD5) // Warm peach-tint container (Orange 100)
 val BrandTangerineOnContainer = Color(0xFF9A3412) // Rich burnt rust (Orange 900)
 
-// Neutral Surfaces (Light) - Warm Luxe Neo-Bank Canvas
-val AppBackground = Color(0xFFFBF9F6) // Warm, luminous ivory/cream canvas
-val AppSurface = Color(0xFFFFFFFF) // Pure white elevated cards
-val AppSurfaceVariant = Color(0xFFF3ECE4) // Warm soft structure
-val AppBorderSubtle = Color(0xFFE5DDD3) // Defined warm borders
+// Neutral Surfaces (Light) - Warm Luxe Neo-Bank Canvas (White Canvas + Warm Luxe Ivory Cards)
+val AppBackground = Color(0xFFFFFFFF) // Pure crisp white canvas
+val AppSurface = Color(0xFFF7F4EE) // Warm luxe alabaster/ivory elevated cards
+val AppSurfaceVariant = Color(0xFFEFE8DD) // Warm soft structure
+val AppBorderSubtle = Color(0xFFEAE4D9) // Defined warm oat borders
 
 // Neutral Surfaces (Dark) - Deep Obsidian Slate
 val DarkBackground = Color(0xFF0C0F14) // Deep obsidian slate

@@ -1,6 +1,10 @@
 package com.example.intrack.ui.screens.income
 
 import com.example.intrack.viewmodel.IncomeViewModel
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,10 +12,12 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,19 +28,27 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachMoney
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CurrencyBitcoin
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Laptop
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Work
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -45,11 +59,25 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.border
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -95,6 +123,9 @@ import com.example.intrack.ui.theme.TangerineShade4
 import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.util.DateUtils
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,6 +143,13 @@ fun IncomeHubScreen(
     var activeModalChannel by remember { mutableStateOf<String?>(null) }
     var pendingWindfallAmount by remember { mutableDoubleStateOf(0.0) }
     var showWindfallModal by remember { mutableStateOf(false) }
+    var showMonthPicker by remember { mutableStateOf(false) }
+    var isFabExpanded by remember { mutableStateOf(false) }
+    var isPendingInvoicesSectionExpanded by remember { mutableStateOf(false) }
+    var selectedChannelFilter by remember { mutableStateOf("ALL") }
+    var channelFilterExpanded by remember { mutableStateOf(false) }
+    var showActivityFilters by remember { mutableStateOf(false) }
+    var showPendingInvoicesSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -130,341 +168,567 @@ fun IncomeHubScreen(
                         modifier = Modifier.padding(start = 4.dp)
                     )
                 },
+                actions = {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .clickable { showMonthPicker = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Select Date / Month",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                },
                 windowInsets = TopAppBarDefaults.windowInsets,
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
+        floatingActionButton = {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Mini Speed Dial Action Buttons (visible when expanded)
+                AnimatedVisibility(
+                    visible = isFabExpanded,
+                    enter = fadeIn(tween(180)) + slideInVertically(animationSpec = tween(200), initialOffsetY = { it / 2 }),
+                    exit = fadeOut(tween(150)) + slideOutVertically(animationSpec = tween(150), targetOffsetY = { it / 2 })
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    ) {
+                        // 1. Salary
+                        IncomeSpeedDialItem(
+                            label = "Salary & Bonus",
+                            icon = Icons.Rounded.Work,
+                            onClick = {
+                                isFabExpanded = false
+                                activeModalChannel = "SALARY"
+                            }
+                        )
+
+                        // 2. Freelance
+                        IncomeSpeedDialItem(
+                            label = "Freelance Invoice",
+                            icon = Icons.Rounded.Laptop,
+                            onClick = {
+                                isFabExpanded = false
+                                activeModalChannel = "FREELANCE"
+                            }
+                        )
+
+                        // 3. AdSense
+                        IncomeSpeedDialItem(
+                            label = "Google AdSense",
+                            icon = Icons.Rounded.AttachMoney,
+                            onClick = {
+                                isFabExpanded = false
+                                activeModalChannel = "ADSENSE"
+                            }
+                        )
+
+                        // 4. Crypto
+                        IncomeSpeedDialItem(
+                            label = "Crypto Realized P&L",
+                            icon = Icons.Rounded.CurrencyBitcoin,
+                            onClick = {
+                                isFabExpanded = false
+                                activeModalChannel = "CRYPTO"
+                            }
+                        )
+                    }
+                }
+
+                // Main Floating Action Button
+                val rotationAngle by animateFloatAsState(
+                    targetValue = if (isFabExpanded) 45f else 0f,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    label = "fabRotation"
+                )
+
+                FloatingActionButton(
+                    onClick = { isFabExpanded = !isFabExpanded },
+                    containerColor = BrandTangerine,
+                    contentColor = Color.White,
+                    shape = CircleShape,
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = if (isFabExpanded) "Close income options" else "Open income options",
+                        modifier = Modifier
+                            .size(24.dp)
+                            .graphicsLayer { rotationZ = rotationAngle }
+                    )
+                }
+            }
+        },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier
     ) { innerPadding ->
-        when (incomesState) {
-            is UiState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
-            }
-            is UiState.Error -> {
-                val errorMsg = (incomesState as UiState.Error).message
-                EmptyStateView(
-                    title = "Error Loading Incomes",
-                    message = errorMsg,
-                    onActionClick = {
-                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                        viewModel.loadIncomes(currentUid)
-                    },
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-            is UiState.Empty -> {
-                EmptyStateView(
-                    title = "No Income Streams Found",
-                    message = "You have no income records yet. Log your first stream to start tracking.",
-                    actionLabel = "Log Stream",
-                    onActionClick = { showChannelPickerModal = true },
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-            is UiState.Success -> {
-                val allIncomes = (incomesState as UiState.Success<List<IncomeEntity>>).data
-
-                // 1. All Active Pending Invoices (Cross-Month Receivables)
-                val allPendingInvoices = allIncomes.filter {
-                    it.channel == "FREELANCE" && (it.status == "INVOICED" || it.status == "OVERDUE")
-                }.sortedByDescending { it.dateReceivedMillis }
-
-                val totalPendingReceivablesLkr = allPendingInvoices.sumOf { it.realizedAmountLkr }
-
-                // 2. Filter by the currently selected month chip
-                val monthIncomes = allIncomes.filter {
-                    DateUtils.matchesMonth(it.dateReceivedMillis, selectedMonth)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            when (incomesState) {
+                is UiState.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator() }
                 }
-
-                // Month-Specific Stream Breakdowns (Only Paid Realized Amounts)
-                val salaryIncomes = monthIncomes.filter { it.channel == "SALARY" && it.status == "PAID" }
-                val paidFreelanceInMonth = monthIncomes.filter { it.channel == "FREELANCE" && it.status == "PAID" }
-                val adsenseIncomes = monthIncomes.filter { it.channel == "ADSENSE" && it.status == "PAID" }
-                val cryptoIncomes = monthIncomes.filter { it.channel == "CRYPTO" && it.status == "PAID" }
-
-                val totalSalary = salaryIncomes.sumOf { it.realizedAmountLkr }
-                val totalFreelancePaidThisMonth = paidFreelanceInMonth.sumOf { it.realizedAmountLkr }
-                val totalAdsense = adsenseIncomes.sumOf { it.realizedAmountLkr }
-                val totalCrypto = cryptoIncomes.sumOf { it.realizedAmountLkr }
-
-                val totalMonthRealized = totalSalary + totalFreelancePaidThisMonth + totalAdsense + totalCrypto
-
-                // 3-Month Rolling Average across paid history
-                val rollingAverage = if (allIncomes.isNotEmpty()) {
-                    val allPaid = allIncomes.filter { it.status == "PAID" }.sumOf { it.realizedAmountLkr }
-                    (allPaid / 3.0).coerceAtLeast(120000.0)
-                } else 120000.0
-
-                // Freelance paid history for selected month
-                val freelancePaidHistory = paidFreelanceInMonth.sortedByDescending { it.dateReceivedMillis }
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(22.dp)
-                ) {
-                    // Month Selector Chips (Left side is most recent)
-                    item {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            recentMonths.forEach { monthName ->
-                                val isSelected = selectedMonth == monthName
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        selectedMonth = monthName
-                                    },
-                                    label = {
-                                        Text(
-                                            text = monthName,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                        )
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        containerColor = MaterialTheme.colorScheme.surface,
-                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = isSelected,
-                                        borderColor = MaterialTheme.colorScheme.outlineVariant,
-                                        selectedBorderColor = MaterialTheme.colorScheme.primary
-                                    ),
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                            }
+                is UiState.Error -> {
+                    val errorMsg = (incomesState as UiState.Error).message
+                    EmptyStateView(
+                        title = "Error Loading Incomes",
+                        message = errorMsg,
+                        onActionClick = {
+                            val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
+                            viewModel.loadIncomes(currentUid)
                         }
+                    )
+                }
+                is UiState.Empty -> {
+                    EmptyStateView(
+                        title = "No Income Streams Found",
+                        message = "You have no income records yet. Use the + FAB to log your first stream.",
+                        actionLabel = "Log Stream",
+                        onActionClick = { isFabExpanded = true }
+                    )
+                }
+                is UiState.Success -> {
+                    val allIncomes = (incomesState as UiState.Success<List<IncomeEntity>>).data
+
+                    // 1. All Active Pending Invoices (Cross-Month Receivables)
+                    val allPendingInvoices = allIncomes.filter {
+                        it.channel == "FREELANCE" && (it.status == "INVOICED" || it.status == "OVERDUE")
+                    }.sortedByDescending { it.dateReceivedMillis }
+
+                    val totalPendingReceivablesLkr = allPendingInvoices.sumOf { it.realizedAmountLkr }
+
+                    // 2. Filter by the currently selected month chip
+                    val monthIncomes = allIncomes.filter {
+                        DateUtils.matchesMonth(it.dateReceivedMillis, selectedMonth)
                     }
 
-                    // Month Realized Inflow Hero Card & Distribution Bar
-                    item {
-                        TotalInflowBreakdownCard(
-                            monthLabel = selectedMonth,
-                            totalInflowLkr = totalMonthRealized,
-                            rollingAvgLkr = rollingAverage,
-                            salaryTotal = totalSalary,
-                            freelanceTotal = totalFreelancePaidThisMonth,
-                            adsenseTotal = totalAdsense,
-                            cryptoTotal = totalCrypto
-                        )
-                    }
+                    // Month-Specific Stream Breakdowns (Only Paid Realized Amounts)
+                    val salaryIncomes = monthIncomes.filter { it.channel == "SALARY" && it.status == "PAID" }
+                    val paidFreelanceInMonth = monthIncomes.filter { it.channel == "FREELANCE" && it.status == "PAID" }
+                    val adsenseIncomes = monthIncomes.filter { it.channel == "ADSENSE" && it.status == "PAID" }
+                    val cryptoIncomes = monthIncomes.filter { it.channel == "CRYPTO" && it.status == "PAID" }
 
-                    // 4 Channel Overview Tiles for Selected Month
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(
-                                text = "$selectedMonth Channels",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
+                    val totalSalary = salaryIncomes.sumOf { it.realizedAmountLkr }
+                    val totalFreelancePaidThisMonth = paidFreelanceInMonth.sumOf { it.realizedAmountLkr }
+                    val totalAdsense = adsenseIncomes.sumOf { it.realizedAmountLkr }
+                    val totalCrypto = cryptoIncomes.sumOf { it.realizedAmountLkr }
+
+                    val totalMonthRealized = totalSalary + totalFreelancePaidThisMonth + totalAdsense + totalCrypto
+
+                    // 3-Month Rolling Average across paid history
+                    val rollingAverage = if (allIncomes.isNotEmpty()) {
+                        val allPaid = allIncomes.filter { it.status == "PAID" }.sumOf { it.realizedAmountLkr }
+                        (allPaid / 3.0).coerceAtLeast(120000.0)
+                    } else 120000.0
+
+                    // All paid inflows in selected month for Activities feed
+                    val monthPaidIncomes = monthIncomes.filter {
+                        it.status == "PAID" && (if (selectedChannelFilter == "ALL") true else it.channel.equals(selectedChannelFilter, ignoreCase = true))
+                    }.sortedByDescending { it.dateReceivedMillis }
+                    val groupedMonthIncomes = remember(monthPaidIncomes, selectedMonth) {
+                        monthPaidIncomes.groupBy { formatRelativeIncomeDateGroup(it.dateReceivedMillis, selectedMonth) }
+                    }
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(22.dp)
+                    ) {
+                        // Month Realized Inflow Hero Card & Distribution Bar
+                        item {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            TotalInflowBreakdownCard(
+                                monthLabel = selectedMonth,
+                                totalInflowLkr = totalMonthRealized,
+                                rollingAvgLkr = rollingAverage,
+                                salaryTotal = totalSalary,
+                                freelanceTotal = totalFreelancePaidThisMonth,
+                                adsenseTotal = totalAdsense,
+                                cryptoTotal = totalCrypto
                             )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                ChannelOverviewTile(
-                                    title = "Salary",
-                                    amountText = CurrencyFormatter.formatLkr(totalSalary),
-                                    accentColor = BrandTangerine,
-                                    icon = Icons.Rounded.Work,
-                                    isLogged = totalSalary > 0,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = { activeModalChannel = "SALARY" }
-                                )
-                                ChannelOverviewTile(
-                                    title = "Freelance",
-                                    amountText = CurrencyFormatter.formatLkr(totalFreelancePaidThisMonth),
-                                    accentColor = BrandTangerine,
-                                    icon = Icons.Rounded.Laptop,
-                                    isLogged = totalFreelancePaidThisMonth > 0,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = { activeModalChannel = "FREELANCE" }
-                                )
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                ChannelOverviewTile(
-                                    title = "Google AdSense",
-                                    amountText = CurrencyFormatter.formatLkr(totalAdsense),
-                                    accentColor = BrandTangerine,
-                                    icon = Icons.Rounded.AttachMoney,
-                                    isLogged = totalAdsense > 0,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = { activeModalChannel = "ADSENSE" }
-                                )
-                                ChannelOverviewTile(
-                                    title = "Crypto Trading",
-                                    amountText = if (totalCrypto >= 0) "+${CurrencyFormatter.formatLkr(totalCrypto)}" else "-${CurrencyFormatter.formatLkr(-totalCrypto)}",
-                                    accentColor = BrandTangerine,
-                                    icon = Icons.Rounded.CurrencyBitcoin,
-                                    isLogged = totalCrypto != 0.0,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = { activeModalChannel = "CRYPTO" }
-                                )
-                            }
                         }
-                    }
 
-                    // PENDING INVOICES & RECEIVABLES SECTION (Cross-Month Tracker)
-                    item {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Pending Client Invoices",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-                                if (allPendingInvoices.isNotEmpty()) {
-                                    Text(
-                                        text = "${allPendingInvoices.size} Unpaid • ${CurrencyFormatter.formatLkr(totalPendingReceivablesLkr)}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            if (allPendingInvoices.isNotEmpty()) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    allPendingInvoices.forEach { invoice ->
-                                        PendingInvoiceCard(
-                                            invoice = invoice,
-                                            onSendReminder = {
-                                                coroutineScope.launch {
-                                                    snackbarHostState.showSnackbar(
-                                                        message = "Invoice reminder sent to ${invoice.clientName ?: "client"} for '${invoice.title}'!",
-                                                        duration = SnackbarDuration.Short
-                                                    )
-                                                }
-                                            },
-                                            onMarkAsPaid = {
-                                                val settledInvoice = invoice.copy(
-                                                    status = "PAID",
-                                                    dateReceivedMillis = System.currentTimeMillis()
-                                                )
-                                                viewModel.updateIncome(settledInvoice)
-                                                pendingWindfallAmount = settledInvoice.realizedAmountLkr
-                                                showWindfallModal = true
-                                                coroutineScope.launch {
-                                                    snackbarHostState.showSnackbar(
-                                                        message = "Settled invoice '${invoice.title}' (+${CurrencyFormatter.formatLkr(invoice.realizedAmountLkr)})",
-                                                        duration = SnackbarDuration.Short
-                                                    )
-                                                }
-                                            },
-                                            onDeleteInvoice = {
-                                                viewModel.deleteIncome(invoice.id)
-                                                coroutineScope.launch {
-                                                    snackbarHostState.showSnackbar(
-                                                        message = "Deleted invoice '${invoice.title}'",
-                                                        duration = SnackbarDuration.Short
-                                                    )
-                                                }
-                                            }
-                                        )
-                                    }
-                                }
-                            } else {
+                        // Item 2: Slim Receivables Summary Banner (Option 2 - when pending invoices exist)
+                        if (allPendingInvoices.isNotEmpty()) {
+                            item {
                                 OutlinedCard(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { showPendingInvoicesSheet = true },
+                                    shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                    border = BorderStroke(0.dp, Color.Transparent),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(14.dp),
+                                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.CheckCircle,
-                                            contentDescription = null,
-                                            tint = PrimaryGreen,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Text(
-                                            text = "All client invoices settled — no pending receivables.",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape)
+                                                    .background(BrandTangerine.copy(alpha = 0.12f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Description,
+                                                    contentDescription = null,
+                                                    tint = BrandTangerine,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
 
-                    // FREELANCE PAID HISTORY IN THIS MONTH
-                    item {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = "Freelance Paid History in $selectedMonth",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
+                                            Column {
+                                                Text(
+                                                    text = "Client Receivables",
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        fontSize = 13.5.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    ),
+                                                    color = Color(0xFF1B1C1A)
+                                                )
+                                                Text(
+                                                    text = "Tap to manage unpaid invoices",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Medium
+                                                    ),
+                                                    color = Color(0xFF6B5E57)
+                                                )
+                                            }
+                                        }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(CircleShape)
+                                                    .background(BrandTangerine.copy(alpha = 0.12f))
+                                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                            ) {
+                                                Text(
+                                                    text = if (allPendingInvoices.size == 1) "1 Pending" else "${allPendingInvoices.size} Pending",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    ),
+                                                    color = BrandTangerine
+                                                )
+                                            }
 
-                            if (freelancePaidHistory.isEmpty()) {
-                                EmptyStateView(
-                                    title = "No freelance inflows for $selectedMonth",
-                                    message = "No settled freelance invoices recorded in this month."
-                                )
-                            } else {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    freelancePaidHistory.forEachIndexed { index, income ->
-                                        InflowHistoryRow(income = income)
-                                        if (index < freelancePaidHistory.lastIndex) {
-                                            HorizontalDivider(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                                thickness = 1.dp
+                                            Icon(
+                                                imageVector = Icons.Default.ChevronRight,
+                                                contentDescription = "Open Invoices",
+                                                tint = Color(0xFF585F6B),
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
                                     }
                                 }
                             }
                         }
+
+                        // {THIS MONTH} ACTIVITIES SECTION HEADER
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${selectedMonth.uppercase()} ACTIVITIES",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.6.sp
+                                    ),
+                                    color = Color(0xFF6B5E57)
+                                )
+
+                                val hasActiveChannelFilter = selectedChannelFilter != "ALL"
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(if (showActivityFilters || hasActiveChannelFilter) Color(0xFFF0EBE5) else Color.Transparent)
+                                        .clickable { showActivityFilters = !showActivityFilters },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Tune,
+                                        contentDescription = "Toggle Filters",
+                                        tint = if (showActivityFilters || hasActiveChannelFilter) BrandTangerine else Color(0xFF585F6B),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Toggleable Stream Filter Dropdown
+                        if (showActivityFilters) {
+                            item {
+                                val channelOptions = listOf(
+                                    "ALL" to "All Inflow Streams",
+                                    "SALARY" to "Salary Only",
+                                    "FREELANCE" to "Freelance Payments",
+                                    "ADSENSE" to "AdSense Inflows",
+                                    "CRYPTO" to "Crypto Realized P&L"
+                                )
+                                val selectedLabel = channelOptions.find { it.first == selectedChannelFilter }?.second ?: "All Inflow Streams"
+
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    ExposedDropdownMenuBox(
+                                        expanded = channelFilterExpanded,
+                                        onExpandedChange = { channelFilterExpanded = !channelFilterExpanded },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color.White)
+                                                .border(1.dp, Color(0xFFEDE8E3), RoundedCornerShape(12.dp))
+                                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(
+                                                    text = selectedLabel,
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        fontSize = 12.5.sp,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    ),
+                                                    color = Color(0xFF1B1C1A),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+
+                                                Icon(
+                                                    imageVector = Icons.Rounded.ArrowDropDown,
+                                                    contentDescription = "Dropdown",
+                                                    tint = Color(0xFF585F6B),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+
+                                        ExposedDropdownMenu(
+                                            expanded = channelFilterExpanded,
+                                            onDismissRequest = { channelFilterExpanded = false },
+                                            modifier = Modifier.background(Color.White)
+                                        ) {
+                                            channelOptions.forEach { (key, label) ->
+                                                val isSelected = selectedChannelFilter == key
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            text = label,
+                                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                                fontSize = 13.sp,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                            ),
+                                                            color = if (isSelected) BrandTangerine else Color(0xFF1B1C1A)
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        selectedChannelFilter = key
+                                                        channelFilterExpanded = false
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Activities Feed
+                        if (monthPaidIncomes.isEmpty()) {
+                            item {
+                                EmptyStateView(
+                                    title = "No inflows logged for $selectedMonth",
+                                    message = "Use the + FAB to log salary, freelance, AdSense, or crypto."
+                                )
+                            }
+                        } else {
+                            groupedMonthIncomes.forEach { (weekTier, incomesInGroup) ->
+                                item(key = "income_section_$weekTier") {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        // Highlighted Weekly Section Header Row (without transaction count)
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 2.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.Start,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(BrandTangerine.copy(alpha = 0.12f))
+                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = weekTier,
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        letterSpacing = 0.3.sp
+                                                    ),
+                                                    color = BrandTangerine
+                                                )
+                                            }
+                                        }
+
+                                        // Always visible Flat Inflow History Rows
+                                        incomesInGroup.forEachIndexed { index, income ->
+                                            InflowHistoryRow(income = income)
+                                            if (index < incomesInGroup.lastIndex) {
+                                                HorizontalDivider(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                                    thickness = 0.8.dp
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(84.dp))
+                        }
                     }
 
-                    item {
-                        Spacer(modifier = Modifier.height(84.dp))
+                    if (showPendingInvoicesSheet) {
+                        PendingInvoicesBottomSheet(
+                            allPendingInvoices = allPendingInvoices,
+                            totalPendingReceivablesLkr = totalPendingReceivablesLkr,
+                            onDismiss = { showPendingInvoicesSheet = false },
+                            onSendReminder = { invoice ->
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "Invoice reminder sent to ${invoice.clientName ?: "client"} for '${invoice.title}'!",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            },
+                            onMarkAsPaid = { invoice ->
+                                showPendingInvoicesSheet = false
+                                val settledInvoice = invoice.copy(
+                                    status = "PAID",
+                                    dateReceivedMillis = System.currentTimeMillis()
+                                )
+                                viewModel.updateIncome(settledInvoice)
+                                pendingWindfallAmount = settledInvoice.realizedAmountLkr
+                                showWindfallModal = true
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "Settled invoice '${invoice.title}' (+${CurrencyFormatter.formatLkr(invoice.realizedAmountLkr)})",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+
+    // Month Picker Modal Bottom Sheet
+    if (showMonthPicker) {
+        ModalBottomSheet(
+            onDismissRequest = { showMonthPicker = false },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Select Month",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                recentMonths.forEach { month ->
+                    val isSelected = month == selectedMonth
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                            .clickable {
+                                selectedMonth = month
+                                showMonthPicker = false
+                            }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = month,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                        )
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
+                        }
                     }
                 }
             }
-            else -> {}
         }
     }
 
@@ -604,9 +868,77 @@ fun IncomeHubScreen(
     }
 }
 
+private fun formatRelativeIncomeDateGroup(timeMillis: Long, monthName: String = "Month"): String {
+    val nowCal = java.util.Calendar.getInstance()
+    val txCal = java.util.Calendar.getInstance().apply { timeInMillis = timeMillis }
+
+    val nowYear = nowCal.get(java.util.Calendar.YEAR)
+    val txYear = txCal.get(java.util.Calendar.YEAR)
+    val nowWeek = nowCal.get(java.util.Calendar.WEEK_OF_YEAR)
+    val txWeek = txCal.get(java.util.Calendar.WEEK_OF_YEAR)
+
+    val weekDiff = if (nowYear == txYear) {
+        nowWeek - txWeek
+    } else {
+        val daysDiff = ((nowCal.timeInMillis - txCal.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+        daysDiff / 7
+    }
+
+    return when {
+        weekDiff <= 0 -> "This Week"
+        weekDiff == 1 -> "Last Week"
+        weekDiff == 2 -> "2 Weeks Ago"
+        weekDiff == 3 -> "3 Weeks Ago"
+        else -> "Earlier in $monthName"
+    }
+}
+
 // -----------------------------------------------------------------------------------------
 // COMPOSABLE SUB-COMPONENTS
 // -----------------------------------------------------------------------------------------
+
+@Composable
+fun IncomeSpeedDialItem(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.clickable { onClick() }
+    ) {
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = Color(0xFF1B1C1A),
+            tonalElevation = 2.dp
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = Color.White,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+            )
+        }
+
+        SmallFloatingActionButton(
+            onClick = onClick,
+            containerColor = Color.White,
+            contentColor = BrandTangerine,
+            shape = CircleShape,
+            modifier = Modifier.size(42.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
 
 @Composable
 fun TotalInflowBreakdownCard(
@@ -624,81 +956,166 @@ fun TotalInflowBreakdownCard(
     val adsenseFraction = (adsenseTotal / total).toFloat().coerceIn(0f, 1f)
     val cryptoFraction = (cryptoTotal / total).toFloat().coerceIn(0f, 1f)
 
-    OutlinedCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    val animatedSalary by animateFloatAsState(
+        targetValue = salaryFraction,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "animatedSalary"
+    )
+    val animatedFreelance by animateFloatAsState(
+        targetValue = freelanceFraction,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "animatedFreelance"
+    )
+    val animatedAdsense by animateFloatAsState(
+        targetValue = adsenseFraction,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "animatedAdsense"
+    )
+    val animatedCrypto by animateFloatAsState(
+        targetValue = cryptoFraction,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "animatedCrypto"
+    )
+
+    val darkTextColor = Color(0xFF1B1C1A)
+    val mutedLabelColor = Color(0xFF6B5E57)
+    val hairlineColor = Color(0xFFF2ECE6)
+
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(0.dp, Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.0.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Text(
-                text = "${monthLabel.uppercase()} REALIZED INFLOW",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.6.sp
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp)
+        ) {
+            // 1. Top Row: Title + Inflow Trending Icon Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${monthLabel.uppercase()} REALIZED INFLOW",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    color = mutedLabelColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = CurrencyFormatter.formatLkr(totalInflowLkr),
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-0.5).sp
-                ),
-                color = MaterialTheme.colorScheme.primary
-            )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(PrimaryGreen.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                        contentDescription = "Realized Inflow",
+                        tint = PrimaryGreen,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Multi-Channel Distribution Bar for selected month
+            // 2. Hero Amount Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    space = 6.dp,
+                    alignment = Alignment.CenterHorizontally
+                ),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = "LKR",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = PrimaryGreen,
+                    modifier = Modifier.alignByBaseline()
+                )
+                Text(
+                    text = CurrencyFormatter.formatLkr(totalInflowLkr).replace("LKR", "").trim(),
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = darkTextColor,
+                    maxLines = 1,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 3. Multi-segment Capsule Progress Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(if (totalInflowLkr > 0) Color(0xFFEFECE5) else Color(0xFFF2ECE6))
             ) {
-                if (salaryFraction > 0f) {
+                if (totalInflowLkr > 0 && animatedSalary > 0f) {
                     Box(
                         modifier = Modifier
-                            .weight(salaryFraction.coerceAtLeast(0.01f))
-                            .fillMaxSize()
+                            .weight(animatedSalary.coerceIn(0.01f, 0.99f))
+                            .fillMaxHeight()
                             .background(TangerineShade1)
                     )
                 }
-                if (freelanceFraction > 0f) {
+                if (totalInflowLkr > 0 && animatedFreelance > 0f) {
                     Box(
                         modifier = Modifier
-                            .weight(freelanceFraction.coerceAtLeast(0.01f))
-                            .fillMaxSize()
+                            .weight(animatedFreelance.coerceIn(0.01f, 0.99f))
+                            .fillMaxHeight()
                             .background(TangerineShade2)
                     )
                 }
-                if (adsenseFraction > 0f) {
+                if (totalInflowLkr > 0 && animatedAdsense > 0f) {
                     Box(
                         modifier = Modifier
-                            .weight(adsenseFraction.coerceAtLeast(0.01f))
-                            .fillMaxSize()
+                            .weight(animatedAdsense.coerceIn(0.01f, 0.99f))
+                            .fillMaxHeight()
                             .background(TangerineShade3)
                     )
                 }
-                if (cryptoFraction > 0f) {
+                if (totalInflowLkr > 0 && animatedCrypto > 0f) {
                     Box(
                         modifier = Modifier
-                            .weight(cryptoFraction.coerceAtLeast(0.01f))
-                            .fillMaxSize()
+                            .weight(animatedCrypto.coerceIn(0.01f, 0.99f))
+                            .fillMaxHeight()
                             .background(TangerineShade4)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Channel Legend with numbers (title and cost in two lines)
+            // 4. Subtle Hairline Divider
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 0.8.dp,
+                color = hairlineColor
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 5. Multi-Column Channel Legend Breakdown
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -731,28 +1148,42 @@ fun LegendNumberItem(
     amount: Double,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .size(7.dp)
                     .clip(CircleShape)
                     .background(color)
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                ),
+                color = Color(0xFF6B5E57),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = CurrencyFormatter.formatLkr(amount),
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.3).sp
+            ),
+            color = Color(0xFF1B1C1A),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -760,10 +1191,9 @@ fun LegendNumberItem(
 @Composable
 fun ChannelOverviewTile(
     title: String,
-    amountText: String,
+    subtitle: String,
     accentColor: Color,
     icon: ImageVector,
-    isLogged: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -771,16 +1201,13 @@ fun ChannelOverviewTile(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(
-            1.dp,
-            if (isLogged) accentColor.copy(alpha = 0.25f) else MaterialTheme.colorScheme.outlineVariant
-        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -800,54 +1227,42 @@ fun ChannelOverviewTile(
                 )
             }
 
-            // Right: Title & Price
+            // Right: Title & CTA Button / Subtitle
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                if (isLogged) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(13.dp)
+                    )
                     Text(
-                        text = amountText,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.3).sp
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold
                         ),
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = accentColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                } else {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = null,
-                            tint = accentColor,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Text(
-                            text = "Log Stream",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = accentColor
-                        )
-                    }
                 }
             }
         }
@@ -858,11 +1273,14 @@ fun ChannelOverviewTile(
 fun PendingInvoiceCard(
     invoice: IncomeEntity,
     onSendReminder: () -> Unit,
-    onMarkAsPaid: () -> Unit,
-    onDeleteInvoice: (() -> Unit)? = null
+    onMarkAsPaid: () -> Unit
 ) {
+    var isCardExpanded by remember { mutableStateOf(false) }
+
     OutlinedCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { isCardExpanded = !isCardExpanded },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -905,59 +1323,54 @@ fun PendingInvoiceCard(
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = CurrencyFormatter.formatLkr(invoice.realizedAmountLkr),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    if (onDeleteInvoice != null) {
-                        IconButton(
-                            onClick = onDeleteInvoice,
-                            modifier = Modifier.size(30.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.DeleteOutline,
-                                contentDescription = "Delete Invoice",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = CurrencyFormatter.formatLkr(invoice.realizedAmountLkr),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            AnimatedVisibility(visible = isCardExpanded) {
+                Column {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        thickness = 0.8.dp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onSendReminder,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(36.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(imageVector = Icons.Rounded.NotificationsActive, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Remind Client", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onSendReminder,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(imageVector = Icons.Rounded.NotificationsActive, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Remind Client", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
 
-                Button(
-                    onClick = onMarkAsPaid,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(36.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
-                ) {
-                    Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Mark Received", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = onMarkAsPaid,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                        ) {
+                            Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Mark Received", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }
@@ -966,74 +1379,202 @@ fun PendingInvoiceCard(
 
 @Composable
 fun InflowHistoryRow(
-    income: IncomeEntity
+    income: IncomeEntity,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
-    val (icon, tint) = when (income.channel) {
-        "SALARY" -> Icons.Rounded.Work to BrandTangerine
-        "FREELANCE" -> Icons.Rounded.Laptop to BrandTangerine
-        "ADSENSE" -> Icons.Rounded.AttachMoney to BrandTangerine
-        else -> Icons.Rounded.CurrencyBitcoin to BrandTangerine
+    val channelLabel = when (income.channel.uppercase()) {
+        "SALARY" -> "Salary"
+        "FREELANCE" -> if (!income.clientName.isNullOrEmpty()) "Client: ${income.clientName}" else "Freelance"
+        "ADSENSE" -> "AdSense"
+        "CRYPTO" -> "Crypto P&L"
+        else -> income.channel.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
     }
 
+    val formattedDate = DateUtils.formatDate(income.dateReceivedMillis)
+
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        // Left: Title & Channel/Time Subtitle
+        Column(
             modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(tint.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
+            Text(
+                text = income.title,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = Color(0xFF1B1C1A),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = income.channel,
-                    tint = tint,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF2ECE6))
+                        .padding(horizontal = 6.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = channelLabel,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = Color(0xFF6B5E57),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Column {
                 Text(
-                    text = income.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    text = formattedDate,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    color = Color(0xFF6B5E57),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                val subtitle = if (income.channel == "FREELANCE" && !income.clientName.isNullOrEmpty()) {
-                    "Client: ${income.clientName} • Paid ${DateUtils.formatDate(income.dateReceivedMillis)}"
-                } else {
-                    "${income.channel.lowercase().replaceFirstChar { it.uppercase() }} • ${DateUtils.formatDate(income.dateReceivedMillis)}"
-                }
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
+        // Right: Amount in Green
         Text(
-            text = "+ ${CurrencyFormatter.formatLkr(income.realizedAmountLkr)}",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            color = PrimaryGreen
+            text = "+${CurrencyFormatter.formatLkr(income.realizedAmountLkr)}",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 14.5.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.3).sp
+            ),
+            color = PrimaryGreen,
+            maxLines = 1,
+            softWrap = false
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PendingInvoicesBottomSheet(
+    allPendingInvoices: List<IncomeEntity>,
+    totalPendingReceivablesLkr: Double,
+    onDismiss: () -> Unit,
+    onSendReminder: (IncomeEntity) -> Unit,
+    onMarkAsPaid: (IncomeEntity) -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Pending Client Invoices",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    if (allPendingInvoices.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(BrandTangerine.copy(alpha = 0.15f))
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "${allPendingInvoices.size} Unpaid",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = BrandTangerine
+                            )
+                        }
+                    }
+                }
+
+                TextButton(onClick = onDismiss) {
+                    Text("Done", fontWeight = FontWeight.Bold)
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            // Cards List
+            if (allPendingInvoices.isNotEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    allPendingInvoices.forEach { invoice ->
+                        PendingInvoiceCard(
+                            invoice = invoice,
+                            onSendReminder = { onSendReminder(invoice) },
+                            onMarkAsPaid = { onMarkAsPaid(invoice) }
+                        )
+                    }
+                }
+            } else {
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CheckCircle,
+                            contentDescription = null,
+                            tint = PrimaryGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "All client invoices settled — no pending receivables.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
