@@ -54,8 +54,8 @@ fun InTrackSegmentedSwitch(
             .fillMaxWidth()
             .height(48.dp)
             .clip(RoundedCornerShape(9999.dp))
-            .background(FigmaSwitchBg)
-            .border(1.dp, FigmaBorder, RoundedCornerShape(9999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(9999.dp))
             .padding(4.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -65,12 +65,12 @@ fun InTrackSegmentedSwitch(
         ) {
             // Left Tab
             val leftBgColor by animateColorAsState(
-                targetValue = if (isLeftSelected) Color.White else Color.Transparent,
+                targetValue = if (isLeftSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
                 animationSpec = tween(200),
                 label = "switchLeftBg"
             )
             val leftTextColor by animateColorAsState(
-                targetValue = if (isLeftSelected) FigmaTerracotta else FigmaMutedSlate,
+                targetValue = if (isLeftSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 animationSpec = tween(200),
                 label = "switchLeftText"
             )
@@ -82,7 +82,7 @@ fun InTrackSegmentedSwitch(
                     .clip(RoundedCornerShape(9999.dp))
                     .background(leftBgColor)
                     .then(
-                        if (isLeftSelected) Modifier.border(1.dp, FigmaBorderActive, RoundedCornerShape(9999.dp))
+                        if (isLeftSelected) Modifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(9999.dp))
                         else Modifier
                     )
                     .clickable {
@@ -107,12 +107,12 @@ fun InTrackSegmentedSwitch(
             // Right Tab
             val isRightSelected = !isLeftSelected
             val rightBgColor by animateColorAsState(
-                targetValue = if (isRightSelected) Color.White else Color.Transparent,
+                targetValue = if (isRightSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
                 animationSpec = tween(200),
                 label = "switchRightBg"
             )
             val rightTextColor by animateColorAsState(
-                targetValue = if (isRightSelected) FigmaTerracotta else FigmaMutedSlate,
+                targetValue = if (isRightSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 animationSpec = tween(200),
                 label = "switchRightText"
             )
@@ -124,7 +124,7 @@ fun InTrackSegmentedSwitch(
                     .clip(RoundedCornerShape(9999.dp))
                     .background(rightBgColor)
                     .then(
-                        if (isRightSelected) Modifier.border(1.dp, FigmaBorderActive, RoundedCornerShape(9999.dp))
+                        if (isRightSelected) Modifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(9999.dp))
                         else Modifier
                     )
                     .clickable {

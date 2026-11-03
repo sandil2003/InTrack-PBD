@@ -113,6 +113,7 @@ import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.components.WindfallAllocatorModal
 import com.example.intrack.ui.theme.BrandTangerine
+import com.example.intrack.ui.theme.InTrackTopBar
 import com.example.intrack.ui.theme.IncomePositive
 import com.example.intrack.ui.theme.PrimaryGreen
 import com.example.intrack.ui.theme.TangerineShade1
@@ -131,6 +132,9 @@ import java.util.Locale
 fun IncomeHubScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToGoal: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = onNavigateToSettings,
+    onSignOut: () -> Unit = {},
     viewModel: IncomeViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -156,18 +160,12 @@ fun IncomeHubScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-                title = {
-                    Text(
-                        text = "Income Streams",
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                },
+            InTrackTopBar(
+                title = "Income Streams",
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToProfile = onNavigateToProfile,
+                onSignOut = onSignOut,
+                showProfileMenu = true,
                 actions = {
                     Box(
                         modifier = Modifier
@@ -179,16 +177,12 @@ fun IncomeHubScreen(
                         Icon(
                             imageVector = Icons.Default.DateRange,
                             contentDescription = "Select Date / Month",
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                },
-                windowInsets = TopAppBarDefaults.windowInsets,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
             )
         },
         floatingActionButton = {
@@ -383,7 +377,7 @@ fun IncomeHubScreen(
                                                         fontSize = 13.5.sp,
                                                         fontWeight = FontWeight.Bold
                                                     ),
-                                                    color = Color(0xFF1B1C1A)
+                                                    color = MaterialTheme.colorScheme.onSurface
                                                 )
                                                 Text(
                                                     text = "Tap to manage unpaid invoices",
@@ -391,7 +385,7 @@ fun IncomeHubScreen(
                                                         fontSize = 11.sp,
                                                         fontWeight = FontWeight.Medium
                                                     ),
-                                                    color = Color(0xFF6B5E57)
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         }
@@ -419,7 +413,7 @@ fun IncomeHubScreen(
                                             Icon(
                                                 imageVector = Icons.Default.ChevronRight,
                                                 contentDescription = "Open Invoices",
-                                                tint = Color(0xFF585F6B),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -444,7 +438,7 @@ fun IncomeHubScreen(
                                         fontWeight = FontWeight.Bold,
                                         letterSpacing = 0.6.sp
                                     ),
-                                    color = Color(0xFF6B5E57)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
 
                                 val hasActiveChannelFilter = selectedChannelFilter != "ALL"
@@ -453,14 +447,14 @@ fun IncomeHubScreen(
                                     modifier = Modifier
                                         .size(30.dp)
                                         .clip(CircleShape)
-                                        .background(if (showActivityFilters || hasActiveChannelFilter) Color(0xFFF0EBE5) else Color.Transparent)
+                                        .background(if (showActivityFilters || hasActiveChannelFilter) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
                                         .clickable { showActivityFilters = !showActivityFilters },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Tune,
                                         contentDescription = "Toggle Filters",
-                                        tint = if (showActivityFilters || hasActiveChannelFilter) BrandTangerine else Color(0xFF585F6B),
+                                        tint = if (showActivityFilters || hasActiveChannelFilter) BrandTangerine else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -490,8 +484,8 @@ fun IncomeHubScreen(
                                                 .fillMaxWidth()
                                                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                                                 .clip(RoundedCornerShape(12.dp))
-                                                .background(Color.White)
-                                                .border(1.dp, Color(0xFFEDE8E3), RoundedCornerShape(12.dp))
+                                                .background(MaterialTheme.colorScheme.surface)
+                                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                                                 .padding(horizontal = 14.dp, vertical = 10.dp)
                                         ) {
                                             Row(
@@ -505,7 +499,7 @@ fun IncomeHubScreen(
                                                         fontSize = 12.5.sp,
                                                         fontWeight = FontWeight.SemiBold
                                                     ),
-                                                    color = Color(0xFF1B1C1A),
+                                                    color = MaterialTheme.colorScheme.onSurface,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
@@ -513,7 +507,7 @@ fun IncomeHubScreen(
                                                 Icon(
                                                     imageVector = Icons.Rounded.ArrowDropDown,
                                                     contentDescription = "Dropdown",
-                                                    tint = Color(0xFF585F6B),
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                             }
@@ -522,7 +516,7 @@ fun IncomeHubScreen(
                                         ExposedDropdownMenu(
                                             expanded = channelFilterExpanded,
                                             onDismissRequest = { channelFilterExpanded = false },
-                                            modifier = Modifier.background(Color.White)
+                                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                                         ) {
                                             channelOptions.forEach { (key, label) ->
                                                 val isSelected = selectedChannelFilter == key
@@ -534,7 +528,7 @@ fun IncomeHubScreen(
                                                                 fontSize = 13.sp,
                                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                                             ),
-                                                            color = if (isSelected) BrandTangerine else Color(0xFF1B1C1A)
+                                                            color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
                                                         )
                                                     },
                                                     onClick = {
@@ -879,7 +873,7 @@ fun IncomeSpeedDialItem(
     ) {
         Surface(
             shape = RoundedCornerShape(8.dp),
-            color = Color(0xFF1B1C1A),
+            color = MaterialTheme.colorScheme.surfaceVariant,
             tonalElevation = 2.dp
         ) {
             Text(
@@ -888,14 +882,14 @@ fun IncomeSpeedDialItem(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 ),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
             )
         }
 
         SmallFloatingActionButton(
             onClick = onClick,
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             contentColor = BrandTangerine,
             shape = CircleShape,
             modifier = Modifier.size(42.dp)
@@ -946,9 +940,14 @@ fun TotalInflowBreakdownCard(
         label = "animatedCrypto"
     )
 
-    val darkTextColor = Color(0xFF1B1C1A)
-    val mutedLabelColor = Color(0xFF6B5E57)
-    val hairlineColor = Color(0xFFF2ECE6)
+    val darkTextColor = MaterialTheme.colorScheme.onSurface
+    val mutedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val hairlineColor = MaterialTheme.colorScheme.outlineVariant
+
+    val rollingAvg = if (rollingAvgLkr > 0) rollingAvgLkr else 120000.0
+    val diff = totalInflowLkr - rollingAvg
+    val diffPct = if (rollingAvg > 0) ((diff / rollingAvg) * 100).toInt() else 0
+    val isAhead = diff >= 0
 
     Card(
         shape = RoundedCornerShape(24.dp),
@@ -1029,6 +1028,47 @@ fun TotalInflowBreakdownCard(
                 )
             }
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 2b. Rolling 3-Month Average Run-Rate Comparison (Section 6.2)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(
+                            if (isAhead) PrimaryGreen.copy(alpha = 0.12f)
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Text(
+                            text = if (isAhead) "▲ +$diffPct%" else "▼ $diffPct%",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp
+                            ),
+                            color = if (isAhead) PrimaryGreen else MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "vs. 3-Mo Rolling Avg (${CurrencyFormatter.formatLkr(rollingAvg)})",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(14.dp))
 
             // 3. Multi-segment Capsule Progress Bar
@@ -1037,7 +1077,7 @@ fun TotalInflowBreakdownCard(
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(if (totalInflowLkr > 0) Color(0xFFEFECE5) else Color(0xFFF2ECE6))
+                    .background(if (totalInflowLkr > 0) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 if (totalInflowLkr > 0 && animatedSalary > 0f) {
                     Box(
@@ -1137,7 +1177,7 @@ fun LegendNumberItem(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 ),
-                color = Color(0xFF6B5E57),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1150,7 +1190,7 @@ fun LegendNumberItem(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp
             ),
-            color = Color(0xFF1B1C1A),
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -1381,7 +1421,7 @@ fun InflowHistoryRow(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = Color(0xFF1B1C1A),
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1393,7 +1433,7 @@ fun InflowHistoryRow(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFF2ECE6))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(horizontal = 6.dp, vertical = 1.dp)
                 ) {
                     Text(
@@ -1402,7 +1442,7 @@ fun InflowHistoryRow(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium
                         ),
-                        color = Color(0xFF6B5E57),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1414,7 +1454,7 @@ fun InflowHistoryRow(
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Normal
                     ),
-                    color = Color(0xFF6B5E57),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

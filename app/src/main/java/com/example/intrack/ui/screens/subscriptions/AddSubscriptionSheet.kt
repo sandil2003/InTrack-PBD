@@ -1,6 +1,7 @@
 package com.example.intrack.ui.screens.subscriptions
 
 import com.example.intrack.viewmodel.SubscriptionViewModel
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -108,7 +109,7 @@ fun AddSubscriptionScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F3EF))
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
     ) {
         Column(
@@ -116,7 +117,7 @@ fun AddSubscriptionScreen(
                 .fillMaxSize()
                 .padding(top = 16.dp)
                 .clip(RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp))
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
         ) {
             AddSubscriptionContent(
                 initialSubscription = initialSubscription,
@@ -151,7 +152,7 @@ fun AddSubscriptionBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = null,
         modifier = modifier.imePadding()
     ) {
@@ -277,7 +278,7 @@ fun AddSubscriptionContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1B1C1A)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -296,7 +297,7 @@ fun AddSubscriptionContent(
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close modal",
-                    tint = Color(0xFF585F6B),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -315,7 +316,7 @@ fun AddSubscriptionContent(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF6B5B53)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -324,8 +325,8 @@ fun AddSubscriptionContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFFBF9F5))
-                    .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 BasicTextField(
@@ -338,7 +339,7 @@ fun AddSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF1B1C1A)
+                        color = MaterialTheme.colorScheme.onSurface
                     ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -367,8 +368,8 @@ fun AddSubscriptionContent(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFFFBF9F5))
-                .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
                 .padding(20.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -377,7 +378,7 @@ fun AddSubscriptionContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF585F6B),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 0.5.sp
                 )
 
@@ -392,7 +393,7 @@ fun AddSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF6B5B53)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -414,7 +415,7 @@ fun AddSubscriptionContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = amountFontSize,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1B1C1A)
+                            color = MaterialTheme.colorScheme.onSurface
                         ),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal,
@@ -463,7 +464,7 @@ fun AddSubscriptionContent(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF6B5B53)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -473,14 +474,14 @@ fun AddSubscriptionContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF5F3EF))
-                    .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.background)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 frequencies.forEach { freq ->
                     val isSelected = billingFrequency.equals(freq, ignoreCase = true)
-                    val bg = if (isSelected) Color.White else Color.Transparent
+                    val bg = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent
                     val textColor = if (isSelected) Color(0xFFB52705) else Color(0xFF585F6B)
                     val fontWt = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
 
@@ -524,7 +525,7 @@ fun AddSubscriptionContent(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF6B5B53)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -533,8 +534,8 @@ fun AddSubscriptionContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFFBF9F5))
-                    .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -564,14 +565,14 @@ fun AddSubscriptionContent(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFF1B1C1A)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Renews automatically",
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Normal,
-                                color = Color(0xFF585F6B)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -589,7 +590,7 @@ fun AddSubscriptionContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFB52705)
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -609,7 +610,7 @@ fun AddSubscriptionContent(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF6B5B53)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -624,10 +625,10 @@ fun AddSubscriptionContent(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isCardSelected) Color(0xFFFFF8F5) else Color(0xFFFBF9F5))
+                        .background(if (isCardSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface)
                         .border(
                             if (isCardSelected) 2.dp else 1.dp,
-                            if (isCardSelected) Color(0xFFFF5C38) else Color(0xFFE3BEB6),
+                            if (isCardSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                             RoundedCornerShape(12.dp)
                         )
                         .clickable(
@@ -655,7 +656,7 @@ fun AddSubscriptionContent(
                                 .clip(CircleShape)
                                 .border(
                                     1.5.dp,
-                                    if (isCardSelected) Color(0xFFFF5C38) else Color(0xFFE3BEB6),
+                                    if (isCardSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                                     CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -665,7 +666,7 @@ fun AddSubscriptionContent(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFFFF5C38))
+                                        .background(MaterialTheme.colorScheme.primary)
                                 )
                             }
                         }
@@ -678,7 +679,7 @@ fun AddSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1B1C1A),
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -688,7 +689,7 @@ fun AddSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Normal,
-                        color = Color(0xFF585F6B),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -700,10 +701,10 @@ fun AddSubscriptionContent(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSecondarySelected) Color(0xFFFFF8F5) else Color(0xFFFBF9F5))
+                        .background(if (isSecondarySelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface)
                         .border(
                             if (isSecondarySelected) 2.dp else 1.dp,
-                            if (isSecondarySelected) Color(0xFFFF5C38) else Color(0xFFE3BEB6),
+                            if (isSecondarySelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                             RoundedCornerShape(12.dp)
                         )
                         .clickable(
@@ -731,7 +732,7 @@ fun AddSubscriptionContent(
                                 .clip(CircleShape)
                                 .border(
                                     1.5.dp,
-                                    if (isSecondarySelected) Color(0xFFFF5C38) else Color(0xFFE3BEB6),
+                                    if (isSecondarySelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                                     CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -741,7 +742,7 @@ fun AddSubscriptionContent(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFFFF5C38))
+                                        .background(MaterialTheme.colorScheme.primary)
                                 )
                             }
                         }
@@ -754,7 +755,7 @@ fun AddSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1B1C1A),
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -764,7 +765,7 @@ fun AddSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Normal,
-                        color = Color(0xFF585F6B),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -785,7 +786,7 @@ fun AddSubscriptionContent(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF6B5B53)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -798,9 +799,9 @@ fun AddSubscriptionContent(
             ) {
                 categories.forEach { cat ->
                     val isSelected = selectedCategoryKey == cat.key
-                    val chipBg = if (isSelected) Color(0xFFF5DED4) else Color(0xFFFBF9F5)
-                    val chipBorder = if (isSelected) Color(0xFFE3BEB6) else Color(0xFFE4E2DE)
-                    val contentColor = if (isSelected) Color(0xFFB52705) else Color(0xFF6B5B53)
+                    val chipBg = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                    val chipBorder = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
 
                     Row(
                         modifier = Modifier
@@ -842,8 +843,8 @@ fun AddSubscriptionContent(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFFBF9F5))
-                .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
@@ -863,13 +864,13 @@ fun AddSubscriptionContent(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFF5DED4)),
+                            .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Notifications,
                             contentDescription = "Notification",
-                            tint = Color(0xFFB52705),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -880,21 +881,21 @@ fun AddSubscriptionContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1B1C1A)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Notify 3 days before renewal",
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Normal,
-                            color = Color(0xFF585F6B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
                 // Custom Switch
                 val trackColor by animateColorAsState(
-                    targetValue = if (remindAutoDebit) Color(0xFFFF5C38) else Color(0xFFE4E2DE),
+                    targetValue = if (remindAutoDebit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                     animationSpec = tween(200, easing = FastOutSlowInEasing),
                     label = "trackColor"
                 )
@@ -917,7 +918,7 @@ fun AddSubscriptionContent(
                             .offset(x = thumbOffset)
                             .size(20.dp)
                             .clip(CircleShape)
-                            .background(Color.White)
+                            .background(MaterialTheme.colorScheme.surface)
                     )
                 }
             }
@@ -951,7 +952,7 @@ fun AddSubscriptionContent(
                     .fillMaxWidth()
                     .height(52.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFFF5C38))
+                    .background(MaterialTheme.colorScheme.primary)
                     .clickable {
                         val rawAmount = amountInput.replace(",", "").trim()
                         val parsedAmount = rawAmount.toDoubleOrNull()
@@ -991,7 +992,7 @@ fun AddSubscriptionContent(
                     Icon(
                         imageVector = Icons.Rounded.AddCircle,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
@@ -999,7 +1000,7 @@ fun AddSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -1014,7 +1015,7 @@ fun AddSubscriptionContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Normal,
-                    color = Color(0xFF6B5B53)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -1043,7 +1044,7 @@ fun AddSubscriptionContent(
                         text = "Done",
                         fontFamily = PlusJakartaSansFontFamily,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFB52705)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             },
@@ -1052,7 +1053,7 @@ fun AddSubscriptionContent(
                     Text(
                         text = "Cancel",
                         fontFamily = PlusJakartaSansFontFamily,
-                        color = Color(0xFF585F6B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

@@ -1,6 +1,7 @@
 package com.example.intrack.ui.screens.goal
 
 import com.example.intrack.viewmodel.GoalViewModel
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -107,7 +108,7 @@ fun AddGoalScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F3EF))
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
     ) {
         Column(
@@ -115,7 +116,7 @@ fun AddGoalScreen(
                 .fillMaxSize()
                 .padding(top = 16.dp)
                 .clip(RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp))
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
         ) {
             AddGoalContent(
                 onDismiss = onNavigateBack,
@@ -144,7 +145,7 @@ fun AddGoalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = null,
         modifier = modifier.imePadding()
     ) {
@@ -273,7 +274,7 @@ fun AddGoalContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1B1C1A)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -334,7 +335,7 @@ fun AddGoalContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF1B1C1A)
+                        color = MaterialTheme.colorScheme.onSurface
                     ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -420,7 +421,7 @@ fun AddGoalContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = amountFontSize,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1B1C1A)
+                            color = MaterialTheme.colorScheme.onSurface
                         ),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal,
@@ -503,7 +504,7 @@ fun AddGoalContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1B1C1A)
+                            color = MaterialTheme.colorScheme.onSurface
                         ),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
@@ -573,7 +574,7 @@ fun AddGoalContent(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFF1B1C1A)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Target savings horizon",
@@ -611,7 +612,7 @@ fun AddGoalContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF5F3EF))
+                    .background(MaterialTheme.colorScheme.background)
                     .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(12.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -620,7 +621,7 @@ fun AddGoalContent(
                     val cal = Calendar.getInstance()
                     cal.add(Calendar.MONTH, months)
                     val isSelected = Math.abs(selectedDateMillis - cal.timeInMillis) < (15L * 24 * 60 * 60 * 1000L)
-                    val bg = if (isSelected) Color.White else Color.Transparent
+                    val bg = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent
                     val textColor = if (isSelected) Color(0xFFB52705) else Color(0xFF585F6B)
                     val fontWt = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
 
@@ -846,7 +847,7 @@ fun AddGoalContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1B1C1A),
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -922,7 +923,7 @@ fun AddGoalContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1B1C1A),
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -986,7 +987,7 @@ fun AddGoalContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1B1C1A)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Alert when falling behind run-rate",
@@ -1023,7 +1024,7 @@ fun AddGoalContent(
                             .offset(x = thumbOffset)
                             .size(20.dp)
                             .clip(CircleShape)
-                            .background(Color.White)
+                            .background(MaterialTheme.colorScheme.surface)
                     )
                 }
             }
@@ -1098,7 +1099,7 @@ fun AddGoalContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
 

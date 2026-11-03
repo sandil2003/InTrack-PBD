@@ -196,7 +196,7 @@ fun SignUpScreen(
             // 3. Section - Primary Form Card (Figma node 2007:121)
             Card(
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, AuthBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier
@@ -355,7 +355,7 @@ fun SignUpScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Check,
                                     contentDescription = "Accepted",
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -470,7 +470,7 @@ fun SignUpScreen(
                         shape = RoundedCornerShape(9999.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AuthPrimaryOrange,
-                            contentColor = Color.White
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -478,7 +478,7 @@ fun SignUpScreen(
                     ) {
                         if (authState is UiState.Loading) {
                             CircularProgressIndicator(
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
                             )
@@ -583,7 +583,7 @@ fun SignUpScreen(
                     }
                 },
                 shape = RoundedCornerShape(20.dp),
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             )
         }
 
@@ -591,7 +591,7 @@ fun SignUpScreen(
         if (showTermsSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showTermsSheet = false },
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
                 Column(

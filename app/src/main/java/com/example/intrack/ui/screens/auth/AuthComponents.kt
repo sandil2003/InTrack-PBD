@@ -57,6 +57,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,15 +79,15 @@ import com.example.intrack.R
 import com.example.intrack.ui.theme.BrandTangerine
 
 // Color Tokens matching Figma InTrack Auth
-val AuthCanvasBg = Color(0xFFFFFFFF)
-val AuthDarkText = Color(0xFF1B1C1A)
-val AuthMutedText = Color(0xFF6B5B53)
-val AuthBorder = Color(0xFFEDE8E3)
-val AuthFieldBg = Color(0xFFF8F7F4)
-val AuthTerracotta = Color(0xFFB52705)
-val AuthSoftPeach = Color(0xFFF7EBE6)
-val AuthPlaceholder = Color(0xFFA49E97)
-val AuthPrimaryOrange = Color(0xFFFF5722)
+val AuthCanvasBg: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.background
+val AuthDarkText: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurface
+val AuthMutedText: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurfaceVariant
+val AuthBorder: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.outlineVariant
+val AuthFieldBg: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.surfaceContainerHighest
+val AuthTerracotta: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.primary
+val AuthSoftPeach: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.primaryContainer
+val AuthPlaceholder: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+val AuthPrimaryOrange: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.primary
 
 /**
  * Top bar with Circular Back Button, Security Guaranteed Badge, and Help Button
@@ -110,7 +111,7 @@ fun AuthTopBar(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .border(1.dp, AuthBorder, CircleShape)
                     .clickable { onBackClick() },
                 contentAlignment = Alignment.Center
@@ -158,7 +159,7 @@ fun AuthTopBar(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .border(1.dp, AuthBorder, CircleShape)
                 .clickable { onHelpClick() },
             contentAlignment = Alignment.Center
@@ -208,13 +209,13 @@ fun TactileLogoBadge(
                 .size(22.dp)
                 .clip(CircleShape)
                 .background(AuthPrimaryOrange)
-                .border(1.5.dp, Color.White, CircleShape),
+                .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(12.dp)
             )
         }
@@ -376,7 +377,7 @@ fun SocialAuthSection(
                 .fillMaxWidth()
                 .height(48.dp)
                 .clip(RoundedCornerShape(9999.dp))
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .border(1.dp, AuthBorder, RoundedCornerShape(9999.dp))
                 .clickable { onGoogleClick() },
             horizontalArrangement = Arrangement.Center,
@@ -434,7 +435,7 @@ fun GoogleSetupModal(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         modifier = modifier
     ) {
@@ -510,7 +511,7 @@ fun GoogleSetupModal(
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isCopied) Color(0xFFE6F4EA) else Color.White)
+                                .background(if (isCopied) Color(0xFFE6F4EA) else MaterialTheme.colorScheme.surface)
                                 .border(1.dp, if (isCopied) Color(0xFF34A853) else AuthBorder, RoundedCornerShape(8.dp))
                                 .clickable {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -575,7 +576,7 @@ fun GoogleSetupModal(
                 shape = RoundedCornerShape(9999.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AuthPrimaryOrange,
-                    contentColor = Color.White
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 modifier = Modifier
                     .fillMaxWidth()

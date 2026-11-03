@@ -1,10 +1,16 @@
 package com.example.intrack.data.model
 
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 data class UserProfile(
     val uid: String = "",
     val displayName: String = "",
     val email: String = "",
     val photoUrl: String = "",
+    val phoneNumber: String = "",
+    val bio: String = "",
     val baseCurrency: String = "LKR (Rs) • Sri Lankan Rupee",
     val billingCycle: String = "25th of Every Month",
     val weeklyStartDay: String = "Monday",
@@ -25,5 +31,13 @@ data class UserProfile(
                 email.isNotBlank() -> email.take(2).uppercase()
                 else -> "U"
             }
+        }
+
+    val memberSinceFormatted: String
+        get() = try {
+            val sdf = SimpleDateFormat("MMM yyyy", Locale.getDefault())
+            sdf.format(Date(if (createdAtMillis > 0) createdAtMillis else System.currentTimeMillis()))
+        } catch (_: Exception) {
+            "Recently"
         }
 }

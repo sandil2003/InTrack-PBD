@@ -99,6 +99,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -138,21 +139,66 @@ import java.util.Date
 import java.util.Locale
 
 // Design tokens unified with InTrack Sunset Tangerine Theme
-private val FigmaCanvasBg = Color(0xFFFFFFFF)
-private val FigmaDarkText = Color(0xFF1B1C1A)
-private val FigmaMutedBrown = Color(0xFF6B5B53)
-private val FigmaMutedSlate = Color(0xFF585F6B)
-private val FigmaTerracotta = BrandTangerine
-private val FigmaSoftPillActive = BrandTangerineContainer
-private val FigmaActiveText = BrandTangerineOnContainer
-private val FigmaCardBg = Color(0xFFF5F3EF)
-private val FigmaIconCircleBg = Color(0xFFEFECE5)
-private val FigmaBorder = Color(0x4DE3BEB6)
-private val FigmaBorderActive = Color(0x80E3BEB6)
-private val FigmaDivider = Color(0x33E3BEB6)
-private val FigmaLifestyleBar = Color(0xFFC0C7D5)
-private val FigmaTrackBg = Color(0xFFE4E2DE)
-private val FigmaSwitchBg = Color(0xFFEAE8E4)
+private val FigmaCanvasBg: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.background
+private val FigmaDarkText: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.onSurface
+private val FigmaMutedBrown: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.onSurfaceVariant
+private val FigmaMutedSlate: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.onSurfaceVariant
+private val FigmaTerracotta: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.primary
+private val FigmaSoftPillActive: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.primaryContainer
+private val FigmaActiveText: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.onPrimaryContainer
+private val FigmaCardBg: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.surface
+private val FigmaIconCircleBg: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.surfaceContainerHighest
+private val FigmaBorder: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.outlineVariant
+private val FigmaBorderActive: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.primary
+private val FigmaDivider: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+private val FigmaLifestyleBar: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.secondaryContainer
+private val FigmaTrackBg: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.outlineVariant
+private val FigmaSwitchBg: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.surfaceContainerHighest
 
 enum class ExpenseViewTab {
     DAILY_TRANSACTIONS,
@@ -165,6 +211,7 @@ fun ExpenseAnalyticsScreen(
     initialTab: String = "daily",
     onNavigateBack: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = onNavigateToSettings,
     themeMode: AppThemeMode = AppThemeMode.LIGHT,
     onThemeModeChange: (AppThemeMode) -> Unit = {},
     onSignOut: () -> Unit = {},
@@ -225,8 +272,9 @@ fun ExpenseAnalyticsScreen(
             InTrackTopBar(
                 title = "Expense Analytics",
                 onNavigateToSettings = onNavigateToSettings,
+                onNavigateToProfile = onNavigateToProfile,
                 onSignOut = onSignOut,
-                showProfileMenu = false,
+                showProfileMenu = true,
                 actions = {
                     // Button - Select Date / Month (Figma: 36x36 circular button)
                     Box(
@@ -318,7 +366,7 @@ fun ExpenseAnalyticsScreen(
             AlertDialog(
                 onDismissRequest = { expenseToDelete = null },
                 shape = RoundedCornerShape(20.dp),
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 title = {
                     Text(
                         text = "Delete Transaction?",
@@ -344,10 +392,10 @@ fun ExpenseAnalyticsScreen(
                                 snackbarHostState.showSnackbar("Deleted transaction '${exp.title}'.")
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Delete", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Delete", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onError)
                     }
                 },
                 dismissButton = {
@@ -411,7 +459,7 @@ fun ExpenseAnalyticsScreen(
         if (showMonthPicker) {
             ModalBottomSheet(
                 onDismissRequest = { showMonthPicker = false },
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 Column(
                     modifier = Modifier
@@ -471,6 +519,7 @@ fun ExpenseAnalyticsScreen(
                     showProfileSheet = false
                     onSignOut()
                 },
+                onNavigateToProfile = onNavigateToProfile,
                 onDismiss = { showProfileSheet = false }
             )
         }
@@ -628,7 +677,7 @@ fun ExpenseAnalyticsScreen(
                                                             .fillMaxWidth()
                                                             .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                                                             .clip(RoundedCornerShape(12.dp))
-                                                            .background(Color.White)
+                                                            .background(MaterialTheme.colorScheme.surface)
                                                             .border(1.dp, FigmaBorder, RoundedCornerShape(12.dp))
                                                             .padding(horizontal = 12.dp, vertical = 10.dp)
                                                     ) {
@@ -661,7 +710,7 @@ fun ExpenseAnalyticsScreen(
                                                     ExposedDropdownMenu(
                                                         expanded = accountFilterExpanded,
                                                         onDismissRequest = { accountFilterExpanded = false },
-                                                        modifier = Modifier.background(Color.White)
+                                                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                                                     ) {
                                                         accountOptions.forEach { (key, label) ->
                                                             val isSelected = selectedAccountFilter == key
@@ -715,7 +764,7 @@ fun ExpenseAnalyticsScreen(
                                                             .fillMaxWidth()
                                                             .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                                                             .clip(RoundedCornerShape(12.dp))
-                                                            .background(Color.White)
+                                                            .background(MaterialTheme.colorScheme.surface)
                                                             .border(1.dp, FigmaBorder, RoundedCornerShape(12.dp))
                                                             .padding(horizontal = 12.dp, vertical = 10.dp)
                                                     ) {
@@ -748,7 +797,7 @@ fun ExpenseAnalyticsScreen(
                                                     ExposedDropdownMenu(
                                                         expanded = categoryFilterExpanded,
                                                         onDismissRequest = { categoryFilterExpanded = false },
-                                                        modifier = Modifier.background(Color.White)
+                                                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                                                     ) {
                                                         categoryOptions.forEach { (typeAndCat, label) ->
                                                             val (tFilter, cFilter) = typeAndCat
@@ -1098,9 +1147,9 @@ fun FigmaHeroOutflowCard(
 
     val heroTerracotta = Color(0xFFB52705)
     val heroPeachBar = Color(0xFFE3BEB6)
-    val darkTextColor = Color(0xFF1B1C1A)
-    val mutedLabelColor = Color(0xFF6B5E57)
-    val hairlineColor = Color(0xFFF2ECE6)
+    val darkTextColor = MaterialTheme.colorScheme.onSurface
+    val mutedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val hairlineColor = MaterialTheme.colorScheme.outlineVariant
 
     Card(
         shape = RoundedCornerShape(24.dp),
@@ -1542,9 +1591,9 @@ fun FigmaMonthlyCommitmentsCard(
     val heroTerracotta = Color(0xFFB52705)
     val heroPeachBar = Color(0xFFE3BEB6)
     val heroCashBar = Color(0xFFD79583)
-    val darkTextColor = Color(0xFF1B1C1A)
-    val mutedLabelColor = Color(0xFF6B5E57)
-    val hairlineColor = Color(0xFFF2ECE6)
+    val darkTextColor = MaterialTheme.colorScheme.onSurface
+    val mutedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val hairlineColor = MaterialTheme.colorScheme.outlineVariant
 
     Card(
         shape = RoundedCornerShape(24.dp),
@@ -1906,7 +1955,7 @@ fun FigmaTransactionDetailSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
@@ -2126,7 +2175,7 @@ fun FigmaTransactionDetailSheet(
             // Additional details card
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, FigmaBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -2313,7 +2362,7 @@ fun FigmaTransactionDetailSheet(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = FigmaTerracotta,
-                        contentColor = Color.White
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
                     Icon(
@@ -2368,7 +2417,7 @@ fun FigmaSubscriptionDetailSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
@@ -2519,7 +2568,7 @@ fun FigmaSubscriptionDetailSheet(
             // Schedule & Renewal details card
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, FigmaBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -2630,7 +2679,7 @@ fun FigmaSubscriptionDetailSheet(
                     Text(
                         text = if (isCancelled) "Resume Sub" else "Pause / Cancel",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }

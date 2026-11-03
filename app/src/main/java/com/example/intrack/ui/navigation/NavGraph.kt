@@ -63,6 +63,7 @@ import com.example.intrack.ui.screens.subscriptions.AddSubscriptionScreen
 import com.example.intrack.ui.screens.subscriptions.SubscriptionAuditScreen
 import com.example.intrack.ui.screens.transactions.AllTransactionsScreen
 import com.example.intrack.ui.screens.settings.SettingsScreen
+import com.example.intrack.ui.screens.profile.ProfileScreen
 import com.example.intrack.ui.screens.expenses.EditExpenseScreen
 
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -188,6 +189,9 @@ fun FinFlowNavGraph(
                     },
                     onNavigateToSettings = {
                         navigateToRoute(Screen.Settings.route)
+                    },
+                    onNavigateToProfile = {
+                        navigateToRoute(Screen.Profile.route)
                     }
                 )
             }
@@ -201,7 +205,10 @@ fun FinFlowNavGraph(
             composable(Screen.IncomeHub.route) {
                 IncomeHubScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToGoal = { navigateToRoute(Screen.GoalTracker.route) }
+                    onNavigateToGoal = { navigateToRoute(Screen.GoalTracker.route) },
+                    onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
+                    onNavigateToProfile = { navigateToRoute(Screen.Profile.route) },
+                    onSignOut = handleSignOut
                 )
             }
 
@@ -220,6 +227,7 @@ fun FinFlowNavGraph(
                     initialTab = tab,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
+                    onNavigateToProfile = { navigateToRoute(Screen.Profile.route) },
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
                     onSignOut = handleSignOut
@@ -231,6 +239,7 @@ fun FinFlowNavGraph(
                     initialTab = "subscriptions",
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
+                    onNavigateToProfile = { navigateToRoute(Screen.Profile.route) },
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
                     onSignOut = handleSignOut
@@ -247,6 +256,7 @@ fun FinFlowNavGraph(
                     },
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                     onSignOut = handleSignOut
                 )
             }
@@ -287,9 +297,18 @@ fun FinFlowNavGraph(
                 )
             }
 
+            composable(Screen.Profile.route) {
+                ProfileScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onSignOut = handleSignOut
+                )
+            }
+
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                     onSignOut = handleSignOut,
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange

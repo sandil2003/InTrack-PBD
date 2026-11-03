@@ -175,14 +175,14 @@ fun AddGoalValueSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = {
             Box(
                 modifier = Modifier
                     .padding(top = 10.dp, bottom = 4.dp)
                     .size(width = 40.dp, height = 4.5.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0xFFE4E2DE))
+                    .background(MaterialTheme.colorScheme.outlineVariant)
             )
         },
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
@@ -406,7 +406,7 @@ fun AddGoalValueSheet(
                     incomeChannels.forEach { channel ->
                         val isSelected = selectedSourceId == channel.id
                         val cardBorder = if (isSelected) FigmaTerracotta else FigmaBorder
-                        val cardBg = if (isSelected) Color.White else FigmaBg
+                        val cardBg = if (isSelected) MaterialTheme.colorScheme.surface else FigmaBg
 
                         Row(
                             modifier = Modifier
@@ -471,7 +471,7 @@ fun AddGoalValueSheet(
                                     Icon(
                                         imageVector = Icons.Rounded.Check,
                                         contentDescription = "Selected",
-                                        tint = Color.White,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(14.dp)
                                     )
                                 }
@@ -505,7 +505,7 @@ fun AddGoalValueSheet(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Color.White),
+                            .background(MaterialTheme.colorScheme.surface),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -535,10 +535,10 @@ fun AddGoalValueSheet(
                                 checked = autoSweepEnabled,
                                 onCheckedChange = { autoSweepEnabled = it },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
+                                    checkedThumbColor = MaterialTheme.colorScheme.surface,
                                     checkedTrackColor = FigmaLightOrange,
                                     uncheckedThumbColor = FigmaMutedSlate,
-                                    uncheckedTrackColor = Color(0xFFEFEEEA)
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                                 ),
                                 modifier = Modifier.height(24.dp)
                             )
@@ -608,7 +608,7 @@ fun AddGoalValueSheet(
                                 modifier = Modifier
                                     .size(28.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White),
+                                    .background(MaterialTheme.colorScheme.surface),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -671,7 +671,7 @@ fun AddGoalValueSheet(
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }

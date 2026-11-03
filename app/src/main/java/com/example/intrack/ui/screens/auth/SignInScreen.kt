@@ -196,7 +196,7 @@ fun SignInScreen(
             // 3. Section - Primary Form Card (Figma node 2007:61)
             Card(
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, AuthBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier
@@ -336,7 +336,7 @@ fun SignInScreen(
                         shape = RoundedCornerShape(9999.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AuthPrimaryOrange,
-                            contentColor = Color.White
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -344,7 +344,7 @@ fun SignInScreen(
                     ) {
                         if (authState is UiState.Loading) {
                             CircularProgressIndicator(
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
                             )
@@ -449,7 +449,7 @@ fun SignInScreen(
                     }
                 },
                 shape = RoundedCornerShape(20.dp),
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             )
         }
 
@@ -460,7 +460,7 @@ fun SignInScreen(
                     showForgotPasswordSheet = false
                     viewModel.clearResetState()
                 },
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
                 Column(
@@ -515,7 +515,7 @@ fun SignInScreen(
                             .height(48.dp)
                     ) {
                         if (resetPasswordState is UiState.Loading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         } else {
                             Text("Send Reset Link", fontWeight = FontWeight.Bold)
                         }

@@ -149,6 +149,44 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun updateUserProfileDetails(
+        displayName: String,
+        phoneNumber: String = "",
+        bio: String = "",
+        onComplete: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        val trimmedName = displayName.trim()
+        if (trimmedName.isBlank()) {
+            onComplete(false, "Name cannot be empty")
+            return
+        }
+
+        val uid = authRepository.getCurrentUserId()
+        val updated = _userProfile.value.copy(
+            displayName = trimmedName,
+            phoneNumber = phoneNumber.trim(),
+            bio = bio.trim()
+        )
+        applyProfileState(updated)
+
+        viewModelScope.launch {
+            val result = authRepository.updateUserProfileDetails(
+                userId = uid,
+                displayName = trimmedName,
+                phoneNumber = phoneNumber.trim(),
+                bio = bio.trim()
+            )
+            result.fold(
+                onSuccess = {
+                    onComplete(true, null)
+                },
+                onFailure = { error ->
+                    onComplete(false, error.localizedMessage ?: "Failed to update profile")
+                }
+            )
+        }
+    }
+
     fun signOut() {
         profileListenerJob?.cancel()
         profileListenerJob = null

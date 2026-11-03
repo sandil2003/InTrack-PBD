@@ -33,6 +33,12 @@ interface AuthRepository {
         billingCycle: String,
         weeklyStartDay: String
     ): Result<Unit>
+    suspend fun updateUserProfileDetails(
+        userId: String,
+        displayName: String,
+        phoneNumber: String = "",
+        bio: String = ""
+    ): Result<Unit>
     suspend fun signInWithEmail(email: String, password: String): Result<FirebaseUser>
     suspend fun signUpWithEmail(name: String, email: String, password: String): Result<FirebaseUser>
     suspend fun signInWithGoogle(idToken: String): Result<FirebaseUser>
@@ -99,6 +105,8 @@ class AuthRepositoryImpl @Inject constructor(
                     displayName = rawName,
                     email = rawEmail,
                     photoUrl = snapshot.getString("photoUrl") ?: (getCurrentUser()?.photoUrl?.toString() ?: ""),
+                    phoneNumber = snapshot.getString("phoneNumber") ?: "",
+                    bio = snapshot.getString("bio") ?: "",
                     baseCurrency = snapshot.getString("baseCurrency") ?: "LKR (Rs) • Sri Lankan Rupee",
                     billingCycle = snapshot.getString("billingCycle") ?: "25th of Every Month",
                     weeklyStartDay = snapshot.getString("weeklyStartDay") ?: "Monday",
@@ -142,6 +150,35 @@ class AuthRepositoryImpl @Inject constructor(
                 "updatedAtMillis" to System.currentTimeMillis()
             )
             db.collection("users").document(userId).set(updates, SetOptions.merge()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateUserProfileDetails(
+        userId: String,
+        displayName: String,
+        phoneNumber: String,
+        bio: String
+    ): Result<Unit> {
+        val uid = userId.ifBlank { getCurrentUserId() }
+        if (uid.isBlank()) return Result.failure(IllegalArgumentException("User not authenticated"))
+        return try {
+            val user = getCurrentUser()
+            if (user != null && displayName.isNotBlank()) {
+                val profileUpdates = UserProfileChangeRequest.Builder()
+                    .setDisplayName(displayName.trim())
+                    .build()
+                user.updateProfile(profileUpdates).await()
+            }
+            val updates = mutableMapOf<String, Any>(
+                "displayName" to displayName.trim(),
+                "phoneNumber" to phoneNumber.trim(),
+                "bio" to bio.trim(),
+                "updatedAtMillis" to System.currentTimeMillis()
+            )
+            db.collection("users").document(uid).set(updates, SetOptions.merge()).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

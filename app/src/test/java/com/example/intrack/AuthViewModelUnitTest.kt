@@ -43,6 +43,21 @@ class FakeAuthRepository : AuthRepository {
         return Result.success(Unit)
     }
 
+    override suspend fun updateUserProfileDetails(
+        userId: String,
+        displayName: String,
+        phoneNumber: String,
+        bio: String
+    ): Result<Unit> {
+        val current = profileFlow.value ?: UserProfile(uid = userId)
+        profileFlow.value = current.copy(
+            displayName = displayName,
+            phoneNumber = phoneNumber,
+            bio = bio
+        )
+        return Result.success(Unit)
+    }
+
     override suspend fun signInWithEmail(email: String, password: String): Result<FirebaseUser> {
         return if (shouldFail) {
             Result.failure(Exception("Invalid credentials"))
@@ -378,5 +393,37 @@ class AuthViewModelUnitTest {
         assertEquals("USD ($) • US Dollar", viewModel.userProfile.value.baseCurrency)
         assertEquals("1st of Every Month", viewModel.userProfile.value.billingCycle)
         assertEquals("Sunday", viewModel.userProfile.value.weeklyStartDay)
+    }
+
+    @Test
+    fun `updateUserProfileDetails updates display name, phone, and initials`() {
+        viewModel.signInWithEmail("user@example.com", "Password123!")
+        var callbackSuccess = false
+        viewModel.updateUserProfileDetails(
+            displayName = "Samantha Perera",
+            phoneNumber = "+94771234567",
+            bio = "Fintech Explorer"
+        ) { success, _ ->
+            callbackSuccess = success
+        }
+
+        assertTrue(callbackSuccess)
+        assertEquals("Samantha Perera", viewModel.userDisplayName.value)
+        assertEquals("SP", viewModel.userInitials.value)
+        assertEquals("+94771234567", viewModel.userProfile.value.phoneNumber)
+        assertEquals("Fintech Explorer", viewModel.userProfile.value.bio)
+    }
+
+    @Test
+    fun `UserProfile memberSinceFormatted generates valid string`() {
+        val profile = UserProfile(
+            uid = "u1",
+            displayName = "Alex Carter",
+            email = "alex@intrack.app",
+            createdAtMillis = 1735689600000L // Jan 1 2025
+        )
+        assertEquals("AC", profile.initials)
+        assertEquals("Alex", profile.firstName)
+        assertTrue(profile.memberSinceFormatted.isNotBlank())
     }
 }

@@ -71,6 +71,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -80,6 +81,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -120,14 +122,38 @@ import java.util.Date
 import java.util.Locale
 
 // Design tokens matching Figma frame 2015:802
-private val FigmaBg = Color(0xFFFAF9F5)
-private val FigmaDark = Color(0xFF1B1C1A)
-private val FigmaMuted = Color(0xFF6B5B53)
-private val FigmaSubtle = Color(0xFF756A63)
-private val FigmaBorder = Color(0xFFEFE9E0)
-private val FigmaPeachTint = Color(0xFFF5DED4)
-private val FigmaRust = Color(0xFFB52705)
-private val FigmaPrimary = Color(0xFFFF5C38)
+private val FigmaBg: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.surface
+private val FigmaDark: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.onSurface
+private val FigmaMuted: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.onSurfaceVariant
+private val FigmaSubtle: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+private val FigmaBorder: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.outlineVariant
+private val FigmaPeachTint: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.primaryContainer
+private val FigmaRust: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.primary
+private val FigmaPrimary: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.primary
 private val FigmaSettledBg = Color(0xFFEAF7EE)
 private val FigmaSettledBorder = Color(0xFFC6EACB)
 private val FigmaSettledGreen = Color(0xFF219653)
@@ -152,7 +178,7 @@ fun EditExpenseSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         dragHandle = null,
         modifier = modifier
@@ -192,7 +218,7 @@ fun EditExpenseScreen(
                     .fillMaxSize()
                     .padding(top = 8.dp)
                     .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
                 EditExpenseContent(
                     expense = expense,
@@ -539,7 +565,7 @@ fun EditExpenseContent(
                     // Metadata Details Card
                     Card(
                         shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         border = BorderStroke(1.dp, FigmaBorder),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -618,7 +644,7 @@ fun EditExpenseContent(
                             Icon(
                                 imageVector = Icons.Rounded.Edit,
                                 contentDescription = "Edit Transaction",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -627,7 +653,7 @@ fun EditExpenseContent(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
@@ -808,8 +834,8 @@ fun EditExpenseContent(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = FigmaPrimary,
                                 unfocusedBorderColor = FigmaBorder,
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color(0xFFFAF8F5)
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
                             ),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
@@ -1074,8 +1100,8 @@ fun EditExpenseContent(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = FigmaPrimary,
                                 unfocusedBorderColor = FigmaBorder,
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color(0xFFFAF8F5)
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
                             ),
                             maxLines = 3,
                             modifier = Modifier.fillMaxWidth()
@@ -1119,14 +1145,14 @@ fun EditExpenseContent(
                         enabled = !isSaving
                     ) {
                         if (isSaving) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         } else {
                             Text(
                                 text = "Save Changes",
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
@@ -1180,7 +1206,7 @@ fun EditExpenseContent(
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
             shape = RoundedCornerShape(20.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
                     text = "Delete Transaction?",

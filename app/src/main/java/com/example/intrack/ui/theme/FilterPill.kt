@@ -30,12 +30,12 @@ fun InTrackFilterPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     shape: Shape = InTrackPillShape,
-    selectedContainerColor: Color = FigmaSoftPeach,
-    unselectedContainerColor: Color = Color.White,
-    selectedContentColor: Color = FigmaTerracotta,
-    unselectedContentColor: Color = FigmaMutedSlate,
-    selectedBorderColor: Color = FigmaTerracotta.copy(alpha = 0.5f),
-    unselectedBorderColor: Color = FigmaBorder
+    selectedContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    unselectedContainerColor: Color = MaterialTheme.colorScheme.surface,
+    selectedContentColor: Color = MaterialTheme.colorScheme.primary,
+    unselectedContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    selectedBorderColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+    unselectedBorderColor: Color = MaterialTheme.colorScheme.outlineVariant
 ) {
     val pillBg by animateColorAsState(
         targetValue = if (isSelected) selectedContainerColor else unselectedContainerColor,

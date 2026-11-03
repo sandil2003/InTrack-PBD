@@ -1,8 +1,13 @@
 package com.example.intrack.ui.screens.goal
 
 import com.example.intrack.viewmodel.GoalViewModel
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -31,6 +36,7 @@ import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CurrencyBitcoin
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LaptopMac
 import androidx.compose.material.icons.rounded.Savings
@@ -61,10 +67,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -119,6 +127,8 @@ fun GoalDetailScreen(
     var showWhatIfModal by remember { mutableStateOf(false) }
     var showDepositSheet by remember { mutableStateOf(false) }
     var showDeleteGoalConfirm by remember { mutableStateOf(false) }
+    var isGoalSpecsExpanded by rememberSaveable { mutableStateOf(false) }
+    var isPaceAnalysisExpanded by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -198,6 +208,17 @@ fun GoalDetailScreen(
                 val isPaceOnTrack = metrics.isPaceOnTrack
                 val paceDeficit = metrics.paceDeficit
                 val paceSurplus = metrics.paceSurplus
+
+                val specsChevronRotation by animateFloatAsState(
+                    targetValue = if (isGoalSpecsExpanded) 180f else 0f,
+                    animationSpec = tween(250),
+                    label = "specsChevronRotation"
+                )
+                val paceChevronRotation by animateFloatAsState(
+                    targetValue = if (isPaceAnalysisExpanded) 180f else 0f,
+                    animationSpec = tween(250),
+                    label = "paceChevronRotation"
+                )
 
                 LazyColumn(
                     modifier = Modifier
@@ -355,7 +376,7 @@ fun GoalDetailScreen(
                             Icon(
                                 imageVector = Icons.Rounded.Savings,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -365,119 +386,152 @@ fun GoalDetailScreen(
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
 
-                    // --- 2. Goal Specifications & Funding Card ---
+                    // --- 2. Goal Specifications & Funding Card (Collapsible Dropdown) ---
                     item {
                         InTrackCard(
                             shape = InTrackMediumCardShape,
                             elevation = 0.5.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(18.dp)
-                            ) {
-                                Text(
-                                    text = "Goal Specifications & Funding",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = FigmaDarkText
-                                )
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                // Clickable Section Header
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(InTrackMediumCardShape)
+                                        .clickable { isGoalSpecsExpanded = !isGoalSpecsExpanded }
+                                        .padding(horizontal = 18.dp, vertical = 16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Goal Specifications & Funding",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = FigmaDarkText
+                                    )
 
-                                Spacer(modifier = Modifier.height(14.dp))
+                                    Icon(
+                                        imageVector = Icons.Rounded.KeyboardArrowDown,
+                                        contentDescription = if (isGoalSpecsExpanded) "Collapse Specifications" else "Expand Specifications",
+                                        tint = FigmaMutedSlate,
+                                        modifier = Modifier
+                                            .size(22.dp)
+                                            .rotate(specsChevronRotation)
+                                    )
+                                }
 
-                                // 1. Goal Category
-                                GoalSpecRow(
-                                    icon = GoalCategoryHelper.getCategoryIcon(goal.category),
-                                    iconTint = FigmaTerracotta,
-                                    label = "Goal Category",
-                                    value = GoalCategoryHelper.getCategoryLabel(goal.category),
-                                    secondaryValue = "Category classification"
-                                )
-
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(vertical = 12.dp),
-                                    color = FigmaDivider,
-                                    thickness = 1.dp
-                                )
-
-                                // 2. Initial Deposit
-                                GoalSpecRow(
-                                    icon = Icons.Rounded.Savings,
-                                    iconTint = FigmaLightOrange,
-                                    label = "Initial Deposit",
-                                    value = CurrencyFormatter.formatLkr(goal.initialDepositLkr),
-                                    secondaryValue = "Seed deposit at creation"
-                                )
-
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(vertical = 12.dp),
-                                    color = FigmaDivider,
-                                    thickness = 1.dp
-                                )
-
-                                // 3. Primary Funding Source
-                                GoalSpecRow(
-                                    icon = GoalCategoryHelper.getFundingSourceIcon(goal.primaryFundingSource),
-                                    iconTint = Color(0xFF2C3E50),
-                                    label = "Primary Funding Source",
-                                    value = GoalCategoryHelper.getFundingSourceTitle(goal.primaryFundingSource),
-                                    secondaryValue = GoalCategoryHelper.getFundingSourceSubtitle(goal.primaryFundingSource)
-                                )
-
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(vertical = 12.dp),
-                                    color = FigmaDivider,
-                                    thickness = 1.dp
-                                )
-
-                                // 4. Monthly Pace Reminder (Interactive toggle)
-                                GoalSpecRow(
-                                    icon = GoalCategoryHelper.getPaceReminderIcon(goal.remindMonthlyPace),
-                                    iconTint = if (goal.remindMonthlyPace) FigmaLightOrange else FigmaMutedSlate,
-                                    label = "Monthly Pace Reminder",
-                                    value = if (goal.remindMonthlyPace) "Active • Monthly pace reminder" else "Disabled • Reminders off",
-                                    secondaryValue = if (goal.remindMonthlyPace) "Tap to pause reminders" else "Tap to enable reminders",
-                                    trailing = {
-                                        InTrackStatusBadge(
-                                            text = if (goal.remindMonthlyPace) "Active" else "Off",
-                                            containerColor = if (goal.remindMonthlyPace) FigmaSoftPeach else Color(0xFFF4EEEA),
-                                            contentColor = if (goal.remindMonthlyPace) FigmaTerracotta else FigmaMutedSlate,
-                                            fontSize = 11.sp
+                                // Expandable Details
+                                AnimatedVisibility(
+                                    visible = isGoalSpecsExpanded,
+                                    enter = expandVertically(tween(250)) + fadeIn(tween(200)),
+                                    exit = shrinkVertically(tween(250)) + fadeOut(tween(200))
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 18.dp, end = 18.dp, bottom = 18.dp)
+                                    ) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(bottom = 14.dp),
+                                            color = FigmaDivider,
+                                            thickness = 1.dp
                                         )
-                                    },
-                                    onClick = {
-                                        val updated = goal.copy(remindMonthlyPace = !goal.remindMonthlyPace)
-                                        viewModel.updateGoal(updated)
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar(
-                                                if (updated.remindMonthlyPace) "Pace reminders enabled!" else "Pace reminders paused."
-                                            )
-                                        }
+
+                                        // 1. Goal Category
+                                        GoalSpecRow(
+                                            icon = GoalCategoryHelper.getCategoryIcon(goal.category),
+                                            iconTint = FigmaTerracotta,
+                                            label = "Goal Category",
+                                            value = GoalCategoryHelper.getCategoryLabel(goal.category),
+                                            secondaryValue = "Category classification"
+                                        )
+
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 12.dp),
+                                            color = FigmaDivider,
+                                            thickness = 1.dp
+                                        )
+
+                                        // 2. Initial Deposit
+                                        GoalSpecRow(
+                                            icon = Icons.Rounded.Savings,
+                                            iconTint = FigmaLightOrange,
+                                            label = "Initial Deposit",
+                                            value = CurrencyFormatter.formatLkr(goal.initialDepositLkr),
+                                            secondaryValue = "Seed deposit at creation"
+                                        )
+
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 12.dp),
+                                            color = FigmaDivider,
+                                            thickness = 1.dp
+                                        )
+
+                                        // 3. Primary Funding Source
+                                        GoalSpecRow(
+                                            icon = GoalCategoryHelper.getFundingSourceIcon(goal.primaryFundingSource),
+                                            iconTint = Color(0xFF2C3E50),
+                                            label = "Primary Funding Source",
+                                            value = GoalCategoryHelper.getFundingSourceTitle(goal.primaryFundingSource),
+                                            secondaryValue = GoalCategoryHelper.getFundingSourceSubtitle(goal.primaryFundingSource)
+                                        )
+
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 12.dp),
+                                            color = FigmaDivider,
+                                            thickness = 1.dp
+                                        )
+
+                                        // 4. Monthly Pace Reminder (Interactive toggle)
+                                        GoalSpecRow(
+                                            icon = GoalCategoryHelper.getPaceReminderIcon(goal.remindMonthlyPace),
+                                            iconTint = if (goal.remindMonthlyPace) FigmaLightOrange else FigmaMutedSlate,
+                                            label = "Monthly Pace Reminder",
+                                            value = if (goal.remindMonthlyPace) "Active • Monthly pace reminder" else "Disabled • Reminders off",
+                                            secondaryValue = if (goal.remindMonthlyPace) "Tap to pause reminders" else "Tap to enable reminders",
+                                            trailing = {
+                                                InTrackStatusBadge(
+                                                    text = if (goal.remindMonthlyPace) "Active" else "Off",
+                                                    containerColor = if (goal.remindMonthlyPace) FigmaSoftPeach else Color(0xFFF4EEEA),
+                                                    contentColor = if (goal.remindMonthlyPace) FigmaTerracotta else FigmaMutedSlate,
+                                                    fontSize = 11.sp
+                                                )
+                                            },
+                                            onClick = {
+                                                val updated = goal.copy(remindMonthlyPace = !goal.remindMonthlyPace)
+                                                viewModel.updateGoal(updated)
+                                                coroutineScope.launch {
+                                                    snackbarHostState.showSnackbar(
+                                                        if (updated.remindMonthlyPace) "Pace reminders enabled!" else "Pace reminders paused."
+                                                    )
+                                                }
+                                            }
+                                        )
+
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 12.dp),
+                                            color = FigmaDivider,
+                                            thickness = 1.dp
+                                        )
+
+                                        // 5. Creation Date
+                                        GoalSpecRow(
+                                            icon = Icons.Rounded.CalendarToday,
+                                            iconTint = FigmaMutedBrown,
+                                            label = "Created On",
+                                            value = DateUtils.formatDate(goal.createdAtMillis),
+                                            secondaryValue = "Original goal setup date"
+                                        )
                                     }
-                                )
-
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(vertical = 12.dp),
-                                    color = FigmaDivider,
-                                    thickness = 1.dp
-                                )
-
-                                // 5. Creation Date
-                                GoalSpecRow(
-                                    icon = Icons.Rounded.CalendarToday,
-                                    iconTint = FigmaMutedBrown,
-                                    label = "Created On",
-                                    value = DateUtils.formatDate(goal.createdAtMillis),
-                                    secondaryValue = "Original goal setup date"
-                                )
+                                }
                             }
                         }
                     }
@@ -504,20 +558,21 @@ fun GoalDetailScreen(
                         }
                     }
 
-                    // --- 4. Dynamic Savings Pace Analysis Card (Scenario Core Implementation) ---
+                    // --- 4. Dynamic Savings Pace Analysis Card (Collapsible Dropdown) ---
                     item {
                         InTrackCard(
                             shape = InTrackMediumCardShape,
                             elevation = 0.5.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(18.dp)
-                            ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                // Clickable Section Header
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(InTrackMediumCardShape)
+                                        .clickable { isPaceAnalysisExpanded = !isPaceAnalysisExpanded }
+                                        .padding(horizontal = 18.dp, vertical = 16.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -530,130 +585,161 @@ fun GoalDetailScreen(
                                         color = FigmaDarkText
                                     )
 
-                                    InTrackStatusBadge(
-                                        text = when {
-                                            isCompleted -> "Target Reached 🎉"
-                                            isPaceOnTrack -> "On Track"
-                                            else -> "Pace Deficit"
-                                        },
-                                        containerColor = when {
-                                            isCompleted || isPaceOnTrack -> Color(0xFFE8F5E9)
-                                            else -> FigmaSoftPeach
-                                        },
-                                        contentColor = when {
-                                            isCompleted || isPaceOnTrack -> Color(0xFF2E7D32)
-                                            else -> FigmaTerracotta
-                                        },
-                                        fontSize = 11.5.sp
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                // 3-Metric Clean Row
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // Actual Pace
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "CURRENT PACE",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 10.5.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                letterSpacing = 0.5.sp
-                                            ),
-                                            color = FigmaMutedSlate
-                                        )
-                                        Spacer(modifier = Modifier.height(3.dp))
-                                        Text(
-                                            text = "${CurrencyFormatter.formatLkr(actualMonthlySavingsRate)}/mo",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold
-                                            ),
-                                            color = FigmaDarkText,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-
-                                    // Needed Pace
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text(
-                                            text = "NEEDED PACE",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 10.5.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                letterSpacing = 0.5.sp
-                                            ),
-                                            color = FigmaMutedSlate
-                                        )
-                                        Spacer(modifier = Modifier.height(3.dp))
-                                        Text(
-                                            text = "${CurrencyFormatter.formatLkr(dynamicRequiredMonthlyPace)}/mo",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold
-                                            ),
-                                            color = FigmaDarkText,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-
-                                    // Gap
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        horizontalAlignment = Alignment.End
-                                    ) {
-                                        Text(
-                                            text = if (paceDeficit > 0) "MONTHLY DEFICIT" else "MONTHLY SURPLUS",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 10.5.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                letterSpacing = 0.5.sp
-                                            ),
-                                            color = if (paceDeficit > 0) FigmaTerracotta else Color(0xFF2E7D32)
-                                        )
-                                        Spacer(modifier = Modifier.height(3.dp))
-                                        Text(
-                                            text = if (paceDeficit > 0) {
-                                                "- ${CurrencyFormatter.formatLkr(paceDeficit)}"
-                                            } else {
-                                                "+ ${CurrencyFormatter.formatLkr(paceSurplus)}"
+                                        InTrackStatusBadge(
+                                            text = when {
+                                                isCompleted -> "Target Reached 🎉"
+                                                isPaceOnTrack -> "On Track"
+                                                else -> "Pace Deficit"
                                             },
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold
-                                            ),
-                                            color = if (paceDeficit > 0) FigmaTerracotta else Color(0xFF2E7D32),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            containerColor = when {
+                                                isCompleted || isPaceOnTrack -> Color(0xFFE8F5E9)
+                                                else -> FigmaSoftPeach
+                                            },
+                                            contentColor = when {
+                                                isCompleted || isPaceOnTrack -> Color(0xFF2E7D32)
+                                                else -> FigmaTerracotta
+                                            },
+                                            fontSize = 11.5.sp
+                                        )
+
+                                        Icon(
+                                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                                            contentDescription = if (isPaceAnalysisExpanded) "Collapse Pace Analysis" else "Expand Pace Analysis",
+                                            tint = FigmaMutedSlate,
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .rotate(paceChevronRotation)
                                         )
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                                // Expandable Details
+                                AnimatedVisibility(
+                                    visible = isPaceAnalysisExpanded,
+                                    enter = expandVertically(tween(250)) + fadeIn(tween(200)),
+                                    exit = shrinkVertically(tween(250)) + fadeOut(tween(200))
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 18.dp, end = 18.dp, bottom = 18.dp)
+                                    ) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(bottom = 14.dp),
+                                            color = FigmaDivider,
+                                            thickness = 1.dp
+                                        )
 
-                                // Minimalist explanatory caption
-                                Text(
-                                    text = when {
-                                        isCompleted -> "Target reached! All goal savings satisfied."
-                                        paceDeficit > 0 -> "Saving ${CurrencyFormatter.formatLkr(paceDeficit)}/mo below the pace needed to meet your 12-month target on time."
-                                        else -> "Great progress! Your savings velocity is on schedule to reach target by ${DateUtils.formatDate(goal.targetDateMillis)}."
-                                    },
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Normal
-                                    ),
-                                    color = if (paceDeficit > 0) FigmaMutedBrown else Color(0xFF2E7D32)
-                                )
+                                        // 3-Metric Clean Row
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            // Actual Pace
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "CURRENT PACE",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 10.5.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        letterSpacing = 0.5.sp
+                                                    ),
+                                                    color = FigmaMutedSlate
+                                                )
+                                                Spacer(modifier = Modifier.height(3.dp))
+                                                Text(
+                                                    text = "${CurrencyFormatter.formatLkr(actualMonthlySavingsRate)}/mo",
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    ),
+                                                    color = FigmaDarkText,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+
+                                            // Needed Pace
+                                            Column(
+                                                modifier = Modifier.weight(1f),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                Text(
+                                                    text = "NEEDED PACE",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 10.5.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        letterSpacing = 0.5.sp
+                                                    ),
+                                                    color = FigmaMutedSlate
+                                                )
+                                                Spacer(modifier = Modifier.height(3.dp))
+                                                Text(
+                                                    text = "${CurrencyFormatter.formatLkr(dynamicRequiredMonthlyPace)}/mo",
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    ),
+                                                    color = FigmaDarkText,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+
+                                            // Gap
+                                            Column(
+                                                modifier = Modifier.weight(1f),
+                                                horizontalAlignment = Alignment.End
+                                            ) {
+                                                Text(
+                                                    text = if (paceDeficit > 0) "MONTHLY DEFICIT" else "MONTHLY SURPLUS",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 10.5.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        letterSpacing = 0.5.sp
+                                                    ),
+                                                    color = if (paceDeficit > 0) FigmaTerracotta else Color(0xFF2E7D32)
+                                                )
+                                                Spacer(modifier = Modifier.height(3.dp))
+                                                Text(
+                                                    text = if (paceDeficit > 0) {
+                                                        "- ${CurrencyFormatter.formatLkr(paceDeficit)}"
+                                                    } else {
+                                                        "+ ${CurrencyFormatter.formatLkr(paceSurplus)}"
+                                                    },
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    ),
+                                                    color = if (paceDeficit > 0) FigmaTerracotta else Color(0xFF2E7D32),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        // Minimalist explanatory caption
+                                        Text(
+                                            text = when {
+                                                isCompleted -> "Target reached! All goal savings satisfied."
+                                                paceDeficit > 0 -> "Saving ${CurrencyFormatter.formatLkr(paceDeficit)}/mo below the pace needed to meet your 12-month target on time."
+                                                else -> "Great progress! Your savings velocity is on schedule to reach target by ${DateUtils.formatDate(goal.targetDateMillis)}."
+                                            },
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontSize = 11.5.sp,
+                                                fontWeight = FontWeight.Normal
+                                            ),
+                                            color = if (paceDeficit > 0) FigmaMutedBrown else Color(0xFF2E7D32)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -707,6 +793,8 @@ fun GoalDetailScreen(
                                     else -> 1f
                                 }
 
+                                val activeTrackColor = FigmaTerracotta
+                                val inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
                                 Box(modifier = Modifier.fillMaxWidth()) {
                                     Canvas(
                                         modifier = Modifier
@@ -720,7 +808,7 @@ fun GoalDetailScreen(
                                         val strokeW = 4.dp.toPx()
 
                                         drawLine(
-                                            color = Color(0xFFF2ECE6),
+                                            color = inactiveTrackColor,
                                             start = Offset(startX, trackY),
                                             end = Offset(endX, trackY),
                                             strokeWidth = strokeW,
@@ -731,7 +819,7 @@ fun GoalDetailScreen(
                                         val activeLength = trackLength * lineFraction.coerceIn(0f, 1f)
                                         if (activeLength > 0f) {
                                             drawLine(
-                                                color = FigmaTerracotta,
+                                                color = activeTrackColor,
                                                 start = Offset(startX, trackY),
                                                 end = Offset(startX + activeLength, trackY),
                                                 strokeWidth = strokeW,
@@ -756,7 +844,7 @@ fun GoalDetailScreen(
                                                     modifier = Modifier
                                                         .size(32.dp)
                                                         .clip(CircleShape)
-                                                        .background(if (isAchieved) FigmaTerracotta else Color.White)
+                                                        .background(if (isAchieved) FigmaTerracotta else MaterialTheme.colorScheme.surface)
                                                         .border(
                                                             width = if (isAchieved) 0.dp else if (isNextTarget) 2.dp else 1.5.dp,
                                                             color = if (isAchieved) Color.Transparent
@@ -770,7 +858,7 @@ fun GoalDetailScreen(
                                                         Icon(
                                                             imageVector = Icons.Rounded.Check,
                                                             contentDescription = null,
-                                                            tint = Color.White,
+                                                            tint = MaterialTheme.colorScheme.onPrimary,
                                                             modifier = Modifier.size(18.dp)
                                                         )
                                                     } else {
@@ -813,7 +901,7 @@ fun GoalDetailScreen(
                                 .height(48.dp),
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.White,
+                                containerColor = MaterialTheme.colorScheme.surface,
                                 contentColor = FigmaDarkText
                             ),
                             border = BorderStroke(1.dp, FigmaBorder)
@@ -1021,7 +1109,7 @@ fun GoalDetailScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = FigmaTerracotta),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Delete", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Delete", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -1029,7 +1117,7 @@ fun GoalDetailScreen(
                     Text("Cancel", color = FigmaDarkText)
                 }
             },
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(18.dp)
         )
     }

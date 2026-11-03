@@ -120,6 +120,7 @@ fun DashboardScreen(
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToAllTransactions: () -> Unit = onNavigateToExpenses,
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = onNavigateToSettings,
     viewModel: DashboardViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -148,7 +149,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
-                            .clickable { onNavigateToSettings() }
+                            .clickable { onNavigateToProfile() }
                             .padding(horizontal = 6.dp, vertical = 6.dp)
                     ) {
                         Box(
@@ -257,6 +258,15 @@ fun DashboardScreen(
                         )
                     }
 
+                    if (data.shockInsightMessage.isNotBlank()) {
+                        item {
+                            ShockInsightBanner(
+                                shockInsightMessage = data.shockInsightMessage,
+                                onNavigateToExpenses = onNavigateToExpenses
+                            )
+                        }
+                    }
+
                     item {
                         QuickActionButtons(
                             onLogExpenseClick = { showExpenseSheet = true },
@@ -348,7 +358,7 @@ fun DashboardScreen(
                                         fontWeight = FontWeight.Bold,
                                         letterSpacing = 0.6.sp
                                     ),
-                                    color = Color(0xFF6B5E57)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
 
                                 Row(
@@ -361,14 +371,14 @@ fun DashboardScreen(
                                         modifier = Modifier
                                             .size(30.dp)
                                             .clip(CircleShape)
-                                            .background(if (showActivityFilters || hasActiveFilters) Color(0xFFF0EBE5) else Color.Transparent)
+                                            .background(if (showActivityFilters || hasActiveFilters) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
                                             .clickable { showActivityFilters = !showActivityFilters },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Rounded.Tune,
                                             contentDescription = "Toggle Filters",
-                                            tint = if (showActivityFilters || hasActiveFilters) BrandTangerine else Color(0xFF585F6B),
+                                            tint = if (showActivityFilters || hasActiveFilters) BrandTangerine else MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -423,8 +433,8 @@ fun DashboardScreen(
                                                 .fillMaxWidth()
                                                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                                                 .clip(RoundedCornerShape(12.dp))
-                                                .background(Color.White)
-                                                .border(1.dp, Color(0xFFEDE8E3), RoundedCornerShape(12.dp))
+                                                .background(MaterialTheme.colorScheme.surface)
+                                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                                                 .padding(horizontal = 12.dp, vertical = 10.dp)
                                         ) {
                                             Row(
@@ -438,7 +448,7 @@ fun DashboardScreen(
                                                         fontSize = 12.5.sp,
                                                         fontWeight = FontWeight.SemiBold
                                                     ),
-                                                    color = Color(0xFF1B1C1A),
+                                                    color = MaterialTheme.colorScheme.onSurface,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
@@ -446,7 +456,7 @@ fun DashboardScreen(
                                                 Icon(
                                                     imageVector = Icons.Rounded.ArrowDropDown,
                                                     contentDescription = "Dropdown",
-                                                    tint = Color(0xFF585F6B),
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                             }
@@ -455,7 +465,7 @@ fun DashboardScreen(
                                         ExposedDropdownMenu(
                                             expanded = accountFilterExpanded,
                                             onDismissRequest = { accountFilterExpanded = false },
-                                            modifier = Modifier.background(Color.White)
+                                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                                         ) {
                                             accountOptions.forEach { (key, label) ->
                                                 val isSelected = selectedAccountFilter == key
@@ -467,7 +477,7 @@ fun DashboardScreen(
                                                                 fontSize = 13.sp,
                                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                                             ),
-                                                            color = if (isSelected) BrandTangerine else Color(0xFF1B1C1A)
+                                                            color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
                                                         )
                                                     },
                                                     onClick = {
@@ -504,8 +514,8 @@ fun DashboardScreen(
                                                 .fillMaxWidth()
                                                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                                                 .clip(RoundedCornerShape(12.dp))
-                                                .background(Color.White)
-                                                .border(1.dp, Color(0xFFEDE8E3), RoundedCornerShape(12.dp))
+                                                .background(MaterialTheme.colorScheme.surface)
+                                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                                                 .padding(horizontal = 12.dp, vertical = 10.dp)
                                         ) {
                                             Row(
@@ -519,7 +529,7 @@ fun DashboardScreen(
                                                         fontSize = 12.5.sp,
                                                         fontWeight = FontWeight.SemiBold
                                                     ),
-                                                    color = Color(0xFF1B1C1A),
+                                                    color = MaterialTheme.colorScheme.onSurface,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
@@ -527,7 +537,7 @@ fun DashboardScreen(
                                                 Icon(
                                                     imageVector = Icons.Rounded.ArrowDropDown,
                                                     contentDescription = "Dropdown",
-                                                    tint = Color(0xFF585F6B),
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                             }
@@ -536,7 +546,7 @@ fun DashboardScreen(
                                         ExposedDropdownMenu(
                                             expanded = categoryFilterExpanded,
                                             onDismissRequest = { categoryFilterExpanded = false },
-                                            modifier = Modifier.background(Color.White)
+                                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                                         ) {
                                             categoryOptions.forEach { (key, label) ->
                                                 val isSelected = selectedCategoryFilter == key
@@ -548,7 +558,7 @@ fun DashboardScreen(
                                                                 fontSize = 13.sp,
                                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                                             ),
-                                                            color = if (isSelected) BrandTangerine else Color(0xFF1B1C1A)
+                                                            color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
                                                         )
                                                     },
                                                     onClick = {
@@ -658,6 +668,10 @@ fun DashboardScreen(
             onNavigateToGoal = {
                 showNotificationsSheet = false
                 onNavigateToGoal(null)
+            },
+            onNavigateToExpenses = {
+                showNotificationsSheet = false
+                onNavigateToExpenses()
             }
         )
     }
@@ -670,6 +684,7 @@ fun DashboardScreen(
                 showProfileSheet = false
                 onSignOut()
             },
+            onNavigateToProfile = onNavigateToProfile,
             onDismiss = { showProfileSheet = false }
         )
     }
@@ -714,7 +729,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.5.sp
                     ),
-                    color = Color(0xFF6B5E57),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }
@@ -746,7 +761,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.5).sp
                     ),
-                    color = Color(0xFF1B1C1A),
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     modifier = Modifier.alignByBaseline()
                 )
@@ -760,7 +775,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(Color(0xFFE3BEB6))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (animatedInflowFraction > 0f) {
                     Box(
@@ -778,7 +793,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
             HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
                 thickness = 0.8.dp,
-                color = Color(0xFFF2ECE6)
+                color = MaterialTheme.colorScheme.outlineVariant
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -807,7 +822,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Color(0xFF6B5E57)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Spacer(modifier = Modifier.height(3.dp))
@@ -817,7 +832,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Color(0xFF1B1C1A)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
@@ -830,7 +845,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                             contentDescription = "Outflow",
-                            tint = Color(0xFFB52705),
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(15.dp)
                         )
                         Text(
@@ -839,7 +854,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Color(0xFF6B5E57)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Spacer(modifier = Modifier.height(3.dp))
@@ -849,7 +864,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Color(0xFF1B1C1A)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -1051,7 +1066,8 @@ fun DashboardNotificationsBottomSheet(
     shockInsightMessage: String,
     onDismiss: () -> Unit,
     onNavigateToSubscriptions: () -> Unit,
-    onNavigateToGoal: () -> Unit
+    onNavigateToGoal: () -> Unit,
+    onNavigateToExpenses: () -> Unit = {}
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1069,6 +1085,48 @@ fun DashboardNotificationsBottomSheet(
             )
             Spacer(modifier = Modifier.height(14.dp))
 
+            if (shockInsightMessage.isNotBlank()) {
+                OutlinedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToExpenses() },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = BrandTangerine.copy(alpha = 0.08f)
+                    ),
+                    border = BorderStroke(1.dp, BrandTangerine.copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = BrandTangerine,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Lifestyle Leak Insight",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = BrandTangerine
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = shockInsightMessage,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
             OutlinedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1081,7 +1139,7 @@ fun DashboardNotificationsBottomSheet(
                     modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(20.dp))
+                    Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = BrandTangerine, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
@@ -1143,6 +1201,78 @@ fun DashboardNotificationsBottomSheet(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+fun ShockInsightBanner(
+    shockInsightMessage: String,
+    onNavigateToExpenses: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onNavigateToExpenses() }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(BrandTangerine.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "Insight",
+                    tint = BrandTangerine,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "LIFESTYLE LEAK ALERT",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    color = BrandTangerine
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = shockInsightMessage,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        lineHeight = 16.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "View Expenses",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }

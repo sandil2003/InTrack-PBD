@@ -119,6 +119,15 @@ fun SubscriptionAuditScreen(
                         modifier = Modifier.padding(start = 4.dp)
                     )
                 },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                },
                 windowInsets = androidx.compose.material3.TopAppBarDefaults.windowInsets,
                 colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background

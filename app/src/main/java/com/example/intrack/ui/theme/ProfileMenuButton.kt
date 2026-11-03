@@ -11,11 +11,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.filled.PersonOutline
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Standard user profile button that opens a dropdown menu with Settings and Log Out options.
+ * Standard user profile button that opens a dropdown menu with Profile, Settings and Log Out options.
  * Used identically across Expenses and Goals headers.
  */
 @Composable
@@ -40,6 +42,7 @@ fun InTrackProfileMenuButton(
     onNavigateToSettings: () -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToProfile: () -> Unit = {},
     buttonSize: Dp = 38.dp,
     iconTint: Color = FigmaTerracotta,
     borderColor: Color = FigmaBorder
@@ -51,7 +54,7 @@ fun InTrackProfileMenuButton(
             modifier = Modifier
                 .size(buttonSize)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .border(1.dp, borderColor, CircleShape)
                 .clickable { expanded = true },
             contentAlignment = Alignment.Center
@@ -67,15 +70,40 @@ fun InTrackProfileMenuButton(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(16.dp),
             border = BorderStroke(1.dp, borderColor)
         ) {
             DropdownMenuItem(
                 text = {
                     Text(
+                        text = "My Profile",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onNavigateToProfile()
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Rounded.Person,
+                        contentDescription = "My Profile",
+                        tint = FigmaTerracotta,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            )
+
+            HorizontalDivider(color = FigmaDivider)
+
+            DropdownMenuItem(
+                text = {
+                    Text(
                         text = "Settings",
-                        color = FigmaDarkText,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp
                     )

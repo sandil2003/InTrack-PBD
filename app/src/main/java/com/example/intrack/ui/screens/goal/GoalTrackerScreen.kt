@@ -85,6 +85,7 @@ fun GoalTrackerScreen(
     onNavigateToAddGoal: (() -> Unit)? = null,
     onNavigateBack: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = onNavigateToSettings,
     onSignOut: () -> Unit = {},
     viewModel: GoalViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
@@ -104,8 +105,9 @@ fun GoalTrackerScreen(
             InTrackTopBar(
                 title = "Goals",
                 onNavigateToSettings = onNavigateToSettings,
+                onNavigateToProfile = onNavigateToProfile,
                 onSignOut = onSignOut,
-                showProfileMenu = false
+                showProfileMenu = true
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),

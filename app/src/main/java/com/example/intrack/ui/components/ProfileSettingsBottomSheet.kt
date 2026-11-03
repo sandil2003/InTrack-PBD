@@ -52,6 +52,8 @@ import com.example.intrack.ui.theme.AppThemeMode
 import com.example.intrack.ui.theme.PrimaryGreen
 import com.example.intrack.viewmodel.AuthViewModel
 
+import androidx.compose.material.icons.rounded.ChevronRight
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileSettingsBottomSheet(
@@ -59,6 +61,7 @@ fun ProfileSettingsBottomSheet(
     onThemeModeChange: (AppThemeMode) -> Unit = {},
     onSignOut: () -> Unit,
     onDismiss: () -> Unit,
+    onNavigateToProfile: () -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -83,7 +86,14 @@ fun ProfileSettingsBottomSheet(
             // User Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable {
+                        onDismiss()
+                        onNavigateToProfile()
+                    }
+                    .padding(vertical = 4.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -102,7 +112,7 @@ fun ProfileSettingsBottomSheet(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = userName.ifBlank { "Account User" },
@@ -134,6 +144,13 @@ fun ProfileSettingsBottomSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = "View Profile",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

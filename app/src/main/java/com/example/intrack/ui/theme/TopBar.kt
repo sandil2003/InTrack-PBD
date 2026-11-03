@@ -34,10 +34,11 @@ fun InTrackTopBar(
     subtitle: String? = null,
     navigationIcon: (@Composable () -> Unit)? = null,
     onNavigateToSettings: (() -> Unit)? = null,
+    onNavigateToProfile: (() -> Unit)? = null,
     onSignOut: (() -> Unit)? = null,
-    showProfileMenu: Boolean = onNavigateToSettings != null || onSignOut != null,
-    containerColor: Color = FigmaBg,
-    titleColor: Color = FigmaDarkText,
+    showProfileMenu: Boolean = onNavigateToSettings != null || onNavigateToProfile != null || onSignOut != null,
+    containerColor: Color = MaterialTheme.colorScheme.background,
+    titleColor: Color = MaterialTheme.colorScheme.onBackground,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     TopAppBar(
@@ -59,7 +60,7 @@ fun InTrackTopBar(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Normal
                         ),
-                        color = FigmaMutedSlate
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
@@ -83,6 +84,7 @@ fun InTrackTopBar(
             if (showProfileMenu) {
                 InTrackProfileMenuButton(
                     onNavigateToSettings = onNavigateToSettings ?: {},
+                    onNavigateToProfile = onNavigateToProfile ?: {},
                     onSignOut = {
                         onSignOut?.invoke()
                     },
