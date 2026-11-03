@@ -8,10 +8,17 @@ import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.tasks.await
 
 interface AuthRepository {
     fun getCurrentUser(): FirebaseUser?
+    fun getCurrentUserId(): String = getCurrentUser()?.uid ?: "guest_user"
+    fun getCurrentUserDisplayName(): String =
+        getCurrentUser()?.displayName?.takeIf { it.isNotBlank() } ?: "Sandith Sithmaka"
+    fun getCurrentUserEmail(): String =
+        getCurrentUser()?.email?.takeIf { it.isNotBlank() } ?: "sandith@intrack.lk"
     suspend fun signInWithEmail(email: String, password: String): Result<FirebaseUser>
     suspend fun signUpWithEmail(name: String, email: String, password: String): Result<FirebaseUser>
     suspend fun signInWithGoogle(idToken: String): Result<FirebaseUser>
@@ -20,11 +27,27 @@ interface AuthRepository {
     fun signOut()
 }
 
-class AuthRepositoryImpl(
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
-    private val db: FirebaseFirestore = FirestoreService.db
+@Singleton
+class AuthRepositoryImpl @Inject constructor(
+    private val auth: FirebaseAuth,
+    private val db: FirebaseFirestore
 ) : AuthRepository {
-    override fun getCurrentUser(): FirebaseUser? = auth.currentUser
+
+    constructor() : this(FirebaseAuth.getInstance(), FirestoreService.db)
+
+    override fun getCurrentUser(): FirebaseUser? = try {
+        auth.currentUser
+    } catch (_: Exception) {
+        null
+    }
+
+    override fun getCurrentUserId(): String = getCurrentUser()?.uid ?: "guest_user"
+
+    override fun getCurrentUserDisplayName(): String =
+        getCurrentUser()?.displayName?.takeIf { it.isNotBlank() } ?: "Sandith Sithmaka"
+
+    override fun getCurrentUserEmail(): String =
+        getCurrentUser()?.email?.takeIf { it.isNotBlank() } ?: "sandith@intrack.lk"
 
     override suspend fun signInWithEmail(email: String, password: String): Result<FirebaseUser> {
         return try {
@@ -119,6 +142,9 @@ class AuthRepositoryImpl(
     }
 
     override fun signOut() {
-        auth.signOut()
+        try {
+            auth.signOut()
+        } catch (_: Exception) {
+        }
     }
 }

@@ -1,13 +1,17 @@
 package com.example.intrack.data.repository
 
+import com.example.intrack.data.local.ExpenseDao
 import com.example.intrack.data.model.ExpenseEntity
 import com.example.intrack.data.remote.FirestoreService
+import com.example.intrack.util.DateUtils
 import com.google.firebase.firestore.FirebaseFirestore
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import com.example.intrack.util.DateUtils
 
 interface ExpenseRepository {
     fun getExpenses(userId: String): Flow<List<ExpenseEntity>>
@@ -16,13 +20,25 @@ interface ExpenseRepository {
     suspend fun deleteExpense(userId: String, expenseId: String): Result<Unit>
 }
 
-class ExpenseRepositoryImpl(
-    private val db: FirebaseFirestore = FirestoreService.db
+@Singleton
+class ExpenseRepositoryImpl @Inject constructor(
+    private val db: FirebaseFirestore,
+    private val expenseDao: ExpenseDao?
 ) : ExpenseRepository {
+
+    constructor(db: FirebaseFirestore = FirestoreService.db) : this(db, null)
 
     private var isSeeding = false
 
     override fun getExpenses(userId: String): Flow<List<ExpenseEntity>> = callbackFlow {
+        val cacheJob = launch {
+            expenseDao?.getExpenses(userId)?.collect { cached ->
+                if (cached.isNotEmpty()) {
+                    trySend(cached)
+                }
+            }
+        }
+
         val collection = if (userId.isNotEmpty()) {
             db.collection("users").document(userId).collection("expenses")
         } else {
@@ -31,17 +47,22 @@ class ExpenseRepositoryImpl(
 
         val listener = collection.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                if (expenseDao == null) {
+                    close(error)
+                }
                 return@addSnapshotListener
             }
             val list = snapshot?.documents?.mapNotNull { doc ->
-                doc.toObject(ExpenseEntity::class.java)?.copy(id = doc.id)
+                doc.toObject(ExpenseEntity::class.java)?.copy(id = doc.id, userId = userId.ifEmpty { doc.getString("userId") ?: "" })
             } ?: emptyList()
 
             if (list.isEmpty() && !isSeeding) {
                 isSeeding = true
                 val sampleList = getInitialSampleExpenses(userId)
                 trySend(sampleList)
+                launch {
+                    expenseDao?.replaceAllForUser(userId, sampleList)
+                }
                 try {
                     val batch = db.batch()
                     sampleList.forEach { sampleItem ->
@@ -52,9 +73,15 @@ class ExpenseRepositoryImpl(
                 } catch (_: Exception) {}
             } else {
                 trySend(list)
+                launch {
+                    expenseDao?.replaceAllForUser(userId, list)
+                }
             }
         }
-        awaitClose { listener.remove() }
+        awaitClose {
+            cacheJob.cancel()
+            listener.remove()
+        }
     }
 
     override suspend fun addExpense(expense: ExpenseEntity): Result<Unit> {
@@ -65,7 +92,9 @@ class ExpenseRepositoryImpl(
                 db.collection("expenses")
             }
             val docRef = if (expense.id.isNotBlank()) collection.document(expense.id) else collection.document()
-            docRef.set(expense.copy(id = docRef.id)).await()
+            val savedExpense = expense.copy(id = docRef.id)
+            expenseDao?.upsert(savedExpense)
+            docRef.set(savedExpense).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -74,6 +103,7 @@ class ExpenseRepositoryImpl(
 
     override suspend fun updateExpense(expense: ExpenseEntity): Result<Unit> {
         return try {
+            expenseDao?.upsert(expense)
             val collection = if (expense.userId.isNotEmpty()) {
                 db.collection("users").document(expense.userId).collection("expenses")
             } else {
@@ -88,6 +118,7 @@ class ExpenseRepositoryImpl(
 
     override suspend fun deleteExpense(userId: String, expenseId: String): Result<Unit> {
         return try {
+            expenseDao?.deleteById(expenseId)
             val collection = if (userId.isNotEmpty()) {
                 db.collection("users").document(userId).collection("expenses")
             } else {

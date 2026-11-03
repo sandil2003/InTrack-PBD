@@ -88,10 +88,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.ExpenseEntity
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
-import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -119,13 +118,9 @@ data class ExpenseAccountItem(
 fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
     onExpenseSaved: () -> Unit = onNavigateBack,
-    expenseViewModel: ExpenseViewModel = viewModel(),
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val currentUserId = remember {
-        FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -142,7 +137,7 @@ fun AddExpenseScreen(
             AddExpenseContent(
                 onDismiss = onNavigateBack,
                 onSubmit = { newExpense ->
-                    expenseViewModel.addExpense(newExpense.copy(userId = currentUserId))
+                    expenseViewModel.addExpense(newExpense)
                     onExpenseSaved()
                 }
             )
@@ -1042,10 +1037,9 @@ fun AddExpenseContent(
 
                     val finalCommitmentType = if (selectedCategoryKey == "ATM_WITHDRAWAL") "TRANSFER" else commitmentType
 
-                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
                     val newExpense = ExpenseEntity(
                         id = UUID.randomUUID().toString(),
-                        userId = currentUid,
+                        userId = "",
                         title = finalTitle,
                         amountLkr = parsedAmount,
                         category = selectedCategoryKey,

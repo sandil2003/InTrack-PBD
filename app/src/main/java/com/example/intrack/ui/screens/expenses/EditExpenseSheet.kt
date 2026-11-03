@@ -107,7 +107,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.ExpenseEntity
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.theme.BrandTangerine
@@ -174,7 +174,7 @@ fun EditExpenseSheet(
 fun EditExpenseScreen(
     expenseId: String,
     onNavigateBack: () -> Unit,
-    expenseViewModel: ExpenseViewModel = viewModel(),
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val expensesState by expenseViewModel.expensesState.collectAsState()
@@ -202,8 +202,7 @@ fun EditExpenseScreen(
                         onNavigateBack()
                     },
                     onDeleteExpense = { toDelete ->
-                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                        expenseViewModel.deleteExpense(toDelete.userId.ifBlank { currentUid }, toDelete.id)
+                        expenseViewModel.deleteExpense(toDelete.userId, toDelete.id)
                         onNavigateBack()
                     },
                     initialEditingMode = true

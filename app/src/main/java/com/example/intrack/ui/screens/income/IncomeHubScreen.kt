@@ -59,7 +59,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -108,7 +107,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.IncomeEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
@@ -132,12 +131,14 @@ import java.util.Locale
 fun IncomeHubScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToGoal: () -> Unit = {},
-    viewModel: IncomeViewModel = viewModel(),
+    viewModel: IncomeViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val incomesState by viewModel.incomesState.collectAsState()
-    val recentMonths = remember { DateUtils.getRecentMonthsList(count = 6) }
-    var selectedMonth by remember { mutableStateOf(recentMonths.firstOrNull() ?: DateUtils.getCurrentMonthName()) }
+    val hubSummary by viewModel.hubSummary.collectAsState()
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    val selectedChannelFilter by viewModel.selectedChannelFilter.collectAsState()
+    val recentMonths = viewModel.recentMonths
 
     var showChannelPickerModal by remember { mutableStateOf(false) }
     var activeModalChannel by remember { mutableStateOf<String?>(null) }
@@ -146,7 +147,6 @@ fun IncomeHubScreen(
     var showMonthPicker by remember { mutableStateOf(false) }
     var isFabExpanded by remember { mutableStateOf(false) }
     var isPendingInvoicesSectionExpanded by remember { mutableStateOf(false) }
-    var selectedChannelFilter by remember { mutableStateOf("ALL") }
     var channelFilterExpanded by remember { mutableStateOf(false) }
     var showActivityFilters by remember { mutableStateOf(false) }
     var showPendingInvoicesSheet by remember { mutableStateOf(false) }
@@ -295,8 +295,7 @@ fun IncomeHubScreen(
                         title = "Error Loading Incomes",
                         message = errorMsg,
                         onActionClick = {
-                            val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                            viewModel.loadIncomes(currentUid)
+                            viewModel.loadIncomes()
                         }
                     )
                 }
@@ -309,46 +308,16 @@ fun IncomeHubScreen(
                     )
                 }
                 is UiState.Success -> {
-                    val allIncomes = (incomesState as UiState.Success<List<IncomeEntity>>).data
-
-                    // 1. All Active Pending Invoices (Cross-Month Receivables)
-                    val allPendingInvoices = allIncomes.filter {
-                        it.channel == "FREELANCE" && (it.status == "INVOICED" || it.status == "OVERDUE")
-                    }.sortedByDescending { it.dateReceivedMillis }
-
-                    val totalPendingReceivablesLkr = allPendingInvoices.sumOf { it.realizedAmountLkr }
-
-                    // 2. Filter by the currently selected month chip
-                    val monthIncomes = allIncomes.filter {
-                        DateUtils.matchesMonth(it.dateReceivedMillis, selectedMonth)
-                    }
-
-                    // Month-Specific Stream Breakdowns (Only Paid Realized Amounts)
-                    val salaryIncomes = monthIncomes.filter { it.channel == "SALARY" && it.status == "PAID" }
-                    val paidFreelanceInMonth = monthIncomes.filter { it.channel == "FREELANCE" && it.status == "PAID" }
-                    val adsenseIncomes = monthIncomes.filter { it.channel == "ADSENSE" && it.status == "PAID" }
-                    val cryptoIncomes = monthIncomes.filter { it.channel == "CRYPTO" && it.status == "PAID" }
-
-                    val totalSalary = salaryIncomes.sumOf { it.realizedAmountLkr }
-                    val totalFreelancePaidThisMonth = paidFreelanceInMonth.sumOf { it.realizedAmountLkr }
-                    val totalAdsense = adsenseIncomes.sumOf { it.realizedAmountLkr }
-                    val totalCrypto = cryptoIncomes.sumOf { it.realizedAmountLkr }
-
-                    val totalMonthRealized = totalSalary + totalFreelancePaidThisMonth + totalAdsense + totalCrypto
-
-                    // 3-Month Rolling Average across paid history
-                    val rollingAverage = if (allIncomes.isNotEmpty()) {
-                        val allPaid = allIncomes.filter { it.status == "PAID" }.sumOf { it.realizedAmountLkr }
-                        (allPaid / 3.0).coerceAtLeast(120000.0)
-                    } else 120000.0
-
-                    // All paid inflows in selected month for Activities feed
-                    val monthPaidIncomes = monthIncomes.filter {
-                        it.status == "PAID" && (if (selectedChannelFilter == "ALL") true else it.channel.equals(selectedChannelFilter, ignoreCase = true))
-                    }.sortedByDescending { it.dateReceivedMillis }
-                    val groupedMonthIncomes = remember(monthPaidIncomes, selectedMonth) {
-                        monthPaidIncomes.groupBy { formatRelativeIncomeDateGroup(it.dateReceivedMillis, selectedMonth) }
-                    }
+                    val allPendingInvoices = hubSummary.allPendingInvoices
+                    val totalPendingReceivablesLkr = hubSummary.totalPendingReceivablesLkr
+                    val totalSalary = hubSummary.totalSalaryLkr
+                    val totalFreelancePaidThisMonth = hubSummary.totalFreelancePaidThisMonthLkr
+                    val totalAdsense = hubSummary.totalAdsenseLkr
+                    val totalCrypto = hubSummary.totalCryptoLkr
+                    val totalMonthRealized = hubSummary.totalMonthRealizedLkr
+                    val rollingAverage = hubSummary.rollingAverageLkr
+                    val monthPaidIncomes = hubSummary.monthPaidIncomes
+                    val groupedMonthIncomes = hubSummary.groupedMonthIncomes
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
@@ -569,7 +538,7 @@ fun IncomeHubScreen(
                                                         )
                                                     },
                                                     onClick = {
-                                                        selectedChannelFilter = key
+                                                        viewModel.setChannelFilter(key)
                                                         channelFilterExpanded = false
                                                     },
                                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
@@ -705,7 +674,7 @@ fun IncomeHubScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
                             .clickable {
-                                selectedMonth = month
+                                viewModel.setSelectedMonth(month)
                                 showMonthPicker = false
                             }
                             .padding(horizontal = 16.dp, vertical = 12.dp),

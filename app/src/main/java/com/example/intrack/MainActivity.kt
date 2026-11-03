@@ -18,7 +18,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.intrack.ui.navigation.FinFlowNavGraph
 import com.example.intrack.ui.theme.AppThemeMode
 import com.example.intrack.ui.theme.InTrackTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

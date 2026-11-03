@@ -61,15 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.intrack.data.model.ExpenseEntity
-import com.example.intrack.data.model.IncomeEntity
-import com.example.intrack.data.repository.ExpenseRepository
-import com.example.intrack.data.repository.ExpenseRepositoryImpl
-import com.example.intrack.data.repository.IncomeRepository
-import com.example.intrack.data.repository.IncomeRepositoryImpl
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.theme.ExpenseNegative
@@ -79,67 +71,23 @@ import com.example.intrack.ui.theme.TangerineShade2
 import com.example.intrack.ui.theme.TangerineShade3
 import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.util.DateUtils
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
+import com.example.intrack.viewmodel.AllTransactionsData
+import com.example.intrack.viewmodel.AllTransactionsViewModel
 
-data class AllTransactionsData(
-    val incomes: List<IncomeEntity> = emptyList(),
-    val expenses: List<ExpenseEntity> = emptyList()
-)
-
-class AllTransactionsViewModel(
-    private val incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
-    private val expenseRepository: ExpenseRepository = ExpenseRepositoryImpl()
-) : ViewModel() {
-
-    private val _uiState = MutableStateFlow<UiState<AllTransactionsData>>(UiState.Loading)
-    val uiState: StateFlow<UiState<AllTransactionsData>> = _uiState
-
-    init {
-        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-        loadData(currentUid)
-    }
-
-    fun loadData(userId: String) {
-        viewModelScope.launch {
-            _uiState.value = UiState.Loading
-            combine(
-                incomeRepository.getIncomes(userId),
-                expenseRepository.getExpenses(userId)
-            ) { incomes, expenses ->
-                AllTransactionsData(incomes = incomes, expenses = expenses)
-            }.collect { data ->
-                _uiState.value = UiState.Success(data)
-            }
-        }
-    }
-}
-
-data class UnifiedTransaction(
-    val id: String,
-    val title: String,
-    val amount: Double,
-    val isIncome: Boolean,
-    val timestampMillis: Long,
-    val categoryOrChannel: String,
-    val accountOrClient: String,
-    val paymentAccount: String? = null
-)
+typealias UnifiedTransaction = com.example.intrack.viewmodel.UnifiedTransaction
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AllTransactionsScreen(
     onNavigateBack: () -> Unit = {},
-    viewModel: AllTransactionsViewModel = viewModel(),
+    viewModel: AllTransactionsViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val recentMonths = remember { DateUtils.getRecentMonthsList(count = 6) }
-    var selectedMonth by remember { mutableStateOf(recentMonths.firstOrNull() ?: DateUtils.getCurrentMonthName()) }
-    var selectedTypeFilter by remember { mutableStateOf("ALL") } // "ALL", "EXPENSES", "INCOME"
-    var selectedAccountFilter by remember { mutableStateOf("ALL") } // "ALL", "CARD_PRIMARY", "ACCOUNT_SECONDARY", "CASH"
+    val recentMonths = viewModel.recentMonths
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    val selectedTypeFilter by viewModel.selectedTypeFilter.collectAsState()
+    val selectedAccountFilter by viewModel.selectedAccountFilter.collectAsState()
 
     Scaffold(
         topBar = {
@@ -187,8 +135,7 @@ fun AllTransactionsScreen(
                     title = "Error Loading Transactions",
                     message = errorMsg,
                     onActionClick = {
-                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                        viewModel.loadData(currentUid)
+                        viewModel.loadData()
                     },
                     modifier = Modifier.padding(innerPadding)
                 )
@@ -202,75 +149,12 @@ fun AllTransactionsScreen(
             }
             is UiState.Success -> {
                 val data = (uiState as UiState.Success<AllTransactionsData>).data
-
-                // Monthly filtered incomes & expenses
-                val monthlyIncomes = remember(data.incomes, selectedMonth) {
-                    data.incomes.filter { DateUtils.matchesMonth(it.dateReceivedMillis, selectedMonth) }
-                }
-                val monthlyExpenses = remember(data.expenses, selectedMonth) {
-                    data.expenses.filter { DateUtils.matchesMonth(it.dateSpentMillis, selectedMonth) }
-                }
-
-                val monthInflow = monthlyIncomes.sumOf { it.realizedAmountLkr }
-                val monthOutflow = monthlyExpenses.sumOf { it.amountLkr }
-                val netFlow = monthInflow - monthOutflow
-
-                // Combine into unified list
-                val allUnified = remember(monthlyIncomes, monthlyExpenses) {
-                    val list = mutableListOf<UnifiedTransaction>()
-                    monthlyIncomes.forEach { inc ->
-                        list.add(
-                            UnifiedTransaction(
-                                id = inc.id,
-                                title = inc.title,
-                                amount = inc.realizedAmountLkr,
-                                isIncome = true,
-                                timestampMillis = inc.dateReceivedMillis,
-                                categoryOrChannel = inc.channel,
-                                accountOrClient = inc.clientName ?: inc.channel.lowercase().replaceFirstChar { it.uppercase() }
-                            )
-                        )
-                    }
-                    monthlyExpenses.forEach { exp ->
-                        list.add(
-                            UnifiedTransaction(
-                                id = exp.id,
-                                title = exp.title,
-                                amount = exp.amountLkr,
-                                isIncome = false,
-                                timestampMillis = exp.dateSpentMillis,
-                                categoryOrChannel = exp.category,
-                                accountOrClient = when (exp.paymentAccount.uppercase()) {
-                                    "CARD_PRIMARY" -> "Card Primary"
-                                    "ACCOUNT_SECONDARY" -> "Secondary Account"
-                                    "CASH" -> "Cash"
-                                    else -> exp.paymentAccount.replace("_", " ")
-                                },
-                                paymentAccount = exp.paymentAccount.uppercase()
-                            )
-                        )
-                    }
-                    list.sortedByDescending { it.timestampMillis }
-                }
-
-                // Filter by type and account
-                val filteredTransactions = remember(allUnified, selectedTypeFilter, selectedAccountFilter) {
-                    allUnified.filter { tx ->
-                        val matchesType = when (selectedTypeFilter) {
-                            "EXPENSES" -> !tx.isIncome
-                            "INCOME" -> tx.isIncome
-                            else -> true
-                        }
-                        val matchesAccount = when (selectedAccountFilter) {
-                            "ALL" -> true
-                            "CASH" -> !tx.isIncome && tx.paymentAccount == "CASH"
-                            "CARD_PRIMARY" -> !tx.isIncome && tx.paymentAccount == "CARD_PRIMARY"
-                            "ACCOUNT_SECONDARY" -> !tx.isIncome && tx.paymentAccount == "ACCOUNT_SECONDARY"
-                            else -> true
-                        }
-                        matchesType && matchesAccount
-                    }
-                }
+                val monthInflow = data.monthInflowLkr
+                val monthOutflow = data.monthOutflowLkr
+                val netFlow = data.netFlowLkr
+                val inflowRatio = data.inflowRatio
+                val outflowRatio = data.outflowRatio
+                val filteredTransactions = data.filteredTransactions
 
                 LazyColumn(
                     modifier = Modifier
@@ -293,8 +177,7 @@ fun AllTransactionsScreen(
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = {
-                                        selectedMonth = monthName
-                                        selectedAccountFilter = "ALL"
+                                        viewModel.setSelectedMonth(monthName)
                                     },
                                     label = {
                                         Text(
@@ -353,10 +236,6 @@ fun AllTransactionsScreen(
                                 Spacer(modifier = Modifier.height(14.dp))
 
                                 // Proportional Bar (Inflow vs Outflow)
-                                val totalActivity = (monthInflow + monthOutflow).coerceAtLeast(1.0)
-                                val inflowRatio = (monthInflow / totalActivity).toFloat().coerceIn(0f, 1f)
-                                val outflowRatio = (monthOutflow / totalActivity).toFloat().coerceIn(0f, 1f)
-
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -476,7 +355,7 @@ fun AllTransactionsScreen(
                                 filterOptions.forEachIndexed { index, (key, label) ->
                                     SegmentedButton(
                                         shape = SegmentedButtonDefaults.itemShape(index = index, count = filterOptions.size),
-                                        onClick = { selectedTypeFilter = key },
+                                        onClick = { viewModel.setTypeFilter(key) },
                                         selected = selectedTypeFilter == key,
                                         label = {
                                             Text(
@@ -505,9 +384,9 @@ fun AllTransactionsScreen(
                                     FilterChip(
                                         selected = isSelected,
                                         onClick = {
-                                            selectedAccountFilter = key
+                                            viewModel.setAccountFilter(key)
                                             if (key != "ALL" && selectedTypeFilter == "INCOME") {
-                                                selectedTypeFilter = "EXPENSES"
+                                                viewModel.setTypeFilter("EXPENSES")
                                             }
                                         },
                                         label = {

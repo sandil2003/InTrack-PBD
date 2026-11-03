@@ -1,11 +1,15 @@
 package com.example.intrack.data.repository
 
+import com.example.intrack.data.local.SubscriptionDao
 import com.example.intrack.data.model.SubscriptionEntity
 import com.example.intrack.data.remote.FirestoreService
 import com.google.firebase.firestore.FirebaseFirestore
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 interface SubscriptionRepository {
@@ -17,11 +21,23 @@ interface SubscriptionRepository {
     suspend fun updateSubscriptionAutoPayment(userId: String, subscriptionId: String, isAutoPayment: Boolean): Result<Unit>
 }
 
-class SubscriptionRepositoryImpl(
-    private val db: FirebaseFirestore = FirestoreService.db
+@Singleton
+class SubscriptionRepositoryImpl @Inject constructor(
+    private val db: FirebaseFirestore,
+    private val subscriptionDao: SubscriptionDao?
 ) : SubscriptionRepository {
 
+    constructor(db: FirebaseFirestore = FirestoreService.db) : this(db, null)
+
     override fun getSubscriptions(userId: String): Flow<List<SubscriptionEntity>> = callbackFlow {
+        val cacheJob = launch {
+            subscriptionDao?.getSubscriptions(userId)?.collect { cached ->
+                if (cached.isNotEmpty()) {
+                    trySend(cached)
+                }
+            }
+        }
+
         val collection = if (userId.isNotEmpty()) {
             db.collection("users").document(userId).collection("subscriptions")
         } else {
@@ -30,20 +46,32 @@ class SubscriptionRepositoryImpl(
 
         val listener = collection.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                if (subscriptionDao == null) {
+                    close(error)
+                }
                 return@addSnapshotListener
             }
             val list = snapshot?.documents?.mapNotNull { doc ->
-                doc.toObject(SubscriptionEntity::class.java)?.copy(id = doc.id)
+                doc.toObject(SubscriptionEntity::class.java)?.copy(id = doc.id, userId = userId.ifEmpty { doc.getString("userId") ?: "" })
             } ?: emptyList()
 
             if (list.isEmpty()) {
-                trySend(getInitialSampleSubscriptions(userId))
+                val sampleList = getInitialSampleSubscriptions(userId)
+                trySend(sampleList)
+                launch {
+                    subscriptionDao?.replaceAllForUser(userId, sampleList)
+                }
             } else {
                 trySend(list)
+                launch {
+                    subscriptionDao?.replaceAllForUser(userId, list)
+                }
             }
         }
-        awaitClose { listener.remove() }
+        awaitClose {
+            cacheJob.cancel()
+            listener.remove()
+        }
     }
 
     override suspend fun addSubscription(subscription: SubscriptionEntity): Result<Unit> {
@@ -54,7 +82,9 @@ class SubscriptionRepositoryImpl(
                 db.collection("subscriptions")
             }
             val docRef = if (subscription.id.isNotBlank()) collection.document(subscription.id) else collection.document()
-            docRef.set(subscription.copy(id = docRef.id)).await()
+            val savedSub = subscription.copy(id = docRef.id)
+            subscriptionDao?.upsert(savedSub)
+            docRef.set(savedSub).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -63,6 +93,7 @@ class SubscriptionRepositoryImpl(
 
     override suspend fun updateSubscription(subscription: SubscriptionEntity): Result<Unit> {
         return try {
+            subscriptionDao?.upsert(subscription)
             val collection = if (subscription.userId.isNotEmpty()) {
                 db.collection("users").document(subscription.userId).collection("subscriptions")
             } else {
@@ -77,6 +108,7 @@ class SubscriptionRepositoryImpl(
 
     override suspend fun deleteSubscription(userId: String, subscriptionId: String): Result<Unit> {
         return try {
+            subscriptionDao?.deleteById(subscriptionId)
             val collection = if (userId.isNotEmpty()) {
                 db.collection("users").document(userId).collection("subscriptions")
             } else {

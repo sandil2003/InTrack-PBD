@@ -84,9 +84,6 @@ fun InTrackTopBar(
                 InTrackProfileMenuButton(
                     onNavigateToSettings = onNavigateToSettings ?: {},
                     onSignOut = {
-                        try {
-                            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                        } catch (_: Exception) {}
                         onSignOut?.invoke()
                     },
                     buttonSize = 36.dp,

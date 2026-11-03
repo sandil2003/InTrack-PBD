@@ -62,4 +62,54 @@ object DateUtils {
         val diff = endMillis - startMillis
         return if (diff > 0) diff / (1000 * 60 * 60 * 24) else 0
     }
+
+    fun formatWeeklyTimeTier(timeMillis: Long): String {
+        val nowCal = java.util.Calendar.getInstance()
+        val txCal = java.util.Calendar.getInstance().apply { timeInMillis = timeMillis }
+
+        val nowYear = nowCal.get(java.util.Calendar.YEAR)
+        val txYear = txCal.get(java.util.Calendar.YEAR)
+        val nowWeek = nowCal.get(java.util.Calendar.WEEK_OF_YEAR)
+        val txWeek = txCal.get(java.util.Calendar.WEEK_OF_YEAR)
+
+        val weekDiff = if (nowYear == txYear) {
+            nowWeek - txWeek
+        } else {
+            val daysDiff = ((nowCal.timeInMillis - txCal.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+            daysDiff / 7
+        }
+
+        return when {
+            weekDiff <= 0 -> "This Week"
+            weekDiff == 1 -> "Last Week"
+            weekDiff == 2 -> "2 Weeks Ago"
+            weekDiff == 3 -> "3 Weeks Ago"
+            else -> "Earlier"
+        }
+    }
+
+    fun formatRelativeDateGroup(timeMillis: Long, monthName: String = "Month"): String {
+        val nowCal = java.util.Calendar.getInstance()
+        val txCal = java.util.Calendar.getInstance().apply { timeInMillis = timeMillis }
+
+        val nowYear = nowCal.get(java.util.Calendar.YEAR)
+        val txYear = txCal.get(java.util.Calendar.YEAR)
+        val nowWeek = nowCal.get(java.util.Calendar.WEEK_OF_YEAR)
+        val txWeek = txCal.get(java.util.Calendar.WEEK_OF_YEAR)
+
+        val weekDiff = if (nowYear == txYear) {
+            nowWeek - txWeek
+        } else {
+            val daysDiff = ((nowCal.timeInMillis - txCal.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+            daysDiff / 7
+        }
+
+        return when {
+            weekDiff <= 0 -> "This Week"
+            weekDiff == 1 -> "Last Week"
+            weekDiff == 2 -> "2 Weeks Ago"
+            weekDiff == 3 -> "3 Weeks Ago"
+            else -> "Earlier in $monthName"
+        }
+    }
 }

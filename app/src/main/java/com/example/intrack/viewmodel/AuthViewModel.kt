@@ -20,6 +20,8 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -32,9 +34,12 @@ enum class PasswordStrengthLevel(val label: String, val activeSegments: Int, val
     STRONG("Strong", 4, Color(0xFF10B981))
 }
 
-class AuthViewModel(
-    private val authRepository: AuthRepository = AuthRepositoryImpl()
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    private val authRepository: AuthRepository
 ) : ViewModel() {
+
+    constructor() : this(AuthRepositoryImpl())
 
     companion object {
         const val DEBUG_SHA1_FINGERPRINT = "41:22:92:CF:87:CF:84:BA:62:2B:2E:01:FF:06:F6:1D:A2:B9:B0:61"
@@ -50,12 +55,35 @@ class AuthViewModel(
     private val _showGoogleSetupDialog = MutableStateFlow(false)
     val showGoogleSetupDialog: StateFlow<Boolean> = _showGoogleSetupDialog
 
+    private val _userDisplayName = MutableStateFlow("Sandith Sithmaka")
+    val userDisplayName: StateFlow<String> = _userDisplayName
+
+    private val _userEmail = MutableStateFlow("sandith@intrack.lk")
+    val userEmail: StateFlow<String> = _userEmail
+
+    private val _userInitials = MutableStateFlow("SS")
+    val userInitials: StateFlow<String> = _userInitials
+
     init {
         checkUser()
     }
 
+    private fun refreshProfileInfo() {
+        val name = authRepository.getCurrentUserDisplayName()
+        val email = authRepository.getCurrentUserEmail()
+        _userDisplayName.value = name
+        _userEmail.value = email
+        val parts = name.trim().split(" ").filter { it.isNotBlank() }
+        _userInitials.value = when {
+            parts.size >= 2 -> "${parts[0].first().uppercaseChar()}${parts[1].first().uppercaseChar()}"
+            parts.size == 1 -> parts[0].take(2).uppercase()
+            else -> "SS"
+        }
+    }
+
     fun checkUser() {
         val currentUser = authRepository.getCurrentUser()
+        refreshProfileInfo()
         if (currentUser != null) {
             _authState.value = UiState.Success(currentUser.uid)
         } else {
@@ -65,6 +93,7 @@ class AuthViewModel(
 
     fun signOut() {
         authRepository.signOut()
+        refreshProfileInfo()
         _authState.value = UiState.Idle
     }
 
@@ -100,6 +129,7 @@ class AuthViewModel(
             val result = authRepository.signInWithEmail(trimmedEmail, pass)
             result.fold(
                 onSuccess = { user ->
+                    refreshProfileInfo()
                     _authState.value = UiState.Success(user.uid)
                     onSuccess()
                 },
@@ -147,6 +177,7 @@ class AuthViewModel(
             val result = authRepository.signUpWithEmail(trimmedName, trimmedEmail, pass)
             result.fold(
                 onSuccess = { user ->
+                    refreshProfileInfo()
                     _authState.value = UiState.Success(user.uid)
                     onSuccess()
                 },
@@ -186,6 +217,7 @@ class AuthViewModel(
             val result = authRepository.signInAnonymously()
             result.fold(
                 onSuccess = { user ->
+                    refreshProfileInfo()
                     _authState.value = UiState.Success(user.uid)
                     onSuccess()
                 },
@@ -200,6 +232,7 @@ class AuthViewModel(
     }
 
     fun continueOffline(onSuccess: () -> Unit = {}) {
+        refreshProfileInfo()
         _authState.value = UiState.Success("guest_user")
         onSuccess()
     }
@@ -277,6 +310,7 @@ class AuthViewModel(
             val authResult = authRepository.signInWithGoogle(idToken)
             authResult.fold(
                 onSuccess = { user ->
+                    refreshProfileInfo()
                     _authState.value = UiState.Success(user.uid)
                     onSuccess()
                 },

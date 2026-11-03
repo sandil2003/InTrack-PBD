@@ -77,12 +77,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.GoalEntity
 import com.example.intrack.ui.theme.FigmaLightOrange
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
 import com.example.intrack.util.CurrencyFormatter
-import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -102,13 +101,9 @@ data class GoalCategoryOption(
 fun AddGoalScreen(
     onNavigateBack: () -> Unit,
     onGoalSaved: () -> Unit = onNavigateBack,
-    goalViewModel: GoalViewModel = viewModel(),
+    goalViewModel: GoalViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val currentUserId = remember {
-        FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -125,7 +120,7 @@ fun AddGoalScreen(
             AddGoalContent(
                 onDismiss = onNavigateBack,
                 onSubmit = { newGoal ->
-                    goalViewModel.addGoal(newGoal.copy(userId = currentUserId))
+                    goalViewModel.addGoal(newGoal)
                     onGoalSaved()
                 }
             )

@@ -79,7 +79,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.SubscriptionEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
@@ -93,10 +93,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun SubscriptionAuditScreen(
     onNavigateBack: () -> Unit = {},
-    viewModel: SubscriptionViewModel = viewModel(),
+    viewModel: SubscriptionViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val subscriptionsState by viewModel.subscriptionsState.collectAsState()
+    val auditSummary by viewModel.auditSummary.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
     var subscriptionToEdit by remember { mutableStateOf<SubscriptionEntity?>(null) }
     var selectedSubscriptionForDetail by remember { mutableStateOf<SubscriptionEntity?>(null) }
@@ -154,8 +155,7 @@ fun SubscriptionAuditScreen(
                     title = "Error Loading Subscriptions",
                     message = errorMsg,
                     onActionClick = {
-                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                        viewModel.loadSubscriptions(currentUid)
+                        viewModel.loadSubscriptions()
                     },
                     modifier = Modifier.padding(innerPadding)
                 )
@@ -173,14 +173,11 @@ fun SubscriptionAuditScreen(
                 )
             }
             is UiState.Success -> {
-                val subscriptions = (subscriptionsState as UiState.Success<List<SubscriptionEntity>>).data
-                val activeSubs = subscriptions.filter { it.status != "CANCELLED" }
-                val totalActive = activeSubs.sumOf { it.amountLkr }
-                val secondaryTotal = activeSubs.filter { it.paymentAccount == "ACCOUNT_SECONDARY" }.sumOf { it.amountLkr }
-                val primaryCardTotal = activeSubs.filter { it.paymentAccount == "CARD_PRIMARY" }.sumOf { it.amountLkr }
-                val cashTotal = activeSubs.filter { it.paymentAccount == "CASH" }.sumOf { it.amountLkr }
-
-                val filteredList = subscriptions
+                val totalActive = auditSummary.totalActiveLkr
+                val secondaryTotal = auditSummary.secondaryTotalLkr
+                val primaryCardTotal = auditSummary.primaryCardTotalLkr
+                val cashTotal = auditSummary.cashTotalLkr
+                val filteredList = auditSummary.filteredSubs
 
                 LazyColumn(
                     modifier = Modifier

@@ -79,10 +79,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.SubscriptionEntity
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
-import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -103,13 +102,9 @@ fun AddSubscriptionScreen(
     initialSubscription: SubscriptionEntity? = null,
     onNavigateBack: () -> Unit,
     onSubscriptionSaved: (SubscriptionEntity) -> Unit = { onNavigateBack() },
-    viewModel: SubscriptionViewModel = viewModel(),
+    viewModel: SubscriptionViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val currentUserId = remember {
-        FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -127,13 +122,12 @@ fun AddSubscriptionScreen(
                 initialSubscription = initialSubscription,
                 onDismiss = onNavigateBack,
                 onSubmit = { sub ->
-                    val prepared = sub.copy(userId = currentUserId)
                     if (initialSubscription != null) {
-                        viewModel.updateSubscription(prepared)
+                        viewModel.updateSubscription(sub)
                     } else {
-                        viewModel.addSubscription(prepared)
+                        viewModel.addSubscription(sub)
                     }
-                    onSubscriptionSaved(prepared)
+                    onSubscriptionSaved(sub)
                 }
             )
         }
@@ -970,10 +964,9 @@ fun AddSubscriptionContent(
                             return@clickable
                         }
 
-                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
                         val newSub = SubscriptionEntity(
                             id = initialSubscription?.id ?: UUID.randomUUID().toString(),
-                            userId = initialSubscription?.userId?.ifBlank { currentUid } ?: currentUid,
+                            userId = initialSubscription?.userId ?: "",
                             name = providerName.trim(),
                             amountLkr = parsedAmount,
                             billingCycle = billingFrequency.uppercase(),

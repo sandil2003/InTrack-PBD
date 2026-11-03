@@ -73,7 +73,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.GoalContributionEntity
 import com.example.intrack.data.model.GoalEntity
 import com.example.intrack.ui.common.EmptyStateView
@@ -99,7 +99,7 @@ import kotlinx.coroutines.launch
 fun GoalDetailScreen(
     goalId: String,
     onNavigateBack: () -> Unit,
-    viewModel: GoalViewModel = viewModel(),
+    viewModel: GoalViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val goalsState by viewModel.goalsState.collectAsState()
@@ -166,8 +166,7 @@ fun GoalDetailScreen(
                     message = errorMsg,
                     actionLabel = "Retry",
                     onActionClick = {
-                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                        viewModel.loadGoals(currentUid)
+                        viewModel.loadGoals()
                     },
                     modifier = Modifier.padding(innerPadding)
                 )
@@ -182,39 +181,23 @@ fun GoalDetailScreen(
                 )
             }
             is UiState.Success -> {
-                val goals = (goalsState as UiState.Success<List<GoalEntity>>).data
-                val goal = goals.find { it.id == goalId } ?: goals.firstOrNull() ?: GoalEntity()
-
-                val progress = if (goal.targetAmountLkr > 0) {
-                    (goal.currentSavedLkr / goal.targetAmountLkr).toFloat().coerceIn(0f, 1f)
-                } else 0f
+                val metrics = viewModel.calculateGoalDetailMetrics(goalId)
+                val goal = metrics.goal
+                val progress = metrics.progress
                 val animatedProgress by animateFloatAsState(
                     targetValue = progress,
                     animationSpec = tween(500),
                     label = "goalProgress"
                 )
-                val isCompleted = goal.isCompleted || progress >= 1f
-                val now = System.currentTimeMillis()
-                val daysLeft = DateUtils.daysBetween(now, goal.targetDateMillis).coerceAtLeast(0L)
-                val percentageInt = (progress * 100).toInt()
-
-                val remainingToSave = (goal.targetAmountLkr - goal.currentSavedLkr).coerceAtLeast(0.0)
-                val monthsRemaining = (daysLeft / 30.4375).coerceAtLeast(0.1)
-
-                val dynamicRequiredMonthlyPace = if (isCompleted || remainingToSave <= 0.0) {
-                    0.0
-                } else {
-                    remainingToSave / monthsRemaining
-                }
-
-                val elapsedMillis = (now - goal.createdAtMillis).coerceAtLeast(1L)
-                val elapsedDays = (elapsedMillis / (24L * 60 * 60 * 1000L)).coerceAtLeast(1L)
-                val elapsedMonths = (elapsedDays / 30.4375).coerceAtLeast(0.25)
-                val actualMonthlySavingsRate = (goal.currentSavedLkr / elapsedMonths)
-
-                val isPaceOnTrack = isCompleted || (actualMonthlySavingsRate >= dynamicRequiredMonthlyPace)
-                val paceDeficit = (dynamicRequiredMonthlyPace - actualMonthlySavingsRate).coerceAtLeast(0.0)
-                val paceSurplus = (actualMonthlySavingsRate - dynamicRequiredMonthlyPace).coerceAtLeast(0.0)
+                val isCompleted = metrics.isCompleted
+                val daysLeft = metrics.daysLeft
+                val percentageInt = metrics.percentageInt
+                val remainingToSave = metrics.remainingToSave
+                val dynamicRequiredMonthlyPace = metrics.dynamicRequiredMonthlyPace
+                val actualMonthlySavingsRate = metrics.actualMonthlySavingsRate
+                val isPaceOnTrack = metrics.isPaceOnTrack
+                val paceDeficit = metrics.paceDeficit
+                val paceSurplus = metrics.paceSurplus
 
                 LazyColumn(
                     modifier = Modifier

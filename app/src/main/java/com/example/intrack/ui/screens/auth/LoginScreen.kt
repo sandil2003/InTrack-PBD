@@ -2,7 +2,7 @@ package com.example.intrack.ui.screens.auth
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.viewmodel.AuthViewModel
 
 /**
@@ -12,7 +12,7 @@ import com.example.intrack.viewmodel.AuthViewModel
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit = {},
-    viewModel: AuthViewModel = viewModel(),
+    viewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     SignInScreen(

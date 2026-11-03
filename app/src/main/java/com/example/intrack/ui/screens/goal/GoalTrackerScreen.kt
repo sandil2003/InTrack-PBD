@@ -60,7 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.GoalEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
@@ -86,11 +86,12 @@ fun GoalTrackerScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onSignOut: () -> Unit = {},
-    viewModel: GoalViewModel = viewModel(),
+    viewModel: GoalViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val goalsState by viewModel.goalsState.collectAsState()
-    var selectedFilter by remember { mutableStateOf("ALL") }
+    val portfolioSummary by viewModel.portfolioSummary.collectAsState()
+    val selectedFilter by viewModel.selectedFilter.collectAsState()
     var showAddGoalDialog by remember { mutableStateOf(false) }
     var depositGoal by remember { mutableStateOf<GoalEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -142,8 +143,7 @@ fun GoalTrackerScreen(
                         message = errorMsg,
                         actionLabel = "Retry",
                         onActionClick = {
-                            val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                            viewModel.loadGoals(currentUid)
+                            viewModel.loadGoals()
                         }
                     )
                 }
@@ -163,22 +163,12 @@ fun GoalTrackerScreen(
                     )
                 }
                 is UiState.Success -> {
-                    val goals = (goalsState as UiState.Success<List<GoalEntity>>).data
-                    val totalSaved = goals.sumOf { it.currentSavedLkr }
-                    val totalTarget = goals.sumOf { it.targetAmountLkr }
-                    val overallRatio = if (totalTarget > 0.0) (totalSaved / totalTarget).toFloat().coerceIn(0f, 1f) else 0f
-
-                    val completedCount = goals.count { it.isCompleted || (it.targetAmountLkr > 0.0 && it.currentSavedLkr >= it.targetAmountLkr) }
-                    val inProgressCount = goals.size - completedCount
-
-                    val filteredGoals = goals.filter { g ->
-                        val isDone = g.isCompleted || (g.targetAmountLkr > 0.0 && g.currentSavedLkr >= g.targetAmountLkr)
-                        when (selectedFilter) {
-                            "ACTIVE", "IN_PROGRESS" -> !isDone
-                            "DONE", "COMPLETED" -> isDone
-                            else -> true
-                        }
-                    }
+                    val totalSaved = portfolioSummary.totalSavedLkr
+                    val totalTarget = portfolioSummary.totalTargetLkr
+                    val overallRatio = portfolioSummary.overallRatio
+                    val completedCount = portfolioSummary.completedCount
+                    val inProgressCount = portfolioSummary.inProgressCount
+                    val filteredGoals = portfolioSummary.filteredGoals
 
                     LazyColumn(
                         modifier = Modifier
@@ -214,7 +204,7 @@ fun GoalTrackerScreen(
                                     InTrackFilterPill(
                                         label = label,
                                         isSelected = selectedFilter == key,
-                                        onClick = { selectedFilter = key }
+                                        onClick = { viewModel.setSelectedFilter(key) }
                                     )
                                 }
                             }
@@ -225,7 +215,7 @@ fun GoalTrackerScreen(
                             item {
                                 EmptyFilterGoalsCard(
                                     filter = selectedFilter,
-                                    onResetFilter = { selectedFilter = "ALL" }
+                                    onResetFilter = { viewModel.setSelectedFilter("ALL") }
                                 )
                             }
                         } else {
@@ -252,8 +242,7 @@ fun GoalTrackerScreen(
         AddGoalBottomSheet(
             onDismiss = { showAddGoalDialog = false },
             onSubmit = { newGoal ->
-                val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                viewModel.addGoal(newGoal.copy(userId = currentUid))
+                viewModel.addGoal(newGoal)
                 showAddGoalDialog = false
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Created financial goal '${newGoal.title}'!")

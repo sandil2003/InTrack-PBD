@@ -82,10 +82,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.theme.AppThemeMode
 import com.example.intrack.ui.theme.BrandTangerine
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
-import com.google.firebase.auth.FirebaseAuth
+import com.example.intrack.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -110,24 +112,16 @@ fun SettingsScreen(
     onSignOut: () -> Unit,
     themeMode: AppThemeMode = AppThemeMode.LIGHT,
     onThemeModeChange: (AppThemeMode) -> Unit = {},
+    authViewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // User details from Firebase Auth
-    val currentUser = FirebaseAuth.getInstance().currentUser
-    val userName = currentUser?.displayName?.takeIf { it.isNotBlank() } ?: "Alex Morgan"
-    val userEmail = currentUser?.email?.takeIf { it.isNotBlank() } ?: "alex.morgan@financeflow.app"
-    val userInitials = remember(userName) {
-        val parts = userName.trim().split(" ")
-        if (parts.size >= 2) {
-            "${parts[0].firstOrNull()?.uppercase() ?: "A"}${parts[1].firstOrNull()?.uppercase() ?: "M"}"
-        } else {
-            userName.take(2).uppercase().ifEmpty { "AM" }
-        }
-    }
+    val userName by authViewModel.userDisplayName.collectAsState()
+    val userEmail by authViewModel.userEmail.collectAsState()
+    val userInitials by authViewModel.userInitials.collectAsState()
 
     // State for interactive preferences
     var baseCurrency by remember { mutableStateOf("LKR (Rs) • Sri Lankan Rupee") }
@@ -1065,7 +1059,7 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         showLogoutDialog = false
-                        FirebaseAuth.getInstance().signOut()
+                        authViewModel.signOut()
                         onSignOut()
                     }
                 ) {

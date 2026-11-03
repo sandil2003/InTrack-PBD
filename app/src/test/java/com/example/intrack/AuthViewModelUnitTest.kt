@@ -2,8 +2,8 @@ package com.example.intrack
 
 import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.ui.common.UiState
-import com.example.intrack.ui.screens.auth.AuthViewModel
-import com.example.intrack.ui.screens.auth.PasswordStrengthLevel
+import com.example.intrack.viewmodel.AuthViewModel
+import com.example.intrack.viewmodel.PasswordStrengthLevel
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

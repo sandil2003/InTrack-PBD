@@ -117,7 +117,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.ExpenseEntity
 import com.example.intrack.data.model.GoalEntity
 import com.example.intrack.data.model.SubscriptionEntity
@@ -168,9 +168,9 @@ fun ExpenseAnalyticsScreen(
     themeMode: AppThemeMode = AppThemeMode.LIGHT,
     onThemeModeChange: (AppThemeMode) -> Unit = {},
     onSignOut: () -> Unit = {},
-    viewModel: ExpenseViewModel = viewModel(),
-    subscriptionViewModel: SubscriptionViewModel = viewModel(),
-    goalViewModel: GoalViewModel = viewModel(),
+    viewModel: ExpenseViewModel = hiltViewModel(),
+    subscriptionViewModel: SubscriptionViewModel = hiltViewModel(),
+    goalViewModel: GoalViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val initialViewTab = if (initialTab.equals("subscriptions", ignoreCase = true)) {
@@ -181,25 +181,25 @@ fun ExpenseAnalyticsScreen(
     var currentTab by remember(initialTab) { mutableStateOf(initialViewTab) }
 
     val expensesState by viewModel.expensesState.collectAsState()
-    val subscriptionsState by subscriptionViewModel.subscriptionsState.collectAsState()
-    val goalsState by goalViewModel.goalsState.collectAsState()
+    val analyticsSummary by viewModel.analyticsSummary.collectAsState()
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    val selectedTypeFilter by viewModel.selectedTypeFilter.collectAsState()
+    val selectedCategoryFilter by viewModel.selectedCategoryFilter.collectAsState()
+    val selectedAccountFilter by viewModel.selectedAccountFilter.collectAsState()
 
-    val activeGoal = remember(goalsState) {
-        (goalsState as? UiState.Success<List<GoalEntity>>)?.data?.find { !it.isCompleted }
-            ?: (goalsState as? UiState.Success<List<GoalEntity>>)?.data?.firstOrNull()
-            ?: GoalEntity(title = "MacBook Pro M4 Fund", monthlyTargetRunRateLkr = 40833.33)
-    }
+    val subscriptionsState by subscriptionViewModel.subscriptionsState.collectAsState()
+    val auditSummary by subscriptionViewModel.auditSummary.collectAsState()
+    val subscriptionFilter by subscriptionViewModel.subscriptionFilter.collectAsState()
+
+    val goalPortfolio by goalViewModel.portfolioSummary.collectAsState()
+    val activeGoal = goalPortfolio.activeGoal
     val monthlyGoalRunRate = if (activeGoal.monthlyTargetRunRateLkr > 0) activeGoal.monthlyTargetRunRateLkr else 40833.33
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
 
-    val recentMonths = remember { DateUtils.getRecentMonthsList(count = 6) }
-    var selectedMonth by remember { mutableStateOf(recentMonths.firstOrNull() ?: DateUtils.getCurrentMonthName()) }
-    var selectedTypeFilter by remember { mutableStateOf("ALL") }
-    var selectedCategoryFilter by remember { mutableStateOf("ALL") }
-    var selectedAccountFilter by remember { mutableStateOf("ALL") }
+    val recentMonths = viewModel.recentMonths
     var accountFilterExpanded by remember { mutableStateOf(false) }
     var categoryFilterExpanded by remember { mutableStateOf(false) }
     var showActivityFilters by remember { mutableStateOf(false) }
@@ -214,7 +214,6 @@ fun ExpenseAnalyticsScreen(
     var expenseToDelete by remember { mutableStateOf<ExpenseEntity?>(null) }
 
     // Subscriptions tab state
-    var subscriptionFilter by remember { mutableStateOf("ALL") }
     var showAddSubscriptionDialog by remember { mutableStateOf(false) }
     var activeActionSub by remember { mutableStateOf<SubscriptionEntity?>(null) }
     var subscriptionToEdit by remember { mutableStateOf<SubscriptionEntity?>(null) }
@@ -268,8 +267,7 @@ fun ExpenseAnalyticsScreen(
             AddExpenseBottomSheet(
                 onDismiss = { showAddDialog = false },
                 onSubmit = { newExpense ->
-                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                    viewModel.addExpense(newExpense.copy(userId = currentUid))
+                    viewModel.addExpense(newExpense)
                     showAddDialog = false
                 }
             )
@@ -306,8 +304,7 @@ fun ExpenseAnalyticsScreen(
                     }
                 },
                 onDeleteExpense = { toDelete ->
-                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                    viewModel.deleteExpense(currentUid, toDelete.id)
+                    viewModel.deleteExpense(toDelete.userId, toDelete.id)
                     expenseToEdit = null
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Deleted transaction '${toDelete.title}'.")
@@ -340,9 +337,7 @@ fun ExpenseAnalyticsScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                            val targetUid = exp.userId.ifBlank { currentUid }
-                            viewModel.deleteExpense(targetUid, exp.id)
+                            viewModel.deleteExpense(exp.userId, exp.id)
                             expenseToDelete = null
                             selectedExpense = null
                             coroutineScope.launch {
@@ -404,8 +399,7 @@ fun ExpenseAnalyticsScreen(
                     subscriptionToEdit = subToEdit
                 },
                 onDelete = { subToDelete ->
-                    val uid = subToDelete.userId.ifBlank { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user" }
-                    subscriptionViewModel.deleteSubscription(uid, subToDelete.id)
+                    subscriptionViewModel.deleteSubscription(subToDelete.userId, subToDelete.id)
                     activeActionSub = null
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Cancelled & deleted subscription '${subToDelete.name}'")
@@ -442,10 +436,7 @@ fun ExpenseAnalyticsScreen(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(if (isSelected) FigmaSoftPillActive else Color.Transparent)
                                 .clickable {
-                                    selectedMonth = month
-                                    selectedTypeFilter = "ALL"
-                                    selectedCategoryFilter = "ALL"
-                                    selectedAccountFilter = "ALL"
+                                    viewModel.setSelectedMonth(month)
                                     showMonthPicker = false
                                 }
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -478,9 +469,6 @@ fun ExpenseAnalyticsScreen(
                 onThemeModeChange = onThemeModeChange,
                 onSignOut = {
                     showProfileSheet = false
-                    try {
-                        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                    } catch (_: Exception) {}
                     onSignOut()
                 },
                 onDismiss = { showProfileSheet = false }
@@ -533,8 +521,7 @@ fun ExpenseAnalyticsScreen(
                                 message = errorMsg,
                                 actionLabel = "Retry",
                                 onActionClick = {
-                                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                                    viewModel.loadExpenses(currentUid)
+                                    viewModel.loadExpenses()
                                 }
                             )
                         }
@@ -547,50 +534,15 @@ fun ExpenseAnalyticsScreen(
                             )
                         }
                         is UiState.Success -> {
-                            val allExpenses = (expensesState as UiState.Success<List<ExpenseEntity>>).data
-
-                            // Filter expenses by the selected month
-                            val monthExpenses = allExpenses.filter {
-                                DateUtils.matchesMonth(it.dateSpentMillis, selectedMonth)
-                            }
-
-                            // Outflow expenses exclude internal transfers (e.g. ATM cash withdrawals) to prevent double counting
-                            val outflowExpenses = monthExpenses.filter { !it.isInternalTransfer() }
-
-                            val totalExpense = outflowExpenses.sumOf { it.amountLkr }
-                            val committed = outflowExpenses.filter { it.isCommittedExpense() }.sumOf { it.amountLkr }
-                            val discretionary = outflowExpenses.filter { it.isDiscretionaryExpense() }.sumOf { it.amountLkr }
-
-                            val cardPrimaryTotal = monthExpenses.filter { it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) }.sumOf { it.amountLkr }
-                            val secondaryAccountTotal = monthExpenses.filter { it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true) }.sumOf { it.amountLkr }
-                            val cashTotal = monthExpenses.filter { it.paymentAccount.equals("CASH", ignoreCase = true) }.sumOf { it.amountLkr }
-
-                            val categoryBreakdownItems = remember(monthExpenses) {
-                                calculateCategoryBreakdown(monthExpenses)
-                            }
-
-                            val filteredExpenses = monthExpenses.filter { expense ->
-                                val matchesType = when (selectedTypeFilter) {
-                                    "COMMITTED" -> expense.isCommittedExpense()
-                                    "DISCRETIONARY" -> expense.isDiscretionaryExpense()
-                                    "TRANSFER" -> expense.isInternalTransfer()
-                                    else -> true
-                                }
-                                val matchesCategory = when (selectedCategoryFilter) {
-                                    "ALL" -> true
-                                    "ATM_WITHDRAWAL" -> expense.isInternalTransfer() || expense.category.equals("ATM_WITHDRAWAL", ignoreCase = true)
-                                    else -> expense.category.equals(selectedCategoryFilter, ignoreCase = true)
-                                }
-                                val matchesAccount = when (selectedAccountFilter) {
-                                    "ALL" -> true
-                                    else -> expense.paymentAccount.equals(selectedAccountFilter, ignoreCase = true)
-                                }
-                                matchesType && matchesCategory && matchesAccount
-                            }.sortedByDescending { it.dateSpentMillis }
-
-                            val groupedExpenses = remember(filteredExpenses, selectedMonth) {
-                                filteredExpenses.groupBy { formatRelativeDateGroup(it.dateSpentMillis, selectedMonth) }
-                            }
+                            val totalExpense = analyticsSummary.totalExpenseLkr
+                            val committed = analyticsSummary.committedLkr
+                            val discretionary = analyticsSummary.discretionaryLkr
+                            val cardPrimaryTotal = analyticsSummary.cardPrimaryTotalLkr
+                            val secondaryAccountTotal = analyticsSummary.secondaryAccountTotalLkr
+                            val cashTotal = analyticsSummary.cashTotalLkr
+                            val categoryBreakdownItems = analyticsSummary.categoryBreakdownItems
+                            val filteredExpenses = analyticsSummary.filteredExpenses
+                            val groupedExpenses = analyticsSummary.groupedExpenses
 
                             LazyColumn(
                                 modifier = Modifier
@@ -725,7 +677,7 @@ fun ExpenseAnalyticsScreen(
                                                                     )
                                                                 },
                                                                 onClick = {
-                                                                    selectedAccountFilter = key
+                                                                    viewModel.setAccountFilter(key)
                                                                     accountFilterExpanded = false
                                                                 },
                                                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
@@ -813,8 +765,7 @@ fun ExpenseAnalyticsScreen(
                                                                     )
                                                                 },
                                                                 onClick = {
-                                                                    selectedTypeFilter = tFilter
-                                                                    selectedCategoryFilter = cFilter
+                                                                    viewModel.setTypeAndCategoryFilter(tFilter, cFilter)
                                                                     categoryFilterExpanded = false
                                                                 },
                                                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
@@ -904,7 +855,7 @@ fun ExpenseAnalyticsScreen(
                                     categoryItems = categoryBreakdownItems,
                                     onDismiss = { showChartsModal = false },
                                     onSelectCategory = { catKey ->
-                                        selectedCategoryFilter = if (selectedCategoryFilter.equals(catKey, ignoreCase = true)) "ALL" else catKey
+                                        viewModel.toggleCategoryFilter(catKey)
                                     }
                                 )
                             }
@@ -929,8 +880,7 @@ fun ExpenseAnalyticsScreen(
                                 message = errorMsg,
                                 actionLabel = "Retry",
                                 onActionClick = {
-                                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                                    subscriptionViewModel.loadSubscriptions(currentUid)
+                                    subscriptionViewModel.loadSubscriptions()
                                 }
                             )
                         }
@@ -943,42 +893,16 @@ fun ExpenseAnalyticsScreen(
                             )
                         }
                         is UiState.Success -> {
-                            val subscriptions = (subscriptionsState as UiState.Success<List<SubscriptionEntity>>).data
-                            val activeSubs = subscriptions.filter { it.status != "CANCELLED" }
-                            val totalActive = activeSubs.sumOf { it.amountLkr }
-                            val secondaryTotal = activeSubs.filter { it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true) }.sumOf { it.amountLkr }
-                            val primaryCardTotal = activeSubs.filter { it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) }.sumOf { it.amountLkr }
-                            val cashTotal = activeSubs.filter { it.paymentAccount.equals("CASH", ignoreCase = true) }.sumOf { it.amountLkr }
-
-                            val allCount = subscriptions.size
-                            val dueWeekCount = remember(subscriptions) {
-                                subscriptions.count {
-                                    val diff = it.nextBillingMillis - System.currentTimeMillis()
-                                    diff in 0..(7L * 24 * 3600 * 1000)
-                                }
-                            }
-                            val autoDebitCount = remember(subscriptions) {
-                                subscriptions.count {
-                                    it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) || it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true)
-                                }
-                            }
-
-                            val filteredSubs = when (subscriptionFilter) {
-                                "DUE_WEEK" -> subscriptions.filter {
-                                    val diff = it.nextBillingMillis - System.currentTimeMillis()
-                                    diff in 0..(7L * 24 * 3600 * 1000)
-                                }
-                                "AUTO_DEBIT" -> subscriptions.filter {
-                                    it.paymentAccount.equals("CARD_PRIMARY", ignoreCase = true) || it.paymentAccount.equals("ACCOUNT_SECONDARY", ignoreCase = true)
-                                }
-                                else -> subscriptions
-                            }
-
-                            val nextSub = activeSubs.minByOrNull { it.nextBillingMillis }
-                            val nextInDays = if (nextSub != null) {
-                                val diff = nextSub.nextBillingMillis - System.currentTimeMillis()
-                                val days = (diff / (24 * 3600 * 1000)).coerceAtLeast(1)
-                                "Next in $days days"
+                            val totalActive = auditSummary.totalActiveLkr
+                            val secondaryTotal = auditSummary.secondaryTotalLkr
+                            val primaryCardTotal = auditSummary.primaryCardTotalLkr
+                            val cashTotal = auditSummary.cashTotalLkr
+                            val allCount = auditSummary.allCount
+                            val dueWeekCount = auditSummary.dueWeekCount
+                            val autoDebitCount = auditSummary.autoDebitCount
+                            val filteredSubs = auditSummary.filteredSubs
+                            val nextInDays = if (auditSummary.nextSub != null) {
+                                "Next in ${auditSummary.nextInDays} days"
                             } else {
                                 "Next in 4 days"
                             }
@@ -1013,7 +937,7 @@ fun ExpenseAnalyticsScreen(
                                             isSelected = subscriptionFilter == "ALL",
                                             onClick = {
                                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                subscriptionFilter = "ALL"
+                                                subscriptionViewModel.setSubscriptionFilter("ALL")
                                             }
                                         )
                                         FigmaFilterPill(
@@ -1021,7 +945,7 @@ fun ExpenseAnalyticsScreen(
                                             isSelected = subscriptionFilter == "DUE_WEEK",
                                             onClick = {
                                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                subscriptionFilter = if (subscriptionFilter == "DUE_WEEK") "ALL" else "DUE_WEEK"
+                                                subscriptionViewModel.setSubscriptionFilter(if (subscriptionFilter == "DUE_WEEK") "ALL" else "DUE_WEEK")
                                             }
                                         )
                                         FigmaFilterPill(
@@ -1029,7 +953,7 @@ fun ExpenseAnalyticsScreen(
                                             isSelected = subscriptionFilter == "AUTO_DEBIT",
                                             onClick = {
                                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                subscriptionFilter = if (subscriptionFilter == "AUTO_DEBIT") "ALL" else "AUTO_DEBIT"
+                                                subscriptionViewModel.setSubscriptionFilter(if (subscriptionFilter == "AUTO_DEBIT") "ALL" else "AUTO_DEBIT")
                                             }
                                         )
                                     }
@@ -1110,14 +1034,15 @@ fun ExpenseAnalyticsScreen(
                                 // 5. Calendar Schedule Banner / Mini Reminder Insight (Figma node 2006:168)
                                 item {
                                     FigmaAutoDebitAlertBanner(
-                                        upcomingAmount = nextSub?.amountLkr ?: 4500.0,
-                                        upcomingName = nextSub?.name ?: "Upcoming commitments",
+                                        upcomingAmount = auditSummary.nextSub?.amountLkr ?: 4500.0,
+                                        upcomingName = auditSummary.nextSub?.name ?: "Upcoming commitments",
                                         onManageClick = {
                                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            subscriptionFilter = if (subscriptionFilter == "AUTO_DEBIT") "ALL" else "AUTO_DEBIT"
+                                            val nextFilter = if (subscriptionFilter == "AUTO_DEBIT") "ALL" else "AUTO_DEBIT"
+                                            subscriptionViewModel.setSubscriptionFilter(nextFilter)
                                             coroutineScope.launch {
                                                 snackbarHostState.showSnackbar(
-                                                    if (subscriptionFilter == "AUTO_DEBIT") "Showing auto-debit obligations" else "Showing all fixed commitments"
+                                                    if (nextFilter == "AUTO_DEBIT") "Showing auto-debit obligations" else "Showing all fixed commitments"
                                                 )
                                             }
                                         }

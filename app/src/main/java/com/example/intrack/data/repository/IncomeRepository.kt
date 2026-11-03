@@ -1,11 +1,15 @@
 package com.example.intrack.data.repository
 
+import com.example.intrack.data.local.IncomeDao
 import com.example.intrack.data.model.IncomeEntity
 import com.example.intrack.data.remote.FirestoreService
 import com.google.firebase.firestore.FirebaseFirestore
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 interface IncomeRepository {
@@ -15,11 +19,23 @@ interface IncomeRepository {
     suspend fun deleteIncome(userId: String, incomeId: String): Result<Unit>
 }
 
-class IncomeRepositoryImpl(
-    private val db: FirebaseFirestore = FirestoreService.db
+@Singleton
+class IncomeRepositoryImpl @Inject constructor(
+    private val db: FirebaseFirestore,
+    private val incomeDao: IncomeDao?
 ) : IncomeRepository {
 
+    constructor(db: FirebaseFirestore = FirestoreService.db) : this(db, null)
+
     override fun getIncomes(userId: String): Flow<List<IncomeEntity>> = callbackFlow {
+        val cacheJob = launch {
+            incomeDao?.getIncomes(userId)?.collect { cached ->
+                if (cached.isNotEmpty()) {
+                    trySend(cached)
+                }
+            }
+        }
+
         val collection = if (userId.isNotEmpty()) {
             db.collection("users").document(userId).collection("incomes")
         } else {
@@ -30,11 +46,13 @@ class IncomeRepositoryImpl(
 
         val listener = collection.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                if (incomeDao == null) {
+                    close(error)
+                }
                 return@addSnapshotListener
             }
             val list = snapshot?.documents?.mapNotNull { doc ->
-                doc.toObject(IncomeEntity::class.java)?.copy(id = doc.id)
+                doc.toObject(IncomeEntity::class.java)?.copy(id = doc.id, userId = userId.ifEmpty { doc.getString("userId") ?: "" })
             } ?: emptyList()
 
             // Default seed if empty
@@ -42,6 +60,9 @@ class IncomeRepositoryImpl(
                 isSeeding = true
                 val sampleList = getInitialSampleIncomes(userId)
                 trySend(sampleList)
+                launch {
+                    incomeDao?.replaceAllForUser(userId, sampleList)
+                }
                 try {
                     val batch = db.batch()
                     sampleList.forEach { sampleItem ->
@@ -52,9 +73,15 @@ class IncomeRepositoryImpl(
                 } catch (_: Exception) {}
             } else {
                 trySend(list)
+                launch {
+                    incomeDao?.replaceAllForUser(userId, list)
+                }
             }
         }
-        awaitClose { listener.remove() }
+        awaitClose {
+            cacheJob.cancel()
+            listener.remove()
+        }
     }
 
     override suspend fun addIncome(income: IncomeEntity): Result<Unit> {
@@ -65,7 +92,9 @@ class IncomeRepositoryImpl(
                 db.collection("incomes")
             }
             val docRef = if (income.id.isNotBlank()) collection.document(income.id) else collection.document()
-            docRef.set(income.copy(id = docRef.id)).await()
+            val savedIncome = income.copy(id = docRef.id)
+            incomeDao?.upsert(savedIncome)
+            docRef.set(savedIncome).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -74,6 +103,7 @@ class IncomeRepositoryImpl(
 
     override suspend fun updateIncome(income: IncomeEntity): Result<Unit> {
         return try {
+            incomeDao?.upsert(income)
             val collection = if (income.userId.isNotEmpty()) {
                 db.collection("users").document(income.userId).collection("incomes")
             } else {
@@ -90,6 +120,7 @@ class IncomeRepositoryImpl(
 
     override suspend fun deleteIncome(userId: String, incomeId: String): Result<Unit> {
         return try {
+            incomeDao?.deleteById(incomeId)
             val collection = if (userId.isNotEmpty()) {
                 db.collection("users").document(userId).collection("incomes")
             } else {
@@ -250,4 +281,3 @@ class IncomeRepositoryImpl(
         )
     }
 }
-

@@ -72,15 +72,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.common.UiState
 import kotlinx.coroutines.launch
 
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalContext
 
 /**
  * Sign In Screen matching Figma node 2007:30
@@ -91,7 +89,7 @@ fun SignInScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit,
     onBackClick: (() -> Unit)? = null,
-    viewModel: AuthViewModel = viewModel(),
+    viewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val authState by viewModel.authState.collectAsState()

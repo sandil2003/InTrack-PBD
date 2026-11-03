@@ -1,13 +1,17 @@
 package com.example.intrack.data.repository
 
 import android.util.Log
+import com.example.intrack.data.local.GoalDao
 import com.example.intrack.data.model.GoalContributionEntity
 import com.example.intrack.data.model.GoalEntity
 import com.example.intrack.data.remote.FirestoreService
 import com.google.firebase.firestore.FirebaseFirestore
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 interface GoalRepository {
@@ -32,11 +36,23 @@ interface GoalRepository {
     fun getDefaultSampleContributions(userId: String, goalId: String): List<GoalContributionEntity>
 }
 
-class GoalRepositoryImpl(
-    private val db: FirebaseFirestore = FirestoreService.db
+@Singleton
+class GoalRepositoryImpl @Inject constructor(
+    private val db: FirebaseFirestore,
+    private val goalDao: GoalDao?
 ) : GoalRepository {
 
+    constructor(db: FirebaseFirestore = FirestoreService.db) : this(db, null)
+
     override fun getGoals(userId: String): Flow<List<GoalEntity>> = callbackFlow {
+        val cacheJob = launch {
+            goalDao?.getGoals(userId)?.collect { cached ->
+                if (cached.isNotEmpty()) {
+                    trySend(cached)
+                }
+            }
+        }
+
         val collection = if (userId.isNotEmpty()) {
             db.collection("users").document(userId).collection("goals")
         } else {
@@ -52,13 +68,16 @@ class GoalRepositoryImpl(
                 return@addSnapshotListener
             }
             val list = snapshot?.documents?.mapNotNull { doc ->
-                doc.toObject(GoalEntity::class.java)?.copy(id = doc.id)
+                doc.toObject(GoalEntity::class.java)?.copy(id = doc.id, userId = userId.ifEmpty { doc.getString("userId") ?: "" })
             } ?: emptyList()
 
             if (list.isEmpty() && !isSeeding) {
                 isSeeding = true
                 val sampleList = getDefaultSampleGoals(userId)
                 trySend(sampleList)
+                launch {
+                    goalDao?.replaceAllForUser(userId, sampleList)
+                }
                 try {
                     val batch = db.batch()
                     sampleList.forEach { sampleItem ->
@@ -71,12 +90,27 @@ class GoalRepositoryImpl(
                 }
             } else {
                 trySend(list)
+                launch {
+                    goalDao?.replaceAllForUser(userId, list)
+                }
             }
         }
-        awaitClose { listener.remove() }
+        awaitClose {
+            cacheJob.cancel()
+            listener.remove()
+        }
     }
 
     override fun getMacBookGoal(userId: String): Flow<GoalEntity> = callbackFlow {
+        val cacheJob = launch {
+            goalDao?.getGoals(userId)?.collect { cached ->
+                val target = cached.find { it.id == "macbook_m4_goal" } ?: cached.firstOrNull()
+                if (target != null) {
+                    trySend(target)
+                }
+            }
+        }
+
         val collection = if (userId.isNotEmpty()) {
             db.collection("users").document(userId).collection("goals")
         } else {
@@ -90,7 +124,7 @@ class GoalRepositoryImpl(
                 return@addSnapshotListener
             }
             val goals = snapshot?.documents?.mapNotNull { doc ->
-                doc.toObject(GoalEntity::class.java)?.copy(id = doc.id)
+                doc.toObject(GoalEntity::class.java)?.copy(id = doc.id, userId = userId.ifEmpty { doc.getString("userId") ?: "" })
             } ?: emptyList()
 
             val targetGoal = goals.find { it.id == "macbook_m4_goal" }
@@ -98,8 +132,14 @@ class GoalRepositoryImpl(
                 ?: getDefaultSampleGoals(userId).first()
 
             trySend(targetGoal)
+            launch {
+                goalDao?.upsert(targetGoal)
+            }
         }
-        awaitClose { listener.remove() }
+        awaitClose {
+            cacheJob.cancel()
+            listener.remove()
+        }
     }
 
     override suspend fun addGoal(goal: GoalEntity): Result<Unit> {
@@ -110,7 +150,9 @@ class GoalRepositoryImpl(
                 db.collection("goals")
             }
             val docRef = if (goal.id.isNotBlank()) collection.document(goal.id) else collection.document()
-            docRef.set(goal.copy(id = docRef.id)).await()
+            val savedGoal = goal.copy(id = docRef.id)
+            goalDao?.upsert(savedGoal)
+            docRef.set(savedGoal).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -119,6 +161,7 @@ class GoalRepositoryImpl(
 
     override suspend fun updateGoal(goal: GoalEntity): Result<Unit> {
         return try {
+            goalDao?.upsert(goal)
             val collection = if (goal.userId.isNotEmpty()) {
                 db.collection("users").document(goal.userId).collection("goals")
             } else {
@@ -133,6 +176,7 @@ class GoalRepositoryImpl(
 
     override suspend fun deleteGoal(userId: String, goalId: String): Result<Unit> {
         return try {
+            goalDao?.deleteById(goalId)
             val collection = if (userId.isNotEmpty()) {
                 db.collection("users").document(userId).collection("goals")
             } else {
@@ -146,6 +190,13 @@ class GoalRepositoryImpl(
     }
 
     override fun getGoalContributions(userId: String, goalId: String): Flow<List<GoalContributionEntity>> = callbackFlow {
+        val cacheJob = launch {
+            val cachedGoal = goalDao?.getGoalById(goalId)
+            if (cachedGoal != null && cachedGoal.contributions.isNotEmpty()) {
+                trySend(cachedGoal.contributions.sortedByDescending { it.timestampMillis })
+            }
+        }
+
         val goalDocRef = if (userId.isNotEmpty()) {
             db.collection("users").document(userId).collection("goals").document(goalId)
         } else {
@@ -167,7 +218,6 @@ class GoalRepositoryImpl(
         val subcollectionListener = subcollection.addSnapshotListener { snapshot, error ->
             if (error != null) {
                 Log.w("GoalRepository", "Contributions subcollection not accessible: ${error.message}")
-                // Do NOT call close(error). Provide fallback sample contributions
                 val sampleList = getDefaultSampleContributions(userId, goalId)
                 trySend(sampleList)
                 return@addSnapshotListener
@@ -196,6 +246,7 @@ class GoalRepositoryImpl(
         }
 
         awaitClose {
+            cacheJob.cancel()
             goalListener.remove()
             subcollectionListener.remove()
         }
@@ -220,6 +271,21 @@ class GoalRepositoryImpl(
             }
             val finalContribution = contribution.copy(id = contribDocRef.id)
 
+            // Update Room local cache optimistically
+            val cachedGoal = goalDao?.getGoalById(contribution.goalId)
+                ?: getDefaultSampleGoals(userId).find { it.id == contribution.goalId }
+            if (cachedGoal != null) {
+                val newSaved = cachedGoal.currentSavedLkr + contribution.amountLkr
+                val updatedContributions = listOf(finalContribution) + cachedGoal.contributions.filter { it.id != finalContribution.id }
+                goalDao?.upsert(
+                    cachedGoal.copy(
+                        currentSavedLkr = newSaved,
+                        isCompleted = newSaved >= cachedGoal.targetAmountLkr,
+                        contributions = updatedContributions
+                    )
+                )
+            }
+
             db.runTransaction { transaction ->
                 val snapshot = transaction.get(goalDocRef)
                 val currentGoal = snapshot.toObject(GoalEntity::class.java)
@@ -237,7 +303,6 @@ class GoalRepositoryImpl(
                 transaction.set(goalDocRef, updatedGoal)
             }.await()
 
-            // Also try saving to subcollection if Firestore rules permit it, but ignore failure if not permitted
             try {
                 contribDocRef.set(finalContribution).await()
             } catch (e: Exception) {

@@ -90,7 +90,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.ExpenseEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
@@ -120,16 +120,16 @@ fun DashboardScreen(
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToAllTransactions: () -> Unit = onNavigateToExpenses,
     onNavigateToSettings: () -> Unit = {},
-    viewModel: DashboardViewModel = viewModel(),
+    viewModel: DashboardViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val selectedCategoryFilter by viewModel.selectedCategoryFilter.collectAsState()
+    val selectedAccountFilter by viewModel.selectedAccountFilter.collectAsState()
     var showProfileSheet by remember { mutableStateOf(false) }
     var showExpenseSheet by remember { mutableStateOf(false) }
     var showNotificationsSheet by remember { mutableStateOf(false) }
     var hasUnreadNotifications by remember { mutableStateOf(true) }
-    var selectedCategoryFilter by remember { mutableStateOf("ALL") }
-    var selectedAccountFilter by remember { mutableStateOf("ALL") }
     var accountFilterExpanded by remember { mutableStateOf(false) }
     var categoryFilterExpanded by remember { mutableStateOf(false) }
     var showActivityFilters by remember { mutableStateOf(false) }
@@ -230,25 +230,15 @@ fun DashboardScreen(
                     title = "Unable to Load Dashboard",
                     message = error,
                     onActionClick = {
-                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                        viewModel.loadDashboard(currentUid)
+                        viewModel.loadDashboard()
                     },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
             is UiState.Success -> {
                 val data = (uiState as UiState.Success<DashboardData>).data
-
-                // Filter & Weekly Grouping for Recent Transactions
-                val filteredRecent = data.recentTransactions.filter { expense ->
-                    val matchesCategory = if (selectedCategoryFilter == "ALL") true else expense.category.equals(selectedCategoryFilter, ignoreCase = true)
-                    val matchesAccount = if (selectedAccountFilter == "ALL") true else expense.paymentAccount.equals(selectedAccountFilter, ignoreCase = true)
-                    matchesCategory && matchesAccount
-                }
-
-                val groupedRecent = remember(filteredRecent) {
-                    filteredRecent.groupBy { formatWeeklyDashboardTimeTier(it.dateSpentMillis) }
-                }
+                val filteredRecent = data.filteredRecentTransactions
+                val groupedRecent = data.groupedRecentTransactions
 
                 LazyColumn(
                     modifier = Modifier
@@ -480,7 +470,7 @@ fun DashboardScreen(
                                                         )
                                                     },
                                                     onClick = {
-                                                        selectedAccountFilter = key
+                                                        viewModel.setAccountFilter(key)
                                                         accountFilterExpanded = false
                                                     },
                                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
@@ -561,7 +551,7 @@ fun DashboardScreen(
                                                         )
                                                     },
                                                     onClick = {
-                                                        selectedCategoryFilter = key
+                                                        viewModel.setCategoryFilter(key)
                                                         categoryFilterExpanded = false
                                                     },
                                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
