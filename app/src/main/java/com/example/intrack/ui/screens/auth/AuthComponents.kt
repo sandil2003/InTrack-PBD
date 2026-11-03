@@ -335,12 +335,11 @@ fun CapsuleInputField(
 }
 
 /**
- * Social Auth Section with "Or continue with" hairline and Google / Apple buttons
+ * Social Auth Section with "Or continue with" hairline and Google button
  */
 @Composable
 fun SocialAuthSection(
     onGoogleClick: () -> Unit,
-    onAppleClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -371,37 +370,28 @@ fun SocialAuthSection(
             )
         }
 
-        // Circular buttons: Google and Apple (only icons, complete circle background)
+        // Google Sign-In Button
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(RoundedCornerShape(9999.dp))
+                .background(Color.White)
+                .border(1.dp, AuthBorder, RoundedCornerShape(9999.dp))
+                .clickable { onGoogleClick() },
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Google Button (Circular)
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, AuthBorder, CircleShape)
-                    .clickable { onGoogleClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                GoogleLogo(modifier = Modifier.size(24.dp))
-            }
-
-            // Apple Button (Circular)
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, AuthBorder, CircleShape)
-                    .clickable { onAppleClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                AppleLogo(modifier = Modifier.size(24.dp))
-            }
+            GoogleLogo(modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Continue with Google",
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = AuthDarkText
+            )
         }
     }
 }
@@ -437,7 +427,6 @@ fun AppleLogo(modifier: Modifier = Modifier) {
 @Composable
 fun GoogleSetupModal(
     onDismiss: () -> Unit,
-    onContinueDemo: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -582,7 +571,7 @@ fun GoogleSetupModal(
 
             // Primary action button
             Button(
-                onClick = onContinueDemo,
+                onClick = onDismiss,
                 shape = RoundedCornerShape(9999.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AuthPrimaryOrange,
@@ -593,22 +582,11 @@ fun GoogleSetupModal(
                     .height(50.dp)
             ) {
                 Text(
-                    text = "Continue with Google (Demo Session)",
+                    text = "Done",
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
-                )
-            }
-
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Close",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = AuthMutedText
                 )
             }
         }

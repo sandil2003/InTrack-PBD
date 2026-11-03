@@ -44,6 +44,12 @@ class DashboardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<UiState<DashboardData>>(UiState.Loading)
     val uiState: StateFlow<UiState<DashboardData>> = _uiState
 
+    private val _userGreetingName = MutableStateFlow("User")
+    val userGreetingName: StateFlow<String> = _userGreetingName
+
+    private val _userInitials = MutableStateFlow("U")
+    val userInitials: StateFlow<String> = _userInitials
+
     private val _selectedCategoryFilter = MutableStateFlow("ALL")
     val selectedCategoryFilter: StateFlow<String> = _selectedCategoryFilter
 
@@ -63,6 +69,24 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun loadDashboard(userId: String = authRepository.getCurrentUserId()) {
+        viewModelScope.launch {
+            val fallbackName = authRepository.getCurrentUserDisplayName()
+            if (fallbackName.isNotBlank()) {
+                _userGreetingName.value = fallbackName.trim().split(" ").firstOrNull { it.isNotBlank() } ?: fallbackName
+                _userInitials.value = fallbackName.trim().take(1).uppercase()
+            }
+            if (userId.isNotBlank()) {
+                launch {
+                    authRepository.observeUserProfile(userId).collect { profile ->
+                        if (profile != null) {
+                            _userGreetingName.value = profile.firstName
+                            _userInitials.value = profile.initials
+                        }
+                    }
+                }
+            }
+        }
+
         viewModelScope.launch {
             _uiState.value = UiState.Loading
 

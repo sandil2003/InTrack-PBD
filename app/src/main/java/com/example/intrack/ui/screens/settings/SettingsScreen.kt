@@ -119,14 +119,15 @@ fun SettingsScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val userProfile by authViewModel.userProfile.collectAsState()
     val userName by authViewModel.userDisplayName.collectAsState()
     val userEmail by authViewModel.userEmail.collectAsState()
     val userInitials by authViewModel.userInitials.collectAsState()
 
-    // State for interactive preferences
-    var baseCurrency by remember { mutableStateOf("LKR (Rs) • Sri Lankan Rupee") }
-    var billingCycle by remember { mutableStateOf("1st of Every Month") }
-    var weeklyStartDay by remember { mutableStateOf("Monday") }
+    // State for interactive preferences persisted to Firestore UserProfile
+    val baseCurrency = userProfile.baseCurrency
+    val billingCycle = userProfile.billingCycle
+    val weeklyStartDay = userProfile.weeklyStartDay
 
     // Toggle states
     var pushNotificationsEnabled by remember { mutableStateOf(true) }
@@ -285,7 +286,7 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = userName,
+                                text = userName.ifBlank { "Account User" },
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
@@ -645,7 +646,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    baseCurrency = item
+                                    authViewModel.updatePreferences(baseCurrency = item)
                                     showCurrencyDialog = false
                                 }
                         ) {
@@ -719,7 +720,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    billingCycle = item
+                                    authViewModel.updatePreferences(billingCycle = item)
                                     showBillingCycleDialog = false
                                 }
                         ) {
@@ -785,7 +786,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    weeklyStartDay = item
+                                    authViewModel.updatePreferences(weeklyStartDay = item)
                                     showWeeklyStartDialog = false
                                 }
                         ) {

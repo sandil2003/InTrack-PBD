@@ -1,5 +1,6 @@
 package com.example.intrack
 
+import com.example.intrack.data.model.UserProfile
 import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.viewmodel.AuthViewModel
@@ -7,6 +8,8 @@ import com.example.intrack.viewmodel.PasswordStrengthLevel
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -19,22 +22,58 @@ import org.junit.Test
 class FakeAuthRepository : AuthRepository {
     var mockCurrentUser: FirebaseUser? = null
     var shouldFail: Boolean = false
+    val profileFlow = MutableStateFlow<UserProfile?>(null)
 
     override fun getCurrentUser(): FirebaseUser? = mockCurrentUser
 
+    override fun observeUserProfile(userId: String): Flow<UserProfile?> = profileFlow
+
+    override suspend fun updateUserPreferences(
+        userId: String,
+        baseCurrency: String,
+        billingCycle: String,
+        weeklyStartDay: String
+    ): Result<Unit> {
+        val current = profileFlow.value ?: UserProfile(uid = userId)
+        profileFlow.value = current.copy(
+            baseCurrency = baseCurrency,
+            billingCycle = billingCycle,
+            weeklyStartDay = weeklyStartDay
+        )
+        return Result.success(Unit)
+    }
+
     override suspend fun signInWithEmail(email: String, password: String): Result<FirebaseUser> {
-        return if (shouldFail) Result.failure(Exception("Invalid credentials"))
-        else Result.success(createMockUser("user_123", email))
+        return if (shouldFail) {
+            Result.failure(Exception("Invalid credentials"))
+        } else {
+            val user = createMockUser("user_123", email, "Test User")
+            mockCurrentUser = user
+            profileFlow.value = UserProfile(uid = "user_123", displayName = "Test User", email = email)
+            Result.success(user)
+        }
     }
 
     override suspend fun signUpWithEmail(name: String, email: String, password: String): Result<FirebaseUser> {
-        return if (shouldFail) Result.failure(Exception("Email in use"))
-        else Result.success(createMockUser("new_user_456", email))
+        return if (shouldFail) {
+            Result.failure(Exception("Email in use"))
+        } else {
+            val user = createMockUser("new_user_456", email, name)
+            mockCurrentUser = user
+            profileFlow.value = UserProfile(uid = "new_user_456", displayName = name, email = email)
+            Result.success(user)
+        }
     }
 
     override suspend fun signInWithGoogle(idToken: String): Result<FirebaseUser> {
-        return if (shouldFail) Result.failure(Exception("Google Sign-In failed"))
-        else Result.success(createMockUser("google_user_789", "google@example.com"))
+        return if (shouldFail) {
+            Result.failure(Exception("Google Sign-In failed"))
+        } else {
+            val user = createMockUser("google_user_789", "google@example.com", "Google User")
+            mockCurrentUser = user
+            profileFlow.value = UserProfile(uid = "google_user_789", displayName = "Google User", email = "google@example.com")
+            Result.success(user)
+        }
     }
 
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
@@ -42,18 +81,16 @@ class FakeAuthRepository : AuthRepository {
         else Result.success(Unit)
     }
 
-    override suspend fun signInAnonymously(): Result<FirebaseUser> {
-        return Result.success(createMockUser("guest_uid", null))
-    }
-
     override fun signOut() {
         mockCurrentUser = null
+        profileFlow.value = null
     }
 
-    fun createMockUser(uid: String, email: String?): FirebaseUser {
+    fun createMockUser(uid: String, email: String?, displayName: String? = null): FirebaseUser {
         val user = org.mockito.Mockito.mock(FirebaseUser::class.java)
         org.mockito.Mockito.`when`(user.uid).thenReturn(uid)
         org.mockito.Mockito.`when`(user.email).thenReturn(email)
+        org.mockito.Mockito.`when`(user.displayName).thenReturn(displayName)
         return user
     }
 }
@@ -110,28 +147,28 @@ class AuthViewModelUnitTest {
 
     @Test
     fun `signUpWithEmail sets error when email is empty`() {
-        viewModel.signUpWithEmail("Alex Morgan", "", "Secret123!", isTermsAccepted = true)
+        viewModel.signUpWithEmail("Test User", "", "Secret123!", isTermsAccepted = true)
         assertTrue(viewModel.authState.value is UiState.Error)
         assertEquals("Please enter your email address.", (viewModel.authState.value as UiState.Error).message)
     }
 
     @Test
     fun `signUpWithEmail sets error when email format is invalid`() {
-        viewModel.signUpWithEmail("Alex Morgan", "invalid-email-format", "Secret123!", isTermsAccepted = true)
+        viewModel.signUpWithEmail("Test User", "invalid-email-format", "Secret123!", isTermsAccepted = true)
         assertTrue(viewModel.authState.value is UiState.Error)
         assertEquals("Please enter a valid email address.", (viewModel.authState.value as UiState.Error).message)
     }
 
     @Test
     fun `signUpWithEmail sets error when password is under 6 characters`() {
-        viewModel.signUpWithEmail("Alex Morgan", "test@example.com", "12345", isTermsAccepted = true)
+        viewModel.signUpWithEmail("Test User", "test@example.com", "12345", isTermsAccepted = true)
         assertTrue(viewModel.authState.value is UiState.Error)
         assertEquals("Password must be at least 6 characters.", (viewModel.authState.value as UiState.Error).message)
     }
 
     @Test
     fun `signUpWithEmail sets error when terms not accepted`() {
-        viewModel.signUpWithEmail("Alex Morgan", "test@example.com", "Secret123!", isTermsAccepted = false)
+        viewModel.signUpWithEmail("Test User", "test@example.com", "Secret123!", isTermsAccepted = false)
         assertTrue(viewModel.authState.value is UiState.Error)
         assertEquals("Please accept the Terms of Service & Privacy Policy.", (viewModel.authState.value as UiState.Error).message)
     }
@@ -158,23 +195,23 @@ class AuthViewModelUnitTest {
     }
 
     @Test
-    fun `continueOffline transitions to success with guest_user`() {
-        var callbackTriggered = false
-        viewModel.continueOffline {
-            callbackTriggered = true
-        }
-        assertTrue(callbackTriggered)
-        assertTrue(viewModel.authState.value is UiState.Success)
-        assertEquals("guest_user", (viewModel.authState.value as UiState.Success<String>).data)
+    fun `unauthenticated repository returns empty userId instead of hardcoded guest_user`() {
+        fakeRepo.mockCurrentUser = null
+        assertEquals("", fakeRepo.getCurrentUserId())
+        assertEquals("", fakeRepo.getCurrentUserDisplayName())
+        assertEquals("", fakeRepo.getCurrentUserEmail())
     }
 
     @Test
-    fun `signOut resets authState to Idle and clears repo user`() {
-        viewModel.continueOffline {}
+    fun `signOut resets authState to Idle and clears profile state`() {
+        viewModel.signInWithEmail("user@example.com", "Password123!")
         assertTrue(viewModel.authState.value is UiState.Success)
+        assertEquals("Test User", viewModel.userDisplayName.value)
 
         viewModel.signOut()
         assertEquals(UiState.Idle, viewModel.authState.value)
+        assertEquals("", viewModel.userDisplayName.value)
+        assertEquals("", viewModel.userEmail.value)
     }
 
     @Test
@@ -199,11 +236,13 @@ class AuthViewModelUnitTest {
 
     @Test
     fun `checkUser transitions to Success when currentUser exists`() {
-        fakeRepo.mockCurrentUser = fakeRepo.createMockUser("active_uid_999", "user@intrack.io")
+        fakeRepo.mockCurrentUser = fakeRepo.createMockUser("active_uid_999", "user@intrack.io", "Active Member")
         viewModel.checkUser()
 
         assertTrue(viewModel.authState.value is UiState.Success)
         assertEquals("active_uid_999", (viewModel.authState.value as UiState.Success<String>).data)
+        assertEquals("Active Member", viewModel.userDisplayName.value)
+        assertEquals("AM", viewModel.userInitials.value)
     }
 
     @Test
@@ -216,7 +255,7 @@ class AuthViewModelUnitTest {
 
     @Test
     fun `resetAuthState resets success state to Idle`() {
-        viewModel.continueOffline()
+        viewModel.signInWithEmail("user@example.com", "Password123!")
         assertTrue(viewModel.authState.value is UiState.Success)
 
         viewModel.resetAuthState()
@@ -242,6 +281,7 @@ class AuthViewModelUnitTest {
         assertTrue(callbackTriggered)
         assertTrue(viewModel.authState.value is UiState.Success)
         assertEquals("google_user_789", (viewModel.authState.value as UiState.Success<String>).data)
+        assertEquals("Google User", viewModel.userDisplayName.value)
     }
 
     @Test
@@ -257,7 +297,7 @@ class AuthViewModelUnitTest {
     fun `signInWithEmail executes successfully with valid credentials`() {
         fakeRepo.shouldFail = false
         var successCallback = false
-        viewModel.signInWithEmail("alex@example.com", "Password123!") {
+        viewModel.signInWithEmail("user@example.com", "Password123!") {
             successCallback = true
         }
 
@@ -269,29 +309,32 @@ class AuthViewModelUnitTest {
     @Test
     fun `signInWithEmail maps failure message on invalid credentials`() {
         fakeRepo.shouldFail = true
-        viewModel.signInWithEmail("alex@example.com", "WrongPassword!")
+        viewModel.signInWithEmail("user@example.com", "WrongPassword!")
 
         assertTrue(viewModel.authState.value is UiState.Error)
         assertEquals("Invalid credentials", (viewModel.authState.value as UiState.Error).message)
     }
 
     @Test
-    fun `signUpWithEmail executes successfully with valid data`() {
+    fun `signUpWithEmail executes successfully and updates user profile state`() {
         fakeRepo.shouldFail = false
         var successCallback = false
-        viewModel.signUpWithEmail("Alex Morgan", "alex@example.com", "SecurePass123!", isTermsAccepted = true) {
+        viewModel.signUpWithEmail("Nimal Perera", "nimal@example.com", "SecurePass123!", isTermsAccepted = true) {
             successCallback = true
         }
 
         assertTrue(successCallback)
         assertTrue(viewModel.authState.value is UiState.Success)
         assertEquals("new_user_456", (viewModel.authState.value as UiState.Success<String>).data)
+        assertEquals("Nimal Perera", viewModel.userDisplayName.value)
+        assertEquals("nimal@example.com", viewModel.userEmail.value)
+        assertEquals("NP", viewModel.userInitials.value)
     }
 
     @Test
     fun `signUpWithEmail maps failure on duplicate email collision`() {
         fakeRepo.shouldFail = true
-        viewModel.signUpWithEmail("Alex Morgan", "alex@example.com", "SecurePass123!", isTermsAccepted = true)
+        viewModel.signUpWithEmail("Nimal Perera", "nimal@example.com", "SecurePass123!", isTermsAccepted = true)
 
         assertTrue(viewModel.authState.value is UiState.Error)
         assertEquals("Email in use", (viewModel.authState.value as UiState.Error).message)
@@ -301,14 +344,14 @@ class AuthViewModelUnitTest {
     fun `sendPasswordReset succeeds with valid email`() {
         fakeRepo.shouldFail = false
         var sentCallback = false
-        viewModel.sendPasswordReset("alex@example.com") {
+        viewModel.sendPasswordReset("user@example.com") {
             sentCallback = true
         }
 
         assertTrue(sentCallback)
         assertTrue(viewModel.resetPasswordState.value is UiState.Success)
         assertEquals(
-            "Password reset instructions sent to alex@example.com",
+            "Password reset instructions sent to user@example.com",
             (viewModel.resetPasswordState.value as UiState.Success<String>).data
         )
     }
@@ -322,5 +365,18 @@ class AuthViewModelUnitTest {
             "Please enter a valid email to receive reset instructions.",
             (viewModel.resetPasswordState.value as UiState.Error).message
         )
+    }
+
+    @Test
+    fun `updatePreferences persists currency and cycle to userProfile`() {
+        viewModel.signInWithEmail("user@example.com", "Password123!")
+        viewModel.updatePreferences(
+            baseCurrency = "USD ($) • US Dollar",
+            billingCycle = "1st of Every Month",
+            weeklyStartDay = "Sunday"
+        )
+        assertEquals("USD ($) • US Dollar", viewModel.userProfile.value.baseCurrency)
+        assertEquals("1st of Every Month", viewModel.userProfile.value.billingCycle)
+        assertEquals("Sunday", viewModel.userProfile.value.weeklyStartDay)
     }
 }

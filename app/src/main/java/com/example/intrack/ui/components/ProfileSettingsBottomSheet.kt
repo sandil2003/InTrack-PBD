@@ -38,6 +38,8 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,8 +47,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.theme.AppThemeMode
 import com.example.intrack.ui.theme.PrimaryGreen
+import com.example.intrack.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,9 +59,13 @@ fun ProfileSettingsBottomSheet(
     onThemeModeChange: (AppThemeMode) -> Unit = {},
     onSignOut: () -> Unit,
     onDismiss: () -> Unit,
+    authViewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val userName by authViewModel.userDisplayName.collectAsState()
+    val userEmail by authViewModel.userEmail.collectAsState()
+    val userInitials by authViewModel.userInitials.collectAsState()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -85,7 +93,7 @@ fun ProfileSettingsBottomSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "K",
+                        text = userInitials.ifBlank { "U" },
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -97,7 +105,7 @@ fun ProfileSettingsBottomSheet(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Kavindu",
+                            text = userName.ifBlank { "Account User" },
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -121,7 +129,7 @@ fun ProfileSettingsBottomSheet(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = "kavindu.dev@finflow.app",
+                        text = userEmail,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -322,20 +322,6 @@ fun SignInScreen(
                                         )
                                     }
                                 }
-
-                                Text(
-                                    text = "Continue in Demo Mode →",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = AuthTerracotta,
-                                    modifier = Modifier
-                                        .align(Alignment.End)
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .clickable { viewModel.continueOffline() }
-                                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                                )
                             }
                         }
                     }
@@ -382,40 +368,6 @@ fun SignInScreen(
                             }
                         }
                     }
-
-                    // Biometric Quick Auth Option (Figma node 2007:90)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(9999.dp))
-                            .background(AuthSoftPeach)
-                            .border(1.dp, Color(0xFFF0DCD3), RoundedCornerShape(9999.dp))
-                            .clickable {
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Biometric authentication verified.")
-                                    viewModel.continueOffline()
-                                }
-                            },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Fingerprint,
-                            contentDescription = "Biometrics",
-                            tint = AuthTerracotta,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Biometrics",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontSize = 13.5.sp,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = AuthDarkText
-                        )
-                    }
                 }
             }
 
@@ -426,12 +378,6 @@ fun SignInScreen(
                 onGoogleClick = {
                     focusManager.clearFocus()
                     viewModel.signInWithGoogle(context)
-                },
-                onAppleClick = {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Apple ID session initialized.")
-                        viewModel.continueOffline()
-                    }
                 },
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
@@ -581,11 +527,7 @@ fun SignInScreen(
         // Google Sign-In Setup & SHA-1 Helper Modal
         if (showGoogleSetupDialog) {
             GoogleSetupModal(
-                onDismiss = { viewModel.dismissGoogleSetupDialog() },
-                onContinueDemo = {
-                    viewModel.dismissGoogleSetupDialog()
-                    viewModel.continueOffline()
-                }
+                onDismiss = { viewModel.dismissGoogleSetupDialog() }
             )
         }
     }

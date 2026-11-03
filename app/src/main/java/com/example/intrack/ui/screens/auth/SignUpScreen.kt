@@ -217,7 +217,7 @@ fun SignUpScreen(
                             viewModel.clearError()
                         },
                         label = "Full Name",
-                        placeholder = "e.g. Alex Morgan",
+                        placeholder = "Enter your full name",
                         leadingIcon = Icons.Rounded.PersonOutline,
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Words,
@@ -456,20 +456,6 @@ fun SignUpScreen(
                                         )
                                     }
                                 }
-
-                                Text(
-                                    text = "Continue in Demo Mode →",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = AuthTerracotta,
-                                    modifier = Modifier
-                                        .align(Alignment.End)
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .clickable { viewModel.continueOffline() }
-                                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                                )
                             }
                         }
                     }
@@ -526,12 +512,6 @@ fun SignUpScreen(
                 onGoogleClick = {
                     focusManager.clearFocus()
                     viewModel.signInWithGoogle(context)
-                },
-                onAppleClick = {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Apple ID session initialized.")
-                        viewModel.continueOffline()
-                    }
                 },
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
@@ -663,11 +643,7 @@ fun SignUpScreen(
         // Google Sign-In Setup & SHA-1 Helper Modal
         if (showGoogleSetupDialog) {
             GoogleSetupModal(
-                onDismiss = { viewModel.dismissGoogleSetupDialog() },
-                onContinueDemo = {
-                    viewModel.dismissGoogleSetupDialog()
-                    viewModel.continueOffline()
-                }
+                onDismiss = { viewModel.dismissGoogleSetupDialog() }
             )
         }
     }

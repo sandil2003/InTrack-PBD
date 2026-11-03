@@ -124,6 +124,8 @@ fun DashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val userGreetingName by viewModel.userGreetingName.collectAsState()
+    val userInitials by viewModel.userInitials.collectAsState()
     val selectedCategoryFilter by viewModel.selectedCategoryFilter.collectAsState()
     val selectedAccountFilter by viewModel.selectedAccountFilter.collectAsState()
     var showProfileSheet by remember { mutableStateOf(false) }
@@ -157,7 +159,7 @@ fun DashboardScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "K",
+                                text = userInitials,
                                 style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -166,7 +168,7 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Hi, Kavindu 👋",
+                                text = "Hi, $userGreetingName 👋",
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontSize = 19.sp,
                                     fontWeight = FontWeight.Bold,
@@ -305,9 +307,8 @@ fun DashboardScreen(
                             }
 
                             if (data.goals.isEmpty()) {
-                                GoalSquareCard(
-                                    goal = data.macBookGoalProgress,
-                                    onClick = { onNavigateToGoal(data.macBookGoalProgress.id) }
+                                AddGoalSquareCard(
+                                    onClick = { onNavigateToGoal(null) }
                                 )
                             } else {
                                 LazyRow(

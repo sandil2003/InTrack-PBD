@@ -32,6 +32,8 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,8 +41,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.navigation.Screen
 import com.example.intrack.ui.theme.AppThemeMode
+import com.example.intrack.viewmodel.AuthViewModel
 
 data class DrawerMenuItem(
     val route: String,
@@ -56,8 +60,12 @@ fun AppDrawerContent(
     onThemeModeChange: (AppThemeMode) -> Unit = {},
     onRouteSelected: (String) -> Unit,
     onSignOut: () -> Unit,
-    onCloseDrawer: () -> Unit
+    onCloseDrawer: () -> Unit,
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    val userName by authViewModel.userDisplayName.collectAsState()
+    val userEmail by authViewModel.userEmail.collectAsState()
+    val userInitials by authViewModel.userInitials.collectAsState()
     val menuItems = listOf(
         DrawerMenuItem(
             route = Screen.Dashboard.route,
@@ -106,7 +114,7 @@ fun AppDrawerContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "K",
+                        text = userInitials.ifBlank { "U" },
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary
@@ -118,7 +126,7 @@ fun AppDrawerContent(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Kavindu",
+                            text = userName.ifBlank { "Account User" },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -142,7 +150,7 @@ fun AppDrawerContent(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = "kavindu@intrack.io",
+                        text = userEmail,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Medium

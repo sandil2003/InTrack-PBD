@@ -188,16 +188,14 @@ class GoalViewModel @Inject constructor(
                 goalRepository.getGoalContributions(currentUid, goalId)
                     .catch { e ->
                         Log.e("GoalViewModel", "Error loading contributions: ${e.message}", e)
-                        val fallback = goalRepository.getDefaultSampleContributions(currentUid, goalId)
-                        _contributionsState.value = _contributionsState.value + (goalId to fallback)
+                        _contributionsState.value = _contributionsState.value + (goalId to emptyList())
                     }
                     .collect { list ->
                         _contributionsState.value = _contributionsState.value + (goalId to list)
                     }
             } catch (e: Exception) {
                 Log.e("GoalViewModel", "Exception in loadContributions: ${e.message}", e)
-                val fallback = goalRepository.getDefaultSampleContributions(currentUid, goalId)
-                _contributionsState.value = _contributionsState.value + (goalId to fallback)
+                _contributionsState.value = _contributionsState.value + (goalId to emptyList())
             }
         }
     }
