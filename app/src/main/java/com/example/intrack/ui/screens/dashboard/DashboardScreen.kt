@@ -102,6 +102,7 @@ import com.example.intrack.ui.components.GoalSquareCard
 import com.example.intrack.ui.components.ProfileSettingsBottomSheet
 import com.example.intrack.ui.components.QuickExpenseBottomSheet
 import com.example.intrack.ui.screens.expenses.AddExpenseBottomSheet
+import com.example.intrack.ui.screens.expenses.AddExpenseDialog
 import com.example.intrack.ui.theme.PrimaryGreen
 import com.example.intrack.ui.theme.TangerineShade2
 import com.example.intrack.ui.theme.TangerineShade3
@@ -672,7 +673,7 @@ fun DashboardScreen(
     }
 
     if (showExpenseSheet) {
-        AddExpenseBottomSheet(
+        AddExpenseDialog(
             onDismiss = { showExpenseSheet = false },
             onSubmit = { expense ->
                 viewModel.logExpense(expense)

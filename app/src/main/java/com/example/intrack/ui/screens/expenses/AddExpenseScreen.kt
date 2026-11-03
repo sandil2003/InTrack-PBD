@@ -57,6 +57,9 @@ import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -91,6 +94,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.ExpenseEntity
+import com.example.intrack.ui.theme.BrandTangerine
+import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -144,6 +149,246 @@ fun AddExpenseScreen(
             )
         }
     }
+}
+
+/**
+ * Modal Card Dialog version of "Add an expense" matching the Income page's AlertDialog design language.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddExpenseDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (ExpenseEntity) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var titleText by remember { mutableStateOf("") }
+    var amountInput by remember { mutableStateOf("") }
+    var selectedCategoryKey by remember { mutableStateOf("DINING_OUT") }
+    var selectedAccountKey by remember { mutableStateOf("CARD_PRIMARY") }
+    var commitmentType by remember { mutableStateOf("DISCRETIONARY") }
+
+    val categories = remember {
+        listOf(
+            ExpenseCategoryItem("DINING_OUT", "Dining", Icons.Rounded.Restaurant),
+            ExpenseCategoryItem("TRANSPORT", "Transport", Icons.Rounded.DirectionsCar),
+            ExpenseCategoryItem("MISC", "Groceries", Icons.Rounded.ShoppingCart),
+            ExpenseCategoryItem("UTILITIES", "Utilities", Icons.Rounded.Bolt),
+            ExpenseCategoryItem("RENT", "Rent", Icons.Rounded.Home),
+            ExpenseCategoryItem("LIFESTYLE", "Lifestyle", Icons.Rounded.Spa),
+            ExpenseCategoryItem("ATM_WITHDRAWAL", "ATM Cash", Icons.Rounded.Payments)
+        )
+    }
+
+    val accounts = remember {
+        listOf(
+            ExpenseAccountItem("CARD_PRIMARY", "Card Primary", "Card", Icons.Rounded.CreditCard),
+            ExpenseAccountItem("CASH", "Cash Wallet", "Cash", Icons.Rounded.AccountBalanceWallet),
+            ExpenseAccountItem("ACCOUNT_SECONDARY", "Secondary", "Bank", Icons.Rounded.AccountBalance)
+        )
+    }
+
+    val parsedAmount = amountInput.toDoubleOrNull() ?: 0.0
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Log New Expense",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = titleText,
+                    onValueChange = { titleText = it },
+                    label = { Text("Expense Title / Note") },
+                    placeholder = { Text("e.g. Lunch with team, Groceries") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = amountInput,
+                    onValueChange = { newValue ->
+                        val filtered = newValue.filter { it.isDigit() || it == '.' }
+                        amountInput = filtered
+                    },
+                    label = { Text("Amount (LKR)") },
+                    placeholder = { Text("0.00") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "Category",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    categories.forEach { category ->
+                        val isSelected = selectedCategoryKey == category.key
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                selectedCategoryKey = category.key
+                                when (category.key) {
+                                    "RENT", "UTILITIES", "MISC" -> commitmentType = "COMMITTED"
+                                    "ATM_WITHDRAWAL" -> {
+                                        commitmentType = "TRANSFER"
+                                        selectedAccountKey = "CARD_PRIMARY"
+                                    }
+                                    else -> commitmentType = "DISCRETIONARY"
+                                }
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = category.icon,
+                                    contentDescription = category.displayName,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            label = { Text(category.displayName, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Paid From",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    accounts.forEach { account ->
+                        FilterChip(
+                            selected = selectedAccountKey == account.key,
+                            onClick = { selectedAccountKey = account.key },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = account.icon,
+                                    contentDescription = account.title,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            label = { Text(account.title, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Commitment Tier",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = commitmentType == "COMMITTED",
+                        onClick = { commitmentType = "COMMITTED" },
+                        label = { Text("Committed (Needs)", style = MaterialTheme.typography.labelSmall) },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = commitmentType == "DISCRETIONARY",
+                        onClick = { commitmentType = "DISCRETIONARY" },
+                        label = { Text("Discretionary (Wants)", style = MaterialTheme.typography.labelSmall) },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BrandTangerine.copy(alpha = 0.12f))
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Total Outflow",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = BrandTangerine
+                    )
+                    Text(
+                        text = CurrencyFormatter.formatLkr(parsedAmount),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandTangerine
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (parsedAmount > 0.0) {
+                        val selectedCat = categories.find { it.key == selectedCategoryKey }
+                        val defaultTitle = if (selectedCategoryKey == "ATM_WITHDRAWAL") "ATM Cash Withdrawal" else (selectedCat?.displayName ?: "Expense")
+                        val finalTitle = titleText.trim().ifEmpty { defaultTitle }
+                        val finalCommitment = if (selectedCategoryKey == "ATM_WITHDRAWAL") "TRANSFER" else commitmentType
+
+                        val newExpense = ExpenseEntity(
+                            id = UUID.randomUUID().toString(),
+                            userId = "",
+                            title = finalTitle,
+                            amountLkr = parsedAmount,
+                            category = selectedCategoryKey,
+                            paymentAccount = selectedAccountKey,
+                            commitmentType = finalCommitment,
+                            dateSpentMillis = System.currentTimeMillis(),
+                            isRecurring = false,
+                            notes = titleText.trim().ifBlank { null }
+                        )
+                        onSubmit(newExpense)
+                    }
+                },
+                enabled = parsedAmount > 0.0,
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BrandTangerine)
+            ) {
+                Text("Save Expense", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier
+    )
 }
 
 /**

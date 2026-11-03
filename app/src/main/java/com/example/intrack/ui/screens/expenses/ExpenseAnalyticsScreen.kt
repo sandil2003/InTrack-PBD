@@ -312,11 +312,16 @@ fun ExpenseAnalyticsScreen(
         modifier = modifier
     ) { innerPadding ->
         if (showAddDialog) {
-            AddExpenseBottomSheet(
+            AddExpenseDialog(
                 onDismiss = { showAddDialog = false },
                 onSubmit = { newExpense ->
                     viewModel.addExpense(newExpense)
                     showAddDialog = false
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            "Logged ${newExpense.title} (-${CurrencyFormatter.formatLkr(newExpense.amountLkr)})"
+                        )
+                    }
                 }
             )
         }
