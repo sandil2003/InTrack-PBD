@@ -95,6 +95,8 @@ import com.example.intrack.data.model.ExpenseEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.components.AddGoalSquareCard
+import com.example.intrack.ui.components.CatchUpSheet
+import androidx.compose.material.icons.rounded.Favorite
 import com.example.intrack.ui.components.CommitmentRatioBar
 import com.example.intrack.ui.components.GoalSquareCard
 import com.example.intrack.ui.components.ProfileSettingsBottomSheet
@@ -131,6 +133,7 @@ fun DashboardScreen(
     val selectedAccountFilter by viewModel.selectedAccountFilter.collectAsState()
     var showProfileSheet by remember { mutableStateOf(false) }
     var showExpenseSheet by remember { mutableStateOf(false) }
+    var showCatchUpSheet by remember { mutableStateOf(false) }
     var showNotificationsSheet by remember { mutableStateOf(false) }
     var hasUnreadNotifications by remember { mutableStateOf(true) }
     var accountFilterExpanded by remember { mutableStateOf(false) }
@@ -265,6 +268,14 @@ fun DashboardScreen(
                                 onNavigateToExpenses = onNavigateToExpenses
                             )
                         }
+                    }
+
+                    // Forgiving Return / Catch-Up banner for missed logging days
+                    item {
+                        CatchUpBanner(
+                            daysMissed = data.daysSinceLastExpense,
+                            onOpenCatchUp = { showCatchUpSheet = true }
+                        )
                     }
 
                     item {
@@ -638,6 +649,26 @@ fun DashboardScreen(
             }
             else -> {}
         }
+    }
+
+    if (showCatchUpSheet) {
+        CatchUpSheet(
+            daysMissed = if (uiState is UiState.Success) (uiState as UiState.Success<DashboardData>).data.daysSinceLastExpense else 7L,
+            onConfirmBulkEstimate = { amt, note ->
+                viewModel.logBulkCatchUpExpense(amt, note)
+                showCatchUpSheet = false
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Logged ${CurrencyFormatter.formatLkr(amt)} catch-up estimate! Zero guilt, back on track 🚀")
+                }
+            },
+            onConfirmFreshStart = {
+                showCatchUpSheet = false
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Gap forgiven! Fresh start activated for your MacBook Pro M4 goal ✨")
+                }
+            },
+            onDismiss = { showCatchUpSheet = false }
+        )
     }
 
     if (showExpenseSheet) {
@@ -1273,6 +1304,84 @@ fun ShockInsightBanner(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun CatchUpBanner(
+    daysMissed: Long,
+    onOpenCatchUp: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onOpenCatchUp() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = BrandTangerine.copy(alpha = 0.08f)
+        ),
+        border = BorderStroke(1.2.dp, BrandTangerine.copy(alpha = 0.35f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(BrandTangerine.copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Favorite,
+                        contentDescription = null,
+                        tint = BrandTangerine,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        text = if (daysMissed > 0) "Missed $daysMissed Days of Logging?" else "Missed Days During a Crunch?",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.5.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Use Forgiving Return to catch up or reset with zero guilt",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BrandTangerine)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "Catch Up",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    ),
+                    color = Color.White
+                )
+            }
         }
     }
 }

@@ -90,6 +90,22 @@ import com.example.intrack.ui.theme.AppThemeMode
 import com.example.intrack.ui.theme.BrandTangerine
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
 import com.example.intrack.viewmodel.AuthViewModel
+import com.example.intrack.viewmodel.IncomeViewModel
+import com.example.intrack.viewmodel.ExpenseViewModel
+import com.example.intrack.viewmodel.GoalViewModel
+import com.example.intrack.viewmodel.SubscriptionViewModel
+import com.example.intrack.data.repository.IncomeRepository
+import com.example.intrack.data.repository.IncomeRepositoryImpl
+import com.example.intrack.data.repository.ExpenseRepository
+import com.example.intrack.data.repository.ExpenseRepositoryImpl
+import com.example.intrack.data.repository.GoalRepository
+import com.example.intrack.data.repository.GoalRepositoryImpl
+import com.example.intrack.data.repository.SubscriptionRepository
+import com.example.intrack.data.repository.SubscriptionRepositoryImpl
+import com.example.intrack.util.FinancialExportService
+import com.example.intrack.util.KavinduScenarioSeeder
+import com.example.intrack.ui.common.UiState
+import androidx.compose.material.icons.rounded.Dataset
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -116,6 +132,14 @@ fun SettingsScreen(
     onThemeModeChange: (AppThemeMode) -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel(),
+    incomeViewModel: IncomeViewModel = hiltViewModel(),
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
+    goalViewModel: GoalViewModel = hiltViewModel(),
+    subscriptionViewModel: SubscriptionViewModel = hiltViewModel(),
+    incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
+    expenseRepository: ExpenseRepository = ExpenseRepositoryImpl(),
+    goalRepository: GoalRepository = GoalRepositoryImpl(),
+    subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -325,6 +349,24 @@ fun SettingsScreen(
                                 syncRotation = syncRotation,
                                 isCompactWidth = isCompactWidth,
                                 onExportClick = { showExportSheet = true },
+                                onSeedScenarioClick = {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Seeding Kavindu's complete scenario...")
+                                        val uid = userProfile.uid.ifBlank { authViewModel.userProfile.value.uid }
+                                        val result = KavinduScenarioSeeder.seedCompleteScenario(
+                                            userId = uid,
+                                            incomeRepository = incomeRepository,
+                                            expenseRepository = expenseRepository,
+                                            goalRepository = goalRepository,
+                                            subscriptionRepository = subscriptionRepository
+                                        )
+                                        if (result.isSuccess) {
+                                            snackbarHostState.showSnackbar("Scenario successfully seeded! 2 Zombie Subs, MacBook Fund, Crypto Q1/Q3 loaded.")
+                                        } else {
+                                            snackbarHostState.showSnackbar("Seeding error: ${result.exceptionOrNull()?.message}")
+                                        }
+                                    }
+                                },
                                 onSyncClick = {
                                     if (!isSyncing) {
                                         coroutineScope.launch {
@@ -400,6 +442,24 @@ fun SettingsScreen(
                             syncRotation = syncRotation,
                             isCompactWidth = isCompactWidth,
                             onExportClick = { showExportSheet = true },
+                            onSeedScenarioClick = {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Seeding Kavindu's complete scenario...")
+                                    val uid = userProfile.uid.ifBlank { authViewModel.userProfile.value.uid }
+                                    val result = KavinduScenarioSeeder.seedCompleteScenario(
+                                        userId = uid,
+                                        incomeRepository = incomeRepository,
+                                        expenseRepository = expenseRepository,
+                                        goalRepository = goalRepository,
+                                        subscriptionRepository = subscriptionRepository
+                                    )
+                                    if (result.isSuccess) {
+                                        snackbarHostState.showSnackbar("Scenario successfully seeded! 2 Zombie Subs, MacBook Fund, Crypto Q1/Q3 loaded.")
+                                    } else {
+                                        snackbarHostState.showSnackbar("Seeding error: ${result.exceptionOrNull()?.message}")
+                                    }
+                                }
+                            },
                             onSyncClick = {
                                 if (!isSyncing) {
                                     coroutineScope.launch {
@@ -765,7 +825,37 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .clickable {
                                     showExportSheet = false
-                                    Toast.makeText(context, "Exporting $format...", Toast.LENGTH_SHORT).show()
+                                    coroutineScope.launch {
+                                        try {
+                                            val incomes = (incomeViewModel.incomesState.value as? UiState.Success)?.data ?: emptyList()
+                                            val expenses = (expenseViewModel.expensesState.value as? UiState.Success)?.data ?: emptyList()
+                                            val subscriptions = (subscriptionViewModel.subscriptionsState.value as? UiState.Success)?.data ?: emptyList()
+                                            val goals = (goalViewModel.goalsState.value as? UiState.Success)?.data ?: emptyList()
+
+                                            if (format.contains(".pdf", ignoreCase = true)) {
+                                                val file = FinancialExportService.exportPdf(
+                                                    context = context,
+                                                    userName = userName,
+                                                    incomes = incomes,
+                                                    expenses = expenses,
+                                                    subscriptions = subscriptions,
+                                                    goals = goals
+                                                )
+                                                FinancialExportService.shareExportedFile(context, file, "application/pdf", "Share Financial Audit PDF")
+                                            } else {
+                                                val file = FinancialExportService.exportCsv(
+                                                    context = context,
+                                                    incomes = incomes,
+                                                    expenses = expenses,
+                                                    subscriptions = subscriptions,
+                                                    goals = goals
+                                                )
+                                                FinancialExportService.shareExportedFile(context, file, "text/csv", "Share Financial CSV")
+                                            }
+                                        } catch (e: Exception) {
+                                            snackbarHostState.showSnackbar("Export error: ${e.message}")
+                                        }
+                                    }
                                 }
                         ) {
                             Row(
@@ -1215,9 +1305,19 @@ private fun DataManagementGroupCard(
     isCompactWidth: Boolean,
     onExportClick: () -> Unit,
     onSyncClick: () -> Unit,
-    onClearCacheClick: () -> Unit
+    onClearCacheClick: () -> Unit,
+    onSeedScenarioClick: () -> Unit = {}
 ) {
     SettingsGroupCard {
+        SettingsActionRow(
+            icon = Icons.Rounded.Dataset,
+            title = "Seed Kavindu Scenario Data",
+            subtitle = "Populates 2 zombie subs, MacBook fund & crypto",
+            isCompact = isCompactWidth,
+            onClick = onSeedScenarioClick
+        )
+
+        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
         SettingsActionRow(
             icon = Icons.Rounded.FileDownload,
             title = "Statement Export",

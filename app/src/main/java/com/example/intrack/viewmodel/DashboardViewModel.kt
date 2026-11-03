@@ -97,16 +97,31 @@ class DashboardViewModel @Inject constructor(
                 _selectedCategoryFilter,
                 _selectedAccountFilter
             ) { incomes, expenses, goals, categoryFilter, accountFilter ->
-                val totalIncome = incomes.sumOf { it.realizedAmountLkr }
-                val totalExpense = expenses.sumOf { it.amountLkr }
+                // 1. Current Month Inflow: strictly PAID income received in the current month (excludes unpaid/invoiced/overdue & past months)
+                val currentMonthPaidIncomes = incomes.filter {
+                    it.status.equals("PAID", ignoreCase = true) && DateUtils.isCurrentMonth(it.dateReceivedMillis)
+                }
+                val totalIncome = currentMonthPaidIncomes.sumOf { it.realizedAmountLkr }
+
+                // 2. Current Month Outflow: strictly non-transfer expenses spent in the current month (excludes internal ATM withdrawals/transfers & past months)
+                val currentMonthExpenses = expenses.filter {
+                    !it.isInternalTransfer() && DateUtils.isCurrentMonth(it.dateSpentMillis)
+                }
+                val totalExpense = currentMonthExpenses.sumOf { it.amountLkr }
                 val remainingBalance = totalIncome - totalExpense
                 val totalFlow = (totalIncome + totalExpense).coerceAtLeast(1.0)
-                val inflowFraction = (totalIncome / totalFlow).toFloat().coerceIn(0.1f, 0.9f)
+                val inflowFraction = if (totalFlow > 0.0) {
+                    (totalIncome / totalFlow).toFloat().coerceIn(0.01f, 0.99f)
+                } else {
+                    0.5f
+                }
 
-                val committed = expenses.filter { it.commitmentType == "COMMITTED" }.sumOf { it.amountLkr }
-                val discretionary = expenses.filter { it.commitmentType == "DISCRETIONARY" }.sumOf { it.amountLkr }
+                // 3. Current month committed vs discretionary breakdown
+                val committed = currentMonthExpenses.filter { it.isCommittedExpense() }.sumOf { it.amountLkr }
+                val discretionary = currentMonthExpenses.filter { it.isDiscretionaryExpense() }.sumOf { it.amountLkr }
 
-                val diningOutExpense = expenses.filter { it.category == "DINING_OUT" }.sumOf { it.amountLkr }
+                // 4. Dining out shock factor (current month)
+                val diningOutExpense = currentMonthExpenses.filter { it.category.equals("DINING_OUT", ignoreCase = true) }.sumOf { it.amountLkr }
                 val macBookMonthlyQuota = 40833.33
                 val diningPercentage = if (macBookMonthlyQuota > 0) ((diningOutExpense / macBookMonthlyQuota) * 100).toInt() else 0
 
@@ -119,6 +134,15 @@ class DashboardViewModel @Inject constructor(
                 } else {
                     "Keep discretionary spending low to reach your financial goals faster!"
                 }
+
+                // 5. Catch-Up mode detection: check elapsed days since last logged expense
+                val latestExpenseMillis = expenses.maxOfOrNull { it.dateSpentMillis } ?: 0L
+                val daysSinceLastExpense = if (latestExpenseMillis > 0L) {
+                    ((System.currentTimeMillis() - latestExpenseMillis) / (24L * 3600L * 1000L)).coerceAtLeast(0L)
+                } else {
+                    0L
+                }
+                val isCatchUpModeNeeded = daysSinceLastExpense >= 5L
 
                 val filteredRecent = expenses.filter { expense ->
                     val matchesCategory = if (categoryFilter == "ALL") true else expense.category.equals(categoryFilter, ignoreCase = true)
@@ -142,11 +166,31 @@ class DashboardViewModel @Inject constructor(
                     groupedRecentTransactions = groupedRecent,
                     selectedCategoryFilter = categoryFilter,
                     selectedAccountFilter = accountFilter,
-                    shockInsightMessage = shockInsight
+                    shockInsightMessage = shockInsight,
+                    daysSinceLastExpense = daysSinceLastExpense,
+                    isCatchUpModeNeeded = isCatchUpModeNeeded
                 )
             }.collect { data ->
                 _uiState.value = UiState.Success(data)
             }
+        }
+    }
+
+    fun logBulkCatchUpExpense(amountLkr: Double, note: String = "Estimated catch-up for missed logging period") {
+        val currentUid = authRepository.getCurrentUserId()
+        val expense = ExpenseEntity(
+            id = UUID.randomUUID().toString(),
+            userId = currentUid,
+            title = "Catch-Up Logging Estimate",
+            amountLkr = amountLkr,
+            category = "MISC",
+            paymentAccount = "CARD_PRIMARY",
+            commitmentType = "DISCRETIONARY",
+            dateSpentMillis = System.currentTimeMillis(),
+            notes = note
+        )
+        viewModelScope.launch {
+            expenseRepository.addExpense(expense)
         }
     }
 

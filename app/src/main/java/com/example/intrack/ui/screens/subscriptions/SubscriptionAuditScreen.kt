@@ -8,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -48,6 +49,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import com.example.intrack.ui.theme.BrandTangerine
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -203,6 +207,29 @@ fun SubscriptionAuditScreen(
                             primaryCardTotal = primaryCardTotal,
                             cashTotal = cashTotal
                         )
+                    }
+
+                    val allSubs = (subscriptionsState as UiState.Success<List<SubscriptionEntity>>).data
+                    val zombieSubs = allSubs.filter { it.isFlaggedForReview || it.status.equals("UNUSED_FLAGGED", ignoreCase = true) }
+
+                    if (zombieSubs.isNotEmpty()) {
+                        item {
+                            ZombieSubscriptionHunterCard(
+                                zombieSubs = zombieSubs,
+                                onCancel = { sub ->
+                                    viewModel.deleteSubscription(sub.id)
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Cancelled zombie subscription ''. Saved ${CurrencyFormatter.formatLkr(sub.amountLkr)}/mo!")
+                                    }
+                                },
+                                onKeep = { sub ->
+                                    viewModel.updateSubscription(sub.copy(isFlaggedForReview = false, status = "ACTIVE"))
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Marked '' as active.")
+                                    }
+                                }
+                            )
+                        }
                     }
 
                     item {
@@ -688,4 +715,166 @@ fun AddSubscriptionDialog(
         },
         shape = RoundedCornerShape(16.dp)
     )
+}
+
+@Composable
+fun ZombieSubscriptionHunterCard(
+    zombieSubs: List<SubscriptionEntity>,
+    onCancel: (SubscriptionEntity) -> Unit,
+    onKeep: (SubscriptionEntity) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val totalWasted = zombieSubs.sumOf { it.amountLkr }
+    OutlinedCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = BrandTangerine.copy(alpha = 0.05f)
+        ),
+        border = BorderStroke(1.5.dp, BrandTangerine.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(BrandTangerine.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.NotificationsActive,
+                            contentDescription = null,
+                            tint = BrandTangerine,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Zombie Subscriptions (${zombieSubs.size})",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Intended to cancel 6 months ago",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(BrandTangerine.copy(alpha = 0.15f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "LEAK: ${CurrencyFormatter.formatLkr(totalWasted)}/mo",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = BrandTangerine
+                    )
+                }
+            }
+
+            Text(
+                text = "Cancelling these unused subscriptions recovers ${CurrencyFormatter.formatLkr(totalWasted)} monthly - directly boosting your MacBook Pro M4 goal!",
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            zombieSubs.forEach { sub ->
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = sub.name,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "Auto-debiting * Unused for 6 months",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text(
+                                text = CurrencyFormatter.formatLkr(sub.amountLkr),
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = BrandTangerine
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { onCancel(sub) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "Cancel & Stop Leak",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onError
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = { onKeep(sub) },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "Keep Active",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

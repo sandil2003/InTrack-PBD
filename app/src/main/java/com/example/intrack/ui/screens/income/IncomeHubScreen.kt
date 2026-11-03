@@ -147,6 +147,7 @@ fun IncomeHubScreen(
     var showChannelPickerModal by remember { mutableStateOf(false) }
     var activeModalChannel by remember { mutableStateOf<String?>(null) }
     var pendingWindfallAmount by remember { mutableDoubleStateOf(0.0) }
+    var pendingWindfallIncome by remember { mutableStateOf<IncomeEntity?>(null) }
     var showWindfallModal by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
     var isFabExpanded by remember { mutableStateOf(false) }
@@ -422,6 +423,20 @@ fun IncomeHubScreen(
                             }
                         }
 
+                        // Crypto YTD Net Position (Q1 gain vs Q3 loss tracker)
+                        item {
+                            CryptoYtdNetPositionCard(
+                                ytdNetLkr = hubSummary.cryptoYtdNetPositionLkr,
+                                q1PnlLkr = hubSummary.cryptoQ1PnlLkr,
+                                q2PnlLkr = hubSummary.cryptoQ2PnlLkr,
+                                q3PnlLkr = hubSummary.cryptoQ3PnlLkr,
+                                q4PnlLkr = hubSummary.cryptoQ4PnlLkr,
+                                totalGainsLkr = hubSummary.cryptoYtdTotalGainsLkr,
+                                totalLossesLkr = hubSummary.cryptoYtdTotalLossesLkr,
+                                onLogCryptoClick = { activeModalChannel = "CRYPTO" }
+                            )
+                        }
+
                         // {THIS MONTH} ACTIVITIES SECTION HEADER
                         item {
                             Row(
@@ -624,6 +639,7 @@ fun IncomeHubScreen(
                                 )
                                 viewModel.updateIncome(settledInvoice)
                                 pendingWindfallAmount = settledInvoice.realizedAmountLkr
+                                pendingWindfallIncome = settledInvoice
                                 showWindfallModal = true
                                 coroutineScope.launch {
                                     snackbarHostState.showSnackbar(
@@ -727,6 +743,7 @@ fun IncomeHubScreen(
                     activeModalChannel = null
                     if (bonus > 0) {
                         pendingWindfallAmount = bonus
+                        pendingWindfallIncome = IncomeEntity(title = "$monthName Salary Bonus", channel = "SALARY", originalAmount = bonus, realizedAmountLkr = bonus, status = "PAID")
                         showWindfallModal = true
                     } else {
                         coroutineScope.launch {
@@ -754,6 +771,7 @@ fun IncomeHubScreen(
                     )
                     activeModalChannel = null
                     pendingWindfallAmount = realizedLkr
+                    pendingWindfallIncome = IncomeEntity(title = "$monthName AdSense Payout ($$usd)", channel = "ADSENSE", originalAmount = usd, originalCurrency = "USD", exchangeRate = rate, realizedAmountLkr = realizedLkr, status = "PAID")
                     showWindfallModal = true
                 }
             )
@@ -776,6 +794,7 @@ fun IncomeHubScreen(
                     activeModalChannel = null
                     if (status == "PAID") {
                         pendingWindfallAmount = amount
+                        pendingWindfallIncome = newIncome
                         showWindfallModal = true
                     } else {
                         coroutineScope.launch {
@@ -802,6 +821,7 @@ fun IncomeHubScreen(
                     activeModalChannel = null
                     if (netPnl > 0) {
                         pendingWindfallAmount = netPnl
+                        pendingWindfallIncome = IncomeEntity(title = "Crypto Realized P&L", channel = "CRYPTO", originalAmount = netPnl, originalCurrency = "LKR", realizedAmountLkr = netPnl, status = "PAID")
                         showWindfallModal = true
                     } else {
                         coroutineScope.launch {
@@ -2027,4 +2047,206 @@ fun CryptoPnlDialog(
         },
         shape = RoundedCornerShape(16.dp)
     )
+}
+
+@Composable
+fun CryptoYtdNetPositionCard(
+    ytdNetLkr: Double,
+    q1PnlLkr: Double,
+    q2PnlLkr: Double,
+    q3PnlLkr: Double,
+    q4PnlLkr: Double,
+    totalGainsLkr: Double,
+    totalLossesLkr: Double,
+    onLogCryptoClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isNetPositive = ytdNetLkr >= 0
+    val netColor = if (isNetPositive) PrimaryGreen else MaterialTheme.colorScheme.error
+
+    OutlinedCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(BrandTangerine.copy(alpha = 0.14f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CurrencyBitcoin,
+                            contentDescription = null,
+                            tint = BrandTangerine,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Crypto YTD Net Position",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Binance Realized P&L Ledger",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = netColor.copy(alpha = 0.12f),
+                    modifier = Modifier.clickable { onLogCryptoClick() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = null,
+                            tint = netColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "Log P&L",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            ),
+                            color = netColor
+                        )
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(netColor.copy(alpha = 0.08f))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "TOTAL YTD REALIZED EARNINGS",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = if (isNetPositive) "+${CurrencyFormatter.formatLkr(ytdNetLkr)}" else "-${CurrencyFormatter.formatLkr(-ytdNetLkr)}",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp
+                        ),
+                        color = netColor
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(netColor.copy(alpha = 0.15f))
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = if (isNetPositive) "NET GAIN" else "NET LOSS",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = netColor
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = "Q1 Gain",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (q1PnlLkr >= 0) "+${CurrencyFormatter.formatLkr(q1PnlLkr)}" else "-${CurrencyFormatter.formatLkr(-q1PnlLkr)}",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.5.sp
+                        ),
+                        color = if (q1PnlLkr >= 0) PrimaryGreen else MaterialTheme.colorScheme.error
+                    )
+                }
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = "Q3 Loss",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (q3PnlLkr >= 0) "+${CurrencyFormatter.formatLkr(q3PnlLkr)}" else "-${CurrencyFormatter.formatLkr(-q3PnlLkr)}",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.5.sp
+                        ),
+                        color = if (q3PnlLkr >= 0) PrimaryGreen else MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
 }

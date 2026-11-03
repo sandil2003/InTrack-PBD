@@ -5,12 +5,16 @@ import androidx.lifecycle.viewModelScope
 import com.example.intrack.data.model.IncomeEntity
 import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.data.repository.AuthRepositoryImpl
+import com.example.intrack.data.repository.GoalRepository
+import com.example.intrack.data.repository.GoalRepositoryImpl
 import com.example.intrack.data.repository.IncomeRepository
 import com.example.intrack.data.repository.IncomeRepositoryImpl
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.Calendar
 import javax.inject.Inject
+import kotlin.math.abs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -32,18 +36,28 @@ data class IncomeHubSummary(
     val totalMonthRealizedLkr: Double = 0.0,
     val rollingAverageLkr: Double = 120000.0,
     val monthPaidIncomes: List<IncomeEntity> = emptyList(),
-    val groupedMonthIncomes: Map<String, List<IncomeEntity>> = emptyMap()
+    val groupedMonthIncomes: Map<String, List<IncomeEntity>> = emptyMap(),
+    // Crypto YTD Net Position (Q1 gain vs Q3 loss)
+    val cryptoYtdNetPositionLkr: Double = 0.0,
+    val cryptoQ1PnlLkr: Double = 0.0,
+    val cryptoQ2PnlLkr: Double = 0.0,
+    val cryptoQ3PnlLkr: Double = 0.0,
+    val cryptoQ4PnlLkr: Double = 0.0,
+    val cryptoYtdTotalGainsLkr: Double = 0.0,
+    val cryptoYtdTotalLossesLkr: Double = 0.0
 )
 
 @HiltViewModel
 class IncomeViewModel @Inject constructor(
     private val incomeRepository: IncomeRepository,
+    private val goalRepository: GoalRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
     constructor(
-        incomeRepository: IncomeRepository = IncomeRepositoryImpl()
-    ) : this(incomeRepository, AuthRepositoryImpl())
+        incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
+        goalRepository: GoalRepository = GoalRepositoryImpl()
+    ) : this(incomeRepository, goalRepository, AuthRepositoryImpl())
 
     private val _incomesState = MutableStateFlow<UiState<List<IncomeEntity>>>(UiState.Loading)
     val incomesState: StateFlow<UiState<List<IncomeEntity>>> = _incomesState
@@ -116,6 +130,38 @@ class IncomeViewModel @Inject constructor(
             DateUtils.formatRelativeDateGroup(it.dateReceivedMillis, month)
         }
 
+        // Crypto YTD calculations (Scenario: Q1 gain vs Q3 loss on Binance)
+        val cal = Calendar.getInstance()
+        val currentYear = cal.get(Calendar.YEAR)
+        val allPaidCrypto = allIncomes.filter { it.channel.equals("CRYPTO", ignoreCase = true) && it.status.equals("PAID", ignoreCase = true) }
+
+        var q1Pnl = 0.0
+        var q2Pnl = 0.0
+        var q3Pnl = 0.0
+        var q4Pnl = 0.0
+        var ytdGains = 0.0
+        var ytdLosses = 0.0
+
+        allPaidCrypto.forEach { trade ->
+            cal.timeInMillis = trade.dateReceivedMillis
+            val tradeYear = cal.get(Calendar.YEAR)
+            if (tradeYear == currentYear) {
+                val amount = trade.realizedAmountLkr
+                when (cal.get(Calendar.MONTH)) {
+                    in 0..2 -> q1Pnl += amount
+                    in 3..5 -> q2Pnl += amount
+                    in 6..8 -> q3Pnl += amount
+                    else -> q4Pnl += amount
+                }
+                if (amount >= 0) {
+                    ytdGains += amount
+                } else {
+                    ytdLosses += abs(amount)
+                }
+            }
+        }
+        val cryptoYtdNetPosition = q1Pnl + q2Pnl + q3Pnl + q4Pnl
+
         _hubSummary.value = IncomeHubSummary(
             selectedMonth = month,
             selectedChannelFilter = channelFilter,
@@ -133,8 +179,40 @@ class IncomeViewModel @Inject constructor(
             totalMonthRealizedLkr = totalMonthRealized,
             rollingAverageLkr = rollingAverage,
             monthPaidIncomes = monthPaidIncomes,
-            groupedMonthIncomes = groupedMonthIncomes
+            groupedMonthIncomes = groupedMonthIncomes,
+            cryptoYtdNetPositionLkr = cryptoYtdNetPosition,
+            cryptoQ1PnlLkr = q1Pnl,
+            cryptoQ2PnlLkr = q2Pnl,
+            cryptoQ3PnlLkr = q3Pnl,
+            cryptoQ4PnlLkr = q4Pnl,
+            cryptoYtdTotalGainsLkr = ytdGains,
+            cryptoYtdTotalLossesLkr = ytdLosses
         )
+    }
+
+    fun allocateWindfallToGoal(
+        income: IncomeEntity,
+        allocatedAmountLkr: Double,
+        goalId: String = "macbook_m4_goal"
+    ) {
+        val currentUid = authRepository.getCurrentUserId()
+        if (currentUid.isBlank() || allocatedAmountLkr <= 0.0) return
+
+        viewModelScope.launch {
+            // 1. Transactionally credit Goal in Firestore & local Room
+            goalRepository.allocateWindfallToGoal(
+                userId = currentUid,
+                amountLkr = allocatedAmountLkr,
+                goalId = goalId,
+                sourceTitle = "Windfall from ${income.title.ifBlank { income.channel }}",
+                sourceId = income.id.ifBlank { "manual" }
+            )
+            // 2. Update income entity with the allocated amount
+            val updated = income.copy(
+                allocatedToGoalLkr = (income.allocatedToGoalLkr + allocatedAmountLkr)
+            )
+            incomeRepository.updateIncome(updated)
+        }
     }
 
     fun loadIncomes(userId: String = authRepository.getCurrentUserId()) {

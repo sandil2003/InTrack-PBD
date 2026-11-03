@@ -17,5 +17,7 @@ data class DashboardData(
     val groupedRecentTransactions: Map<String, List<ExpenseEntity>> = emptyMap(),
     val selectedCategoryFilter: String = "ALL",
     val selectedAccountFilter: String = "ALL",
-    val shockInsightMessage: String = ""
+    val shockInsightMessage: String = "",
+    val daysSinceLastExpense: Long = 0L,
+    val isCatchUpModeNeeded: Boolean = false
 )
