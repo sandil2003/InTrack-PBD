@@ -53,9 +53,7 @@ class GoalRepositoryImpl @Inject constructor(
 
         val cacheJob = launch {
             goalDao?.getGoals(userId)?.collect { cached ->
-                if (cached.isNotEmpty()) {
-                    trySend(cached)
-                }
+                trySend(cached)
             }
         }
 
@@ -74,13 +72,12 @@ class GoalRepositoryImpl @Inject constructor(
                 doc.toObject(GoalEntity::class.java)?.copy(id = doc.id, userId = userId)
             } ?: emptyList()
 
-            if (list.isNotEmpty()) {
-                trySend(list)
+            if (goalDao != null) {
                 launch {
-                    goalDao?.replaceAllForUser(userId, list)
+                    goalDao.replaceAllForUser(userId, list)
                 }
-            } else if (goalDao == null) {
-                trySend(emptyList())
+            } else {
+                trySend(list)
             }
         }
         awaitClose {
@@ -101,6 +98,8 @@ class GoalRepositoryImpl @Inject constructor(
                 val target = cached.find { it.id == "macbook_m4_goal" } ?: cached.firstOrNull()
                 if (target != null) {
                     trySend(target)
+                } else {
+                    trySend(GoalEntity(id = "", userId = userId, title = "", targetAmountLkr = 0.0, currentSavedLkr = 0.0))
                 }
             }
         }
@@ -120,12 +119,17 @@ class GoalRepositoryImpl @Inject constructor(
                 ?: goals.firstOrNull()
 
             if (targetGoal != null) {
-                trySend(targetGoal)
-                launch {
-                    goalDao?.upsert(targetGoal)
+                if (goalDao != null) {
+                    launch {
+                        goalDao.upsert(targetGoal)
+                    }
+                } else {
+                    trySend(targetGoal)
                 }
             } else {
-                trySend(GoalEntity(id = "", userId = userId, title = "", targetAmountLkr = 0.0, currentSavedLkr = 0.0))
+                if (goalDao == null) {
+                    trySend(GoalEntity(id = "", userId = userId, title = "", targetAmountLkr = 0.0, currentSavedLkr = 0.0))
+                }
             }
         }
         awaitClose {

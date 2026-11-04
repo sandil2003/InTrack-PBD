@@ -82,11 +82,28 @@ fun FinFlowNavGraph(
     navController: NavHostController = rememberNavController(),
     themeMode: AppThemeMode = AppThemeMode.LIGHT,
     onThemeModeChange: (AppThemeMode) -> Unit = {},
+    pendingNavRoute: String? = null,
+    onClearPendingNavRoute: () -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Login.route
+    val isUserLoggedIn = remember { authViewModel.isUserLoggedIn() }
+    val startDestination = remember { if (isUserLoggedIn) Screen.Dashboard.route else Screen.Login.route }
+    val currentRoute = navBackStackEntry?.destination?.route ?: startDestination
+
+    androidx.compose.runtime.LaunchedEffect(pendingNavRoute, currentRoute) {
+        if (pendingNavRoute != null && currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route) {
+            val target = pendingNavRoute
+            onClearPendingNavRoute()
+            navController.navigate(target) {
+                popUpTo(Screen.Dashboard.route) {
+                    saveState = false
+                }
+                launchSingleTop = false
+            }
+        }
+    }
 
     val handleSignOut: () -> Unit = {
         authViewModel.signOut()
@@ -95,10 +112,19 @@ fun FinFlowNavGraph(
         }
     }
 
-    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && currentRoute != Screen.AddExpense.route && currentRoute != Screen.AddSubscription.route && currentRoute != Screen.AddGoal.route && !currentRoute.startsWith("edit_expense")
+    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && !currentRoute.startsWith("add_expense") && currentRoute != Screen.AddSubscription.route && currentRoute != Screen.AddGoal.route && !currentRoute.startsWith("edit_expense")
 
     val navigateToRoute: (String) -> Unit = { route ->
-        if (currentRoute != route) {
+        if (route == Screen.Dashboard.route) {
+            if (currentRoute != Screen.Dashboard.route) {
+                navController.navigate(Screen.Dashboard.route) {
+                    popUpTo(Screen.Dashboard.route) {
+                        inclusive = false
+                    }
+                    launchSingleTop = true
+                }
+            }
+        } else if (currentRoute != route && !currentRoute.startsWith("${route}?")) {
             navController.navigate(route) {
                 popUpTo(Screen.Dashboard.route) {
                     saveState = true
@@ -124,7 +150,7 @@ fun FinFlowNavGraph(
     ) { scaffoldPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Login.route,
+            startDestination = startDestination,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = scaffoldPadding.calculateBottomPadding())
@@ -137,8 +163,13 @@ fun FinFlowNavGraph(
             composable(Screen.Login.route) {
                 SignInScreen(
                     onLoginSuccess = {
+                        val destination = pendingNavRoute
+                        onClearPendingNavRoute()
                         navController.navigate(Screen.Dashboard.route) {
-                            popUpTo(0) { inclusive = true }
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                        if (destination != null && destination != Screen.Dashboard.route) {
+                            navController.navigate(destination)
                         }
                     },
                     onNavigateToSignUp = {
@@ -150,8 +181,13 @@ fun FinFlowNavGraph(
             composable(Screen.SignUp.route) {
                 SignUpScreen(
                     onSignUpSuccess = {
+                        val destination = pendingNavRoute
+                        onClearPendingNavRoute()
                         navController.navigate(Screen.Dashboard.route) {
-                            popUpTo(0) { inclusive = true }
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                        if (destination != null && destination != Screen.Dashboard.route) {
+                            navController.navigate(destination)
                         }
                     },
                     onNavigateToSignIn = {
@@ -283,8 +319,18 @@ fun FinFlowNavGraph(
                 )
             }
 
-            composable(Screen.AddExpense.route) {
+            composable(
+                route = Screen.AddExpense.navRoute,
+                arguments = listOf(
+                    navArgument("category") {
+                        type = NavType.StringType
+                        defaultValue = "DINING_OUT"
+                    }
+                )
+            ) { backStackEntry ->
+                val category = backStackEntry.arguments?.getString("category") ?: "DINING_OUT"
                 AddExpenseScreen(
+                    initialCategoryKey = category,
                     onNavigateBack = { navController.popBackStack() },
                     onExpenseSaved = { navController.popBackStack() }
                 )

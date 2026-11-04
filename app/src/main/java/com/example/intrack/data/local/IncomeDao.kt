@@ -13,6 +13,9 @@ interface IncomeDao {
     @Query("SELECT * FROM incomes WHERE userId = :userId ORDER BY dateReceivedMillis DESC")
     fun getIncomes(userId: String): Flow<List<IncomeEntity>>
 
+    @Query("SELECT * FROM incomes ORDER BY dateReceivedMillis DESC")
+    suspend fun getAllIncomes(): List<IncomeEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(income: IncomeEntity)
 

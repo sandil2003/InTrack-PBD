@@ -99,6 +99,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -209,6 +210,7 @@ enum class ExpenseViewTab {
 @Composable
 fun ExpenseAnalyticsScreen(
     initialTab: String = "daily",
+    openAddModal: Boolean = false,
     onNavigateBack: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToProfile: () -> Unit = onNavigateToSettings,

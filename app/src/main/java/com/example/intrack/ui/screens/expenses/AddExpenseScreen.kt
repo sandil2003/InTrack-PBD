@@ -126,6 +126,7 @@ data class ExpenseAccountItem(
 fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
     onExpenseSaved: () -> Unit = onNavigateBack,
+    initialCategoryKey: String = "DINING_OUT",
     expenseViewModel: ExpenseViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -144,6 +145,7 @@ fun AddExpenseScreen(
         ) {
             AddExpenseContent(
                 onDismiss = onNavigateBack,
+                initialCategoryKey = initialCategoryKey,
                 onSubmit = { newExpense ->
                     expenseViewModel.addExpense(newExpense)
                     onExpenseSaved()
@@ -459,6 +461,7 @@ fun AddExpenseBottomSheet(
 fun AddExpenseContent(
     onDismiss: () -> Unit,
     onSubmit: (ExpenseEntity) -> Unit,
+    initialCategoryKey: String = "DINING_OUT",
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
@@ -486,7 +489,7 @@ fun AddExpenseContent(
             ExpenseCategoryItem("ATM_WITHDRAWAL", "ATM / Cash", Icons.Rounded.Payments)
         )
     }
-    var selectedCategoryKey by remember { mutableStateOf("DINING_OUT") }
+    var selectedCategoryKey by remember { mutableStateOf(initialCategoryKey) }
 
     // Accounts ("Paid From")
     val accounts = remember {

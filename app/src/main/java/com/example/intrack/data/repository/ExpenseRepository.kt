@@ -37,9 +37,7 @@ class ExpenseRepositoryImpl @Inject constructor(
 
         val cacheJob = launch {
             expenseDao?.getExpenses(userId)?.collect { cached ->
-                if (cached.isNotEmpty()) {
-                    trySend(cached)
-                }
+                trySend(cached)
             }
         }
 
@@ -57,13 +55,12 @@ class ExpenseRepositoryImpl @Inject constructor(
                 doc.toObject(ExpenseEntity::class.java)?.copy(id = doc.id, userId = userId)
             } ?: emptyList()
 
-            if (list.isNotEmpty()) {
-                trySend(list)
+            if (expenseDao != null) {
                 launch {
-                    expenseDao?.replaceAllForUser(userId, list)
+                    expenseDao.replaceAllForUser(userId, list)
                 }
-            } else if (expenseDao == null) {
-                trySend(emptyList())
+            } else {
+                trySend(list)
             }
         }
         awaitClose {
