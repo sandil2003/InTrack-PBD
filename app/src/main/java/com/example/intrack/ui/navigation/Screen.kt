@@ -7,8 +7,8 @@ sealed class Screen(val route: String, val title: String) {
     object Dashboard : Screen("dashboard", "Dashboard")
     object IncomeHub : Screen("income_hub", "Income Hub")
     object ExpenseAnalytics : Screen("expense_analytics", "Expense Analytics") {
-        const val navRoute = "expense_analytics?tab={tab}&openAdd={openAdd}"
-        fun createRoute(tab: String = "daily", openAdd: Boolean = false): String = "expense_analytics?tab=$tab&openAdd=$openAdd"
+        const val navRoute = "expense_analytics?tab={tab}"
+        fun createRoute(tab: String = "daily"): String = "expense_analytics?tab=$tab"
     }
     object SubscriptionAudit : Screen("subscription_audit", "Subscriptions")
     object GoalTracker : Screen("goal_tracker", "Goals & Targets")

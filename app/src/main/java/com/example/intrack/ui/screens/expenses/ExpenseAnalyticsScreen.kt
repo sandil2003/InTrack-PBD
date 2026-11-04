@@ -252,12 +252,7 @@ fun ExpenseAnalyticsScreen(
     var accountFilterExpanded by remember { mutableStateOf(false) }
     var categoryFilterExpanded by remember { mutableStateOf(false) }
     var showActivityFilters by remember { mutableStateOf(false) }
-    var showAddDialog by remember(openAddModal) { mutableStateOf(openAddModal) }
-    LaunchedEffect(openAddModal) {
-        if (openAddModal) {
-            showAddDialog = true
-        }
-    }
+    var showAddDialog by remember { mutableStateOf(false) }
     var showChartsModal by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
     var showProfileSheet by remember { mutableStateOf(false) }

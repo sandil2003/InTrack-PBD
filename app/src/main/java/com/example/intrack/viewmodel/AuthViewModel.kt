@@ -120,6 +120,11 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun isUserLoggedIn(): Boolean {
+        val currentUser = authRepository.getCurrentUser()
+        return currentUser != null && currentUser.uid.isNotBlank()
+    }
+
     fun checkUser() {
         val currentUser = authRepository.getCurrentUser()
         refreshProfileInfo()
