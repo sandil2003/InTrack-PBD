@@ -85,6 +85,8 @@ class MainActivity : ComponentActivity() {
             } else {
                 route
             }
+            intent.removeExtra("NAV_ROUTE")
+            intent.removeExtra("PRESET_CATEGORY")
         }
     }
 }
