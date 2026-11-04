@@ -18,7 +18,6 @@ import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.screens.expenses.CategorySpendingItem
 import com.example.intrack.ui.screens.expenses.calculateCategoryBreakdown
 import com.example.intrack.util.DateUtils
-import com.example.intrack.util.KavinduScenarioSeeder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
@@ -50,7 +49,8 @@ class ExpenseViewModel @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val incomeRepository: IncomeRepository,
     private val goalRepository: GoalRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    @param:dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context? = null
 ) : ViewModel() {
 
     constructor(
@@ -58,7 +58,17 @@ class ExpenseViewModel @Inject constructor(
         subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl(),
         incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
         goalRepository: GoalRepository = GoalRepositoryImpl()
-    ) : this(expenseRepository, subscriptionRepository, incomeRepository, goalRepository, AuthRepositoryImpl())
+    ) : this(expenseRepository, subscriptionRepository, incomeRepository, goalRepository, AuthRepositoryImpl(), null)
+
+    private fun triggerWidgetRefresh() {
+        context?.let { ctx ->
+            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    com.example.intrack.widget.InTrackGlanceWidget.updateWidget(ctx)
+                } catch (_: Exception) {}
+            }
+        }
+    }
 
     private val _expensesState = MutableStateFlow<UiState<List<ExpenseEntity>>>(UiState.Loading)
     val expensesState: StateFlow<UiState<List<ExpenseEntity>>> = _expensesState
@@ -178,21 +188,11 @@ class ExpenseViewModel @Inject constructor(
             expenseRepository.getExpenses(userId).collect { list ->
                 if (list.isEmpty()) {
                     _expensesState.value = UiState.Empty
-                    if (userId.isNotBlank()) {
-                        viewModelScope.launch {
-                            KavinduScenarioSeeder.seedCompleteScenario(
-                                userId = userId,
-                                incomeRepository = incomeRepository,
-                                expenseRepository = expenseRepository,
-                                goalRepository = goalRepository,
-                                subscriptionRepository = subscriptionRepository
-                            )
-                        }
-                    }
                 } else {
                     _expensesState.value = UiState.Success(list)
                 }
                 recomputeAnalytics()
+                triggerWidgetRefresh()
             }
         }
     }
@@ -202,6 +202,7 @@ class ExpenseViewModel @Inject constructor(
         val preparedExpense = expense.copy(userId = currentUid)
         viewModelScope.launch {
             expenseRepository.addExpense(preparedExpense)
+            triggerWidgetRefresh()
             if (preparedExpense.isRecurring) {
                 val sub = SubscriptionEntity(
                     id = UUID.randomUUID().toString(),
@@ -230,6 +231,7 @@ class ExpenseViewModel @Inject constructor(
                 recomputeAnalytics()
             }
             expenseRepository.updateExpense(prepared)
+            triggerWidgetRefresh()
         }
     }
 
@@ -251,6 +253,7 @@ class ExpenseViewModel @Inject constructor(
                 recomputeAnalytics()
             }
             expenseRepository.deleteExpense(currentUid, expenseId)
+            triggerWidgetRefresh()
         }
     }
 }

@@ -16,6 +16,9 @@ interface GoalDao {
     @Query("SELECT * FROM goals WHERE id = :goalId LIMIT 1")
     suspend fun getGoalById(goalId: String): GoalEntity?
 
+    @Query("SELECT * FROM goals ORDER BY createdAtMillis DESC LIMIT 1")
+    suspend fun getPrimaryGoal(): GoalEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(goal: GoalEntity)
 

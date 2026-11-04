@@ -13,6 +13,12 @@ interface ExpenseDao {
     @Query("SELECT * FROM expenses WHERE userId = :userId ORDER BY dateSpentMillis DESC")
     fun getExpenses(userId: String): Flow<List<ExpenseEntity>>
 
+    @Query("SELECT * FROM expenses ORDER BY dateSpentMillis DESC LIMIT 20")
+    suspend fun getRecentExpenses(): List<ExpenseEntity>
+
+    @Query("SELECT * FROM expenses ORDER BY dateSpentMillis DESC")
+    suspend fun getAllExpenses(): List<ExpenseEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(expense: ExpenseEntity)
 

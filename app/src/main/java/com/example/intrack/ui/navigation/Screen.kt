@@ -7,8 +7,8 @@ sealed class Screen(val route: String, val title: String) {
     object Dashboard : Screen("dashboard", "Dashboard")
     object IncomeHub : Screen("income_hub", "Income Hub")
     object ExpenseAnalytics : Screen("expense_analytics", "Expense Analytics") {
-        const val navRoute = "expense_analytics?tab={tab}"
-        fun createRoute(tab: String = "daily"): String = "expense_analytics?tab=$tab"
+        const val navRoute = "expense_analytics?tab={tab}&openAdd={openAdd}"
+        fun createRoute(tab: String = "daily", openAdd: Boolean = false): String = "expense_analytics?tab=$tab&openAdd=$openAdd"
     }
     object SubscriptionAudit : Screen("subscription_audit", "Subscriptions")
     object GoalTracker : Screen("goal_tracker", "Goals & Targets")
@@ -17,7 +17,10 @@ sealed class Screen(val route: String, val title: String) {
         const val navRoute = "goal_detail/{goalId}"
         fun createRoute(goalId: String): String = "goal_detail/$goalId"
     }
-    object AddExpense : Screen("add_expense", "Add an expense")
+    object AddExpense : Screen("add_expense", "Add an expense") {
+        const val navRoute = "add_expense?category={category}"
+        fun createRoute(category: String = "DINING_OUT"): String = "add_expense?category=$category"
+    }
     object AddSubscription : Screen("add_subscription", "Add Subscription")
     object AddGoal : Screen("add_goal", "New Financial Goal")
     object Profile : Screen("profile", "My Profile")
@@ -27,4 +30,3 @@ sealed class Screen(val route: String, val title: String) {
         fun createRoute(expenseId: String): String = "edit_expense?expenseId=$expenseId"
     }
 }
-

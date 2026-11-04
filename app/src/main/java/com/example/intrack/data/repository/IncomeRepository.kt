@@ -37,9 +37,7 @@ class IncomeRepositoryImpl @Inject constructor(
 
         val cacheJob = launch {
             incomeDao?.getIncomes(userId)?.collect { cached ->
-                if (cached.isNotEmpty()) {
-                    trySend(cached)
-                }
+                trySend(cached)
             }
         }
 
@@ -57,13 +55,12 @@ class IncomeRepositoryImpl @Inject constructor(
                 doc.toObject(IncomeEntity::class.java)?.copy(id = doc.id, userId = userId)
             } ?: emptyList()
 
-            if (list.isNotEmpty()) {
-                trySend(list)
+            if (incomeDao != null) {
                 launch {
-                    incomeDao?.replaceAllForUser(userId, list)
+                    incomeDao.replaceAllForUser(userId, list)
                 }
-            } else if (incomeDao == null) {
-                trySend(emptyList())
+            } else {
+                trySend(list)
             }
         }
         awaitClose {
