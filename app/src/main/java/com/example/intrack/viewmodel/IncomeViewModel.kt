@@ -2,9 +2,12 @@ package com.example.intrack.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.intrack.data.model.CryptoHoldingEntity
 import com.example.intrack.data.model.IncomeEntity
 import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.data.repository.AuthRepositoryImpl
+import com.example.intrack.data.repository.CryptoRateRepository
+import com.example.intrack.data.repository.CryptoRateRepositoryImpl
 import com.example.intrack.data.repository.ExpenseRepository
 import com.example.intrack.data.repository.ExpenseRepositoryImpl
 import com.example.intrack.data.repository.GoalRepository
@@ -58,6 +61,7 @@ class IncomeViewModel @Inject constructor(
     private val expenseRepository: ExpenseRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val authRepository: AuthRepository,
+    private val cryptoRateRepository: CryptoRateRepository = CryptoRateRepositoryImpl()
     @param:dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context? = null
 ) : ViewModel() {
 
@@ -65,8 +69,10 @@ class IncomeViewModel @Inject constructor(
         incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
         goalRepository: GoalRepository = GoalRepositoryImpl(),
         expenseRepository: ExpenseRepository = ExpenseRepositoryImpl(),
-        subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl()
-    ) : this(incomeRepository, goalRepository, expenseRepository, subscriptionRepository, AuthRepositoryImpl(), null)
+        subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl(),
+        cryptoRateRepository: CryptoRateRepository = CryptoRateRepositoryImpl()
+    ) : this(incomeRepository, goalRepository, expenseRepository, subscriptionRepository, AuthRepositoryImpl(), cryptoRateRepository)
+
 
     private fun triggerWidgetRefresh() {
         context?.let { ctx ->
@@ -81,6 +87,18 @@ class IncomeViewModel @Inject constructor(
     private val _incomesState = MutableStateFlow<UiState<List<IncomeEntity>>>(UiState.Loading)
     val incomesState: StateFlow<UiState<List<IncomeEntity>>> = _incomesState
 
+    private val _cryptoRatesState = MutableStateFlow<Map<String, Double>>(cryptoRateRepository.getFallbackRates())
+    val cryptoRatesState: StateFlow<Map<String, Double>> = _cryptoRatesState
+
+    private val _cryptoHoldingsState = MutableStateFlow<List<CryptoHoldingEntity>>(
+        listOf(
+            CryptoHoldingEntity(id = "h_eth", coinSymbol = "ETH", coinName = "Ethereum", coinQuantity = 0.25, investedLkr = 180000.0, avgBuyPriceLkr = 720000.0),
+            CryptoHoldingEntity(id = "h_usdt", coinSymbol = "USDT", coinName = "Tether", coinQuantity = 450.0, investedLkr = 148500.0, avgBuyPriceLkr = 330.0),
+            CryptoHoldingEntity(id = "h_sol", coinSymbol = "SOL", coinName = "Solana", coinQuantity = 3.5, investedLkr = 168000.0, avgBuyPriceLkr = 48000.0)
+        )
+    )
+    val cryptoHoldingsState: StateFlow<List<CryptoHoldingEntity>> = _cryptoHoldingsState
+
     val recentMonths: List<String> = DateUtils.getRecentMonthsList(count = 6)
 
     private val _selectedMonth = MutableStateFlow(recentMonths.firstOrNull() ?: DateUtils.getCurrentMonthName())
@@ -94,6 +112,105 @@ class IncomeViewModel @Inject constructor(
 
     init {
         loadIncomes()
+        refreshCryptoRates()
+    }
+
+    fun refreshCryptoRates() {
+        viewModelScope.launch {
+            val live = cryptoRateRepository.getLiveRatesToLkr()
+            _cryptoRatesState.value = live
+        }
+    }
+
+    fun investInCoin(coinSymbol: String, investedLkr: Double) {
+        if (investedLkr <= 0.0) return
+        val rates = _cryptoRatesState.value
+        val rateToLkr = rates[coinSymbol.uppercase()] ?: cryptoRateRepository.getFallbackRates()[coinSymbol.uppercase()] ?: 332.40
+        val addedQuantity = investedLkr / rateToLkr
+
+        val currentList = _cryptoHoldingsState.value.toMutableList()
+        val index = currentList.indexOfFirst { it.coinSymbol.equals(coinSymbol, ignoreCase = true) }
+
+        if (index >= 0) {
+            val existing = currentList[index]
+            val newQty = existing.coinQuantity + addedQuantity
+            val newInvested = existing.investedLkr + investedLkr
+            val newAvg = newInvested / newQty
+            currentList[index] = existing.copy(
+                coinQuantity = newQty,
+                investedLkr = newInvested,
+                avgBuyPriceLkr = newAvg,
+                lastUpdatedMillis = System.currentTimeMillis()
+            )
+        } else {
+            val coinName = when (coinSymbol.uppercase()) {
+                "USDT" -> "Tether"
+                "ETH" -> "Ethereum"
+                "BTC" -> "Bitcoin"
+                "SOL" -> "Solana"
+                "BNB" -> "Binance Coin"
+                "ADA" -> "Cardano"
+                "XRP" -> "Ripple"
+                "DOGE" -> "Dogecoin"
+                else -> coinSymbol.uppercase()
+            }
+            currentList.add(
+                CryptoHoldingEntity(
+                    id = "h_${coinSymbol.lowercase()}",
+                    coinSymbol = coinSymbol.uppercase(),
+                    coinName = coinName,
+                    coinQuantity = addedQuantity,
+                    investedLkr = investedLkr,
+                    avgBuyPriceLkr = rateToLkr,
+                    lastUpdatedMillis = System.currentTimeMillis()
+                )
+            )
+        }
+        _cryptoHoldingsState.value = currentList
+    }
+
+    fun payoutCoinGains(coinSymbol: String, payoutLkr: Double) {
+        if (payoutLkr <= 0.0) return
+        val rates = _cryptoRatesState.value
+        val currentRate = rates[coinSymbol.uppercase()] ?: cryptoRateRepository.getFallbackRates()[coinSymbol.uppercase()] ?: 332.40
+        val payoutQuantity = payoutLkr / currentRate
+
+        val currentList = _cryptoHoldingsState.value.toMutableList()
+        val index = currentList.indexOfFirst { it.coinSymbol.equals(coinSymbol, ignoreCase = true) }
+
+        if (index >= 0) {
+            val existing = currentList[index]
+            val actualPayoutQty = payoutQuantity.coerceAtMost(existing.coinQuantity)
+            val costBasisLkr = actualPayoutQty * existing.avgBuyPriceLkr
+            val netRealizedGainLkr = payoutLkr - costBasisLkr
+
+            val remainingQty = (existing.coinQuantity - actualPayoutQty).coerceAtLeast(0.0)
+            val remainingInvested = (existing.investedLkr - costBasisLkr).coerceAtLeast(0.0)
+
+            if (remainingQty <= 0.0001) {
+                currentList.removeAt(index)
+            } else {
+                currentList[index] = existing.copy(
+                    coinQuantity = remainingQty,
+                    investedLkr = remainingInvested,
+                    lastUpdatedMillis = System.currentTimeMillis()
+                )
+            }
+            _cryptoHoldingsState.value = currentList
+
+            // Log realized P&L as a CRYPTO channel income stream entry
+            addIncome(
+                IncomeEntity(
+                    title = "Crypto Payout: ${coinSymbol.uppercase()} Realized P&L",
+                    channel = "CRYPTO",
+                    originalAmount = netRealizedGainLkr,
+                    originalCurrency = "LKR",
+                    realizedAmountLkr = netRealizedGainLkr,
+                    status = "PAID",
+                    dateReceivedMillis = System.currentTimeMillis()
+                )
+            )
+        }
     }
 
     fun setSelectedMonth(month: String) {

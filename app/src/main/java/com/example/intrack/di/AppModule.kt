@@ -10,6 +10,8 @@ import com.example.intrack.data.local.SubscriptionDao
 import com.example.intrack.data.remote.FirestoreService
 import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.data.repository.AuthRepositoryImpl
+import com.example.intrack.data.repository.CryptoRateRepository
+import com.example.intrack.data.repository.CryptoRateRepositoryImpl
 import com.example.intrack.data.repository.ExpenseRepository
 import com.example.intrack.data.repository.ExpenseRepositoryImpl
 import com.example.intrack.data.repository.GoalRepository
@@ -106,6 +108,7 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideCryptoRateRepository(): CryptoRateRepository = CryptoRateRepositoryImpl()
     fun provideSecurityPreferences(
         @ApplicationContext context: Context
     ): com.example.intrack.data.local.SecurityPreferences = com.example.intrack.data.local.SecurityPreferences(context)

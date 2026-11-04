@@ -194,7 +194,7 @@ fun EditExpenseSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.White,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         dragHandle = null,
         modifier = modifier
@@ -458,8 +458,9 @@ fun EditExpenseContent(
                     // Hero Total Debited Card
                     Card(
                         shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFBF9F5)),
-                        border = BorderStroke(1.dp, FigmaBorder),
+                        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+                        border = BorderStroke(0.dp, Color.Transparent),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -479,14 +480,14 @@ fun EditExpenseContent(
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = FigmaSubtle,
+                                    color = Color(0xFF121660),
                                     maxLines = 1
                                 )
 
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(if (isCommitted) FigmaPeachTint else Color(0xFFEDE8E3))
+                                        .background(Color(0xFF121660).copy(alpha = 0.12f))
                                         .padding(horizontal = 8.dp, vertical = 2.5.dp)
                                 ) {
                                     Text(
@@ -494,12 +495,12 @@ fun EditExpenseContent(
                                         fontFamily = PlusJakartaSansFontFamily,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isCommitted) FigmaRust else FigmaDark
+                                        color = Color(0xFF121660)
                                     )
                                 }
                             }
 
-                            // Amount Display (Baseline aligned like in ViewSubscriptionSheet)
+                            // Amount Display
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(
@@ -513,7 +514,7 @@ fun EditExpenseContent(
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 28.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = FigmaDark,
+                                    color = Color(0xFF121660),
                                     modifier = Modifier.alignByBaseline()
                                 )
                                 Text(
@@ -521,7 +522,7 @@ fun EditExpenseContent(
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = FigmaDark,
+                                    color = Color(0xFF121660),
                                     modifier = Modifier.alignByBaseline()
                                 )
                                 Text(
@@ -529,7 +530,7 @@ fun EditExpenseContent(
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 30.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = FigmaDark,
+                                    color = Color(0xFF121660),
                                     letterSpacing = (-0.5).sp,
                                     maxLines = 1,
                                     softWrap = false,
@@ -547,14 +548,14 @@ fun EditExpenseContent(
                                     modifier = Modifier
                                         .size(6.dp)
                                         .clip(CircleShape)
-                                        .background(FigmaPrimary)
+                                        .background(Color(0xFF121660))
                                 )
                                 Text(
                                     text = if (isCommitted) "Essentials" else "Discretionary",
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = FigmaRust,
+                                    color = Color(0xFF121660),
                                     maxLines = 1,
                                     softWrap = false
                                 )
@@ -562,13 +563,13 @@ fun EditExpenseContent(
                                     text = "•",
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 12.sp,
-                                    color = FigmaSubtle
+                                    color = Color(0xFF121660).copy(alpha = 0.6f)
                                 )
                                 Text(
                                     text = if (isCommitted) "Obligation" else "Flexible",
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 12.sp,
-                                    color = FigmaMuted,
+                                    color = Color(0xFF121660).copy(alpha = 0.7f),
                                     maxLines = 1,
                                     softWrap = false,
                                     overflow = TextOverflow.Ellipsis,
@@ -581,8 +582,9 @@ fun EditExpenseContent(
                     // Metadata Details Card
                     Card(
                         shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, FigmaBorder),
+                        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+                        border = BorderStroke(0.dp, Color.Transparent),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
@@ -593,7 +595,7 @@ fun EditExpenseContent(
                                 value = formattedDateTime
                             )
 
-                            HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+                            HorizontalDivider(color = Color(0xFF121660).copy(alpha = 0.15f), thickness = 0.8.dp)
 
                             // Row 2: Account
                             DetailRowItem(
@@ -603,7 +605,7 @@ fun EditExpenseContent(
                                 hasBullet = true
                             )
 
-                            HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+                            HorizontalDivider(color = Color(0xFF121660).copy(alpha = 0.15f), thickness = 0.8.dp)
 
                             // Row 3: Reference ID (with copy button)
                             DetailRowItem(
@@ -624,14 +626,14 @@ fun EditExpenseContent(
                                         Icon(
                                             imageVector = Icons.Rounded.ContentCopy,
                                             contentDescription = "Copy ID",
-                                            tint = FigmaSubtle,
+                                            tint = Color(0xFF121660),
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
                             )
 
-                            HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+                            HorizontalDivider(color = Color(0xFF121660).copy(alpha = 0.15f), thickness = 0.8.dp)
 
                             // Row 4: Notes
                             DetailRowItem(
@@ -644,11 +646,12 @@ fun EditExpenseContent(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Primary Action: Edit Transaction Button (Terracotta Pill)
+                    // Primary Action: Edit Transaction Button
                     Button(
                         onClick = { isEditingMode = true },
-                        shape = RoundedCornerShape(28.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = FigmaPrimary),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF121660)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
@@ -660,7 +663,7 @@ fun EditExpenseContent(
                             Icon(
                                 imageVector = Icons.Rounded.Edit,
                                 contentDescription = "Edit Transaction",
-                                tint = MaterialTheme.colorScheme.onPrimary,
+                                tint = Color.White,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -669,7 +672,7 @@ fun EditExpenseContent(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = Color.White
                             )
                         }
                     }

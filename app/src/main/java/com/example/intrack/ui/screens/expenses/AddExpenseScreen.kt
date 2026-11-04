@@ -94,7 +94,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.ExpenseEntity
+import com.example.intrack.ui.theme.BrandSoftSlate
 import com.example.intrack.ui.theme.BrandTangerine
+import androidx.compose.material3.FilterChipDefaults
 import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
 import java.text.SimpleDateFormat
@@ -190,15 +192,17 @@ fun AddExpenseDialog(
     }
 
     val parsedAmount = amountInput.toDoubleOrNull() ?: 0.0
+    val navyText = Color(0xFF121660)
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
             Text(
                 text = "Log New Expense",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = navyText
             )
         },
         text = {
@@ -215,6 +219,7 @@ fun AddExpenseDialog(
                     placeholder = { Text("e.g. Lunch with team, Groceries") },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -229,6 +234,7 @@ fun AddExpenseDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -236,7 +242,7 @@ fun AddExpenseDialog(
                     text = "Category",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = navyText
                 )
                 Row(
                     modifier = Modifier
@@ -263,11 +269,18 @@ fun AddExpenseDialog(
                                 Icon(
                                     imageVector = category.icon,
                                     contentDescription = category.displayName,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) Color.White else navyText
                                 )
                             },
                             label = { Text(category.displayName, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = navyText,
+                                selectedLabelColor = Color.White,
+                                containerColor = BrandSoftSlate,
+                                labelColor = navyText
+                            )
                         )
                     }
                 }
@@ -276,7 +289,7 @@ fun AddExpenseDialog(
                     text = "Paid From",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = navyText
                 )
                 Row(
                     modifier = Modifier
@@ -285,18 +298,26 @@ fun AddExpenseDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     accounts.forEach { account ->
+                        val isSelected = selectedAccountKey == account.key
                         FilterChip(
-                            selected = selectedAccountKey == account.key,
+                            selected = isSelected,
                             onClick = { selectedAccountKey = account.key },
                             leadingIcon = {
                                 Icon(
                                     imageVector = account.icon,
                                     contentDescription = account.title,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) Color.White else navyText
                                 )
                             },
                             label = { Text(account.title, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = navyText,
+                                selectedLabelColor = Color.White,
+                                containerColor = BrandSoftSlate,
+                                labelColor = navyText
+                            )
                         )
                     }
                 }
@@ -305,7 +326,7 @@ fun AddExpenseDialog(
                     text = "Commitment Tier",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = navyText
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -316,6 +337,12 @@ fun AddExpenseDialog(
                         onClick = { commitmentType = "COMMITTED" },
                         label = { Text("Committed (Needs)", style = MaterialTheme.typography.labelSmall) },
                         shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = navyText,
+                            selectedLabelColor = Color.White,
+                            containerColor = BrandSoftSlate,
+                            labelColor = navyText
+                        ),
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
@@ -323,6 +350,12 @@ fun AddExpenseDialog(
                         onClick = { commitmentType = "DISCRETIONARY" },
                         label = { Text("Discretionary (Wants)", style = MaterialTheme.typography.labelSmall) },
                         shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = navyText,
+                            selectedLabelColor = Color.White,
+                            containerColor = BrandSoftSlate,
+                            labelColor = navyText
+                        ),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -332,7 +365,7 @@ fun AddExpenseDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(BrandTangerine.copy(alpha = 0.12f))
+                        .background(navyText.copy(alpha = 0.12f))
                         .padding(10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -341,13 +374,13 @@ fun AddExpenseDialog(
                         text = "Total Outflow",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
-                        color = BrandTangerine
+                        color = navyText
                     )
                     Text(
                         text = CurrencyFormatter.formatLkr(parsedAmount),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
-                        color = BrandTangerine
+                        color = navyText
                     )
                 }
             }
@@ -378,7 +411,7 @@ fun AddExpenseDialog(
                 },
                 enabled = parsedAmount > 0.0,
                 shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = BrandTangerine)
+                colors = ButtonDefaults.buttonColors(containerColor = navyText)
             ) {
                 Text("Save Expense", fontWeight = FontWeight.Bold)
             }

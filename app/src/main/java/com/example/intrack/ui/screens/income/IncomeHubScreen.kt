@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -77,6 +78,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import com.example.intrack.ui.theme.*
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
@@ -108,7 +111,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.items
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.intrack.data.model.CryptoHoldingEntity
 import com.example.intrack.data.model.IncomeEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
@@ -145,8 +150,13 @@ fun IncomeHubScreen(
     val selectedChannelFilter by viewModel.selectedChannelFilter.collectAsState()
     val recentMonths = viewModel.recentMonths
 
+    val cryptoRates by viewModel.cryptoRatesState.collectAsState()
+    val cryptoHoldings by viewModel.cryptoHoldingsState.collectAsState()
+
     var showChannelPickerModal by remember { mutableStateOf(false) }
     var activeModalChannel by remember { mutableStateOf<String?>(null) }
+    var showInvestModal by remember { mutableStateOf(false) }
+    var showPayoutModal by remember { mutableStateOf(false) }
     var pendingWindfallAmount by remember { mutableDoubleStateOf(0.0) }
     var pendingWindfallIncome by remember { mutableStateOf<IncomeEntity?>(null) }
     var showWindfallModal by remember { mutableStateOf(false) }
@@ -163,7 +173,7 @@ fun IncomeHubScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             InTrackTopBar(
-                title = "Income Streams",
+                title = "Incomes",
                 onNavigateToSettings = onNavigateToSettings,
                 onNavigateToProfile = onNavigateToProfile,
                 onSignOut = onSignOut,
@@ -179,8 +189,8 @@ fun IncomeHubScreen(
                         Icon(
                             imageVector = Icons.Default.DateRange,
                             contentDescription = "Select Date / Month",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
+                            modifier = Modifier.size(22.dp),
+                            tint = Color(0xFF121660)
                         )
                     }
                     Spacer(modifier = Modifier.width(4.dp))
@@ -424,17 +434,14 @@ fun IncomeHubScreen(
                             }
                         }
 
-                        // Crypto YTD Net Position (Q1 gain vs Q3 loss tracker)
+                        // Crypto Multi-Coin Portfolio & Realized P&L Card
                         item {
                             CryptoYtdNetPositionCard(
+                                holdings = cryptoHoldings,
+                                liveRates = cryptoRates,
                                 ytdNetLkr = hubSummary.cryptoYtdNetPositionLkr,
-                                q1PnlLkr = hubSummary.cryptoQ1PnlLkr,
-                                q2PnlLkr = hubSummary.cryptoQ2PnlLkr,
-                                q3PnlLkr = hubSummary.cryptoQ3PnlLkr,
-                                q4PnlLkr = hubSummary.cryptoQ4PnlLkr,
-                                totalGainsLkr = hubSummary.cryptoYtdTotalGainsLkr,
-                                totalLossesLkr = hubSummary.cryptoYtdTotalLossesLkr,
-                                onLogCryptoClick = { activeModalChannel = "CRYPTO" }
+                                onInvestClick = { showInvestModal = true },
+                                onPayoutClick = { showPayoutModal = true }
                             )
                         }
 
@@ -803,32 +810,49 @@ fun IncomeHubScreen(
             )
         }
         "CRYPTO" -> {
-            CryptoPnlDialog(
+            CryptoInvestModal(
+                liveRates = cryptoRates,
                 onDismiss = { activeModalChannel = null },
-                onSubmit = { capital, withdraw, netPnl ->
-                    viewModel.addIncome(
-                        IncomeEntity(
-                            title = "Crypto Realized P&L (${if (netPnl >= 0) "+${CurrencyFormatter.formatLkr(netPnl)}" else "-${CurrencyFormatter.formatLkr(-netPnl)}"})",
-                            channel = "CRYPTO",
-                            originalAmount = netPnl,
-                            originalCurrency = "LKR",
-                            realizedAmountLkr = netPnl,
-                            status = "PAID"
-                        )
-                    )
+                onConfirmInvest = { coinSymbol, investedLkr ->
+                    viewModel.investInCoin(coinSymbol, investedLkr)
                     activeModalChannel = null
-                    if (netPnl > 0) {
-                        pendingWindfallAmount = netPnl
-                        pendingWindfallIncome = IncomeEntity(title = "Crypto Realized P&L", channel = "CRYPTO", originalAmount = netPnl, originalCurrency = "LKR", realizedAmountLkr = netPnl, status = "PAID")
-                        showWindfallModal = true
-                    } else {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Logged crypto net position (${CurrencyFormatter.formatLkr(netPnl)})")
-                        }
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Invested ${CurrencyFormatter.formatLkr(investedLkr)} into $coinSymbol! Live market tracking active 🚀")
                     }
                 }
             )
         }
+    }
+
+    if (showInvestModal) {
+        CryptoInvestModal(
+            liveRates = cryptoRates,
+            onDismiss = { showInvestModal = false },
+            onConfirmInvest = { coinSymbol, investedLkr ->
+                viewModel.investInCoin(coinSymbol, investedLkr)
+                showInvestModal = false
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Invested ${CurrencyFormatter.formatLkr(investedLkr)} into $coinSymbol! Live market tracking active 🚀")
+                }
+            }
+        )
+    }
+
+    if (showPayoutModal) {
+        CryptoPayoutModal(
+            holdings = cryptoHoldings,
+            liveRates = cryptoRates,
+            onDismiss = { showPayoutModal = false },
+            onConfirmPayout = { coinSymbol, payoutLkr ->
+                viewModel.payoutCoinGains(coinSymbol, payoutLkr)
+                showPayoutModal = false
+                pendingWindfallAmount = payoutLkr
+                showWindfallModal = true
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Cashed out ${CurrencyFormatter.formatLkr(payoutLkr)} from $coinSymbol!")
+                }
+            }
+        )
     }
 
     if (showWindfallModal && pendingWindfallAmount > 0) {
@@ -884,6 +908,7 @@ fun IncomeSpeedDialItem(
     icon: ImageVector,
     onClick: () -> Unit
 ) {
+    val navyText = Color(0xFF121660)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -891,7 +916,7 @@ fun IncomeSpeedDialItem(
     ) {
         Surface(
             shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = navyText,
             tonalElevation = 2.dp
         ) {
             Text(
@@ -900,21 +925,22 @@ fun IncomeSpeedDialItem(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
             )
         }
 
         SmallFloatingActionButton(
             onClick = onClick,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = BrandTangerine,
+            containerColor = navyText,
+            contentColor = Color.White,
             shape = CircleShape,
             modifier = Modifier.size(42.dp)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
+                tint = Color.White,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -969,7 +995,7 @@ fun TotalInflowBreakdownCard(
 
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF121660)),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.0.dp),
         modifier = Modifier.fillMaxWidth()
@@ -992,7 +1018,7 @@ fun TotalInflowBreakdownCard(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.5.sp
                     ),
-                    color = Color(0xFF121660),
+                    color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1001,13 +1027,13 @@ fun TotalInflowBreakdownCard(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF121660).copy(alpha = 0.12f)),
+                        .background(Color.White.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                         contentDescription = "Realized Inflow",
-                        tint = Color(0xFF121660),
+                        tint = Color.White,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -1030,7 +1056,7 @@ fun TotalInflowBreakdownCard(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color(0xFF121660),
+                    color = Color.White,
                     modifier = Modifier.alignByBaseline()
                 )
                 Text(
@@ -1040,7 +1066,7 @@ fun TotalInflowBreakdownCard(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.5).sp
                     ),
-                    color = Color(0xFF121660),
+                    color = Color.White,
                     maxLines = 1,
                     modifier = Modifier.alignByBaseline()
                 )
@@ -1057,7 +1083,7 @@ fun TotalInflowBreakdownCard(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(Color(0xFF121660).copy(alpha = 0.12f))
+                        .background(Color.White.copy(alpha = 0.15f))
                         .padding(horizontal = 12.dp, vertical = 5.dp)
                 ) {
                     Row(
@@ -1070,7 +1096,7 @@ fun TotalInflowBreakdownCard(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.5.sp
                             ),
-                            color = Color(0xFF121660)
+                            color = Color.White
                         )
                         Text(
                             text = "vs. 3-Mo Rolling Avg (${CurrencyFormatter.formatLkr(rollingAvg)})",
@@ -1078,7 +1104,7 @@ fun TotalInflowBreakdownCard(
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Color(0xFF121660)
+                            color = Color.White.copy(alpha = 0.9f)
                         )
                     }
                 }
@@ -1092,14 +1118,14 @@ fun TotalInflowBreakdownCard(
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(Color(0xFF121660).copy(alpha = 0.2f))
+                    .background(Color.White.copy(alpha = 0.2f))
             ) {
                 if (totalInflowLkr > 0 && animatedSalary > 0f) {
                     Box(
                         modifier = Modifier
                             .weight(animatedSalary.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(Color(0xFF121660))
+                            .background(Color.White)
                     )
                 }
                 if (totalInflowLkr > 0 && animatedFreelance > 0f) {
@@ -1140,7 +1166,7 @@ fun TotalInflowBreakdownCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    LegendNumberItem(color = Color(0xFF121660), label = "Salary", amount = salaryTotal, modifier = Modifier.weight(1f))
+                    LegendNumberItem(color = Color.White, label = "Salary", amount = salaryTotal, modifier = Modifier.weight(1f))
                     LegendNumberItem(color = Color(0xFF0171DF), label = "Freelance", amount = freelanceTotal, modifier = Modifier.weight(1f))
                 }
                 Row(
@@ -1161,6 +1187,7 @@ fun LegendNumberItem(
     color: Color,
     label: String,
     amount: Double,
+    textColor: Color = Color.White,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -1183,7 +1210,7 @@ fun LegendNumberItem(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 ),
-                color = Color(0xFF121660),
+                color = textColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1196,7 +1223,7 @@ fun LegendNumberItem(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp
             ),
-            color = Color(0xFF121660),
+            color = textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -1627,48 +1654,50 @@ fun ChannelPickerModal(
     onDismiss: () -> Unit,
     onSelectChannel: (String) -> Unit
 ) {
+    val navyText = Color(0xFF121660)
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
-            Text("Log Income Stream", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Log Income Stream", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = navyText)
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Target Month: $targetMonth", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Text("Target Month: $targetMonth", style = MaterialTheme.typography.bodySmall, color = navyText, fontWeight = FontWeight.Bold)
 
                 ChannelPickItem(
                     title = "Monthly Salary & Bonus",
                     subtitle = "Track base salary (120k+) & monthly bonus",
                     icon = Icons.Rounded.Work,
-                    tint = BrandTangerine,
+                    tint = navyText,
                     onClick = { onSelectChannel("SALARY") }
                 )
                 ChannelPickItem(
                     title = "Monthly Google AdSense",
                     subtitle = "Log USD payout with auto-currency conversion",
                     icon = Icons.Rounded.AttachMoney,
-                    tint = BrandTangerine,
+                    tint = navyText,
                     onClick = { onSelectChannel("ADSENSE") }
                 )
                 ChannelPickItem(
                     title = "Freelance Project Milestone / Invoice",
                     subtitle = "Track SME web builds, invoices & client payments",
                     icon = Icons.Rounded.Laptop,
-                    tint = BrandTangerine,
+                    tint = navyText,
                     onClick = { onSelectChannel("FREELANCE") }
                 )
                 ChannelPickItem(
                     title = "Crypto Realized P&L",
                     subtitle = "Record net realized trading gains or withdrawals",
                     icon = Icons.Rounded.CurrencyBitcoin,
-                    tint = BrandTangerine,
+                    tint = navyText,
                     onClick = { onSelectChannel("CRYPTO") }
                 )
             }
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text("Cancel", color = navyText, fontWeight = FontWeight.Bold) }
         },
         shape = RoundedCornerShape(18.dp)
     )
@@ -1682,13 +1711,15 @@ fun ChannelPickItem(
     tint: Color,
     onClick: () -> Unit
 ) {
-    OutlinedCard(
+    val navyText = Color(0xFF121660)
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+        border = BorderStroke(0.dp, Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -1700,15 +1731,15 @@ fun ChannelPickItem(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(tint.copy(alpha = 0.12f)),
+                    .background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = icon, contentDescription = title, tint = tint, modifier = Modifier.size(18.dp))
+                Icon(imageVector = icon, contentDescription = title, tint = navyText, modifier = Modifier.size(18.dp))
             }
             Spacer(modifier = Modifier.width(10.dp))
             Column {
-                Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = navyText)
+                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = navyText.copy(alpha = 0.7f))
             }
         }
     }
@@ -1727,15 +1758,17 @@ fun MonthlySalaryDialog(
     val base = baseText.toDoubleOrNull() ?: 120000.0
     val bonus = bonusText.toDoubleOrNull() ?: 0.0
     val total = base + bonus
+    val navyText = Color(0xFF121660)
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
-            Text("Log Monthly Salary", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Log Monthly Salary", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = navyText)
         },
         text = {
             Column {
-                Text("Month Cycle", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Month Cycle", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = navyText)
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
                     value = monthName,
@@ -1743,6 +1776,7 @@ fun MonthlySalaryDialog(
                     label = { Text("Target Month") },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1754,6 +1788,7 @@ fun MonthlySalaryDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1765,6 +1800,7 @@ fun MonthlySalaryDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1773,13 +1809,13 @@ fun MonthlySalaryDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(BrandTangerine.copy(alpha = 0.12f))
+                        .background(navyText.copy(alpha = 0.12f))
                         .padding(10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Total Realized", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = BrandTangerine)
-                    Text(CurrencyFormatter.formatLkr(total), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = BrandTangerine)
+                    Text("Total Realized", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = navyText)
+                    Text(CurrencyFormatter.formatLkr(total), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = navyText)
                 }
             }
         },
@@ -1790,13 +1826,14 @@ fun MonthlySalaryDialog(
                         onSubmit(base, bonus, monthName)
                     }
                 },
+                colors = ButtonDefaults.buttonColors(containerColor = navyText),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Save Monthly Salary", fontWeight = FontWeight.Bold)
+                Text("Save Monthly Salary", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text("Cancel", color = navyText, fontWeight = FontWeight.Bold) }
         },
         shape = RoundedCornerShape(16.dp)
     )
@@ -1815,11 +1852,13 @@ fun MonthlyAdSenseDialog(
     val usd = usdText.toDoubleOrNull() ?: 0.0
     val rate = rateText.toDoubleOrNull() ?: 305.0
     val realizedLkr = usd * rate
+    val navyText = Color(0xFF121660)
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
-            Text("Log Monthly AdSense (USD)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Log Monthly AdSense (USD)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = navyText)
         },
         text = {
             Column {
@@ -1829,6 +1868,7 @@ fun MonthlyAdSenseDialog(
                     label = { Text("Payout Month") },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1841,6 +1881,7 @@ fun MonthlyAdSenseDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1853,6 +1894,7 @@ fun MonthlyAdSenseDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1861,13 +1903,13 @@ fun MonthlyAdSenseDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(BrandTangerine.copy(alpha = 0.12f))
+                        .background(navyText.copy(alpha = 0.12f))
                         .padding(10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Converted LKR", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = BrandTangerine)
-                    Text(CurrencyFormatter.formatLkr(realizedLkr), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = BrandTangerine)
+                    Text("Converted LKR", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = navyText)
+                    Text(CurrencyFormatter.formatLkr(realizedLkr), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = navyText)
                 }
             }
         },
@@ -1879,13 +1921,14 @@ fun MonthlyAdSenseDialog(
                     }
                 },
                 enabled = usd > 0,
+                colors = ButtonDefaults.buttonColors(containerColor = navyText),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Save AdSense Inflow", fontWeight = FontWeight.Bold)
+                Text("Save AdSense Inflow", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text("Cancel", color = navyText, fontWeight = FontWeight.Bold) }
         },
         shape = RoundedCornerShape(16.dp)
     )
@@ -1900,11 +1943,13 @@ fun FreelanceMilestoneDialog(
     var client by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
     var isPendingInvoice by remember { mutableStateOf(true) }
+    val navyText = Color(0xFF121660)
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
-            Text("Freelance Project / Invoice", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Freelance Project / Invoice", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = navyText)
         },
         text = {
             Column {
@@ -1915,6 +1960,7 @@ fun FreelanceMilestoneDialog(
                     placeholder = { Text("e.g. Apex Labs / SME Client") },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1926,6 +1972,7 @@ fun FreelanceMilestoneDialog(
                     placeholder = { Text("e.g. React E-Commerce Milestone") },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1938,24 +1985,37 @@ fun FreelanceMilestoneDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Invoice Status", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Invoice Status", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = navyText)
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = isPendingInvoice,
                         onClick = { isPendingInvoice = true },
                         label = { Text("Pending Invoice (Unpaid)") },
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = navyText,
+                            selectedLabelColor = Color.White,
+                            containerColor = BrandSoftSlate,
+                            labelColor = navyText
+                        )
                     )
                     FilterChip(
                         selected = !isPendingInvoice,
                         onClick = { isPendingInvoice = false },
                         label = { Text("Already Received (Paid)") },
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = navyText,
+                            selectedLabelColor = Color.White,
+                            containerColor = BrandSoftSlate,
+                            labelColor = navyText
+                        )
                     )
                 }
             }
@@ -1968,92 +2028,14 @@ fun FreelanceMilestoneDialog(
                         onSubmit(title, client.ifEmpty { "Direct Client" }, amt, if (isPendingInvoice) "INVOICED" else "PAID")
                     }
                 },
+                colors = ButtonDefaults.buttonColors(containerColor = navyText),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text(if (isPendingInvoice) "Create Pending Invoice" else "Save Paid Milestone", fontWeight = FontWeight.Bold)
+                Text(if (isPendingInvoice) "Create Pending Invoice" else "Save Paid Milestone", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-        shape = RoundedCornerShape(16.dp)
-    )
-}
-
-@Composable
-fun CryptoPnlDialog(
-    onDismiss: () -> Unit,
-    onSubmit: (capital: Double, withdraw: Double, netPnl: Double) -> Unit
-) {
-    var capitalText by remember { mutableStateOf("50000") }
-    var withdrawText by remember { mutableStateOf("72000") }
-
-    val capital = capitalText.toDoubleOrNull() ?: 0.0
-    val withdraw = withdrawText.toDoubleOrNull() ?: 0.0
-    val netPnl = withdraw - capital
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Log Crypto Realized P&L", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = capitalText,
-                    onValueChange = { capitalText = it },
-                    label = { Text("Invested Capital Basis (LKR)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = withdrawText,
-                    onValueChange = { withdrawText = it },
-                    label = { Text("Cashed Out / Valuation (LKR)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (netPnl >= 0) IncomePositive.copy(alpha = 0.12f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f))
-                        .padding(10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Net Realized Gain/Loss", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                    Text(
-                        text = if (netPnl >= 0) "+${CurrencyFormatter.formatLkr(netPnl)}" else "-${CurrencyFormatter.formatLkr(-netPnl)}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = if (netPnl >= 0) IncomePositive else MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (withdraw > 0) {
-                        onSubmit(capital, withdraw, netPnl)
-                    }
-                },
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Save Realized P&L", fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text("Cancel", color = navyText, fontWeight = FontWeight.Bold) }
         },
         shape = RoundedCornerShape(16.dp)
     )
@@ -2061,22 +2043,27 @@ fun CryptoPnlDialog(
 
 @Composable
 fun CryptoYtdNetPositionCard(
+    holdings: List<CryptoHoldingEntity>,
+    liveRates: Map<String, Double>,
     ytdNetLkr: Double,
-    q1PnlLkr: Double,
-    q2PnlLkr: Double,
-    q3PnlLkr: Double,
-    q4PnlLkr: Double,
-    totalGainsLkr: Double,
-    totalLossesLkr: Double,
-    onLogCryptoClick: () -> Unit,
+    onInvestClick: () -> Unit,
+    onPayoutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isNetPositive = ytdNetLkr >= 0
-    val netColor = if (isNetPositive) PrimaryGreen else MaterialTheme.colorScheme.error
+    val navyText = Color(0xFF121660)
+
+    val totalLiveValuationLkr = holdings.sumOf { h ->
+        val rate = liveRates[h.coinSymbol.uppercase()] ?: h.avgBuyPriceLkr
+        h.coinQuantity * rate
+    }
+
+    val totalInvestedLkr = holdings.sumOf { it.investedLkr }
+    val totalUnrealizedPnlLkr = totalLiveValuationLkr - totalInvestedLkr
+    val isPnlPositive = totalUnrealizedPnlLkr >= 0
 
     OutlinedCard(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.outlinedCardColors(containerColor = BrandSoftSlate),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -2084,9 +2071,10 @@ fun CryptoYtdNetPositionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // Header Row: Title & Action CTAs
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -2098,165 +2086,369 @@ fun CryptoYtdNetPositionCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(34.dp)
+                            .size(36.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF121660).copy(alpha = 0.12f)),
+                            .background(navyText.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.CurrencyBitcoin,
                             contentDescription = null,
-                            tint = Color(0xFF121660),
-                            modifier = Modifier.size(18.dp)
+                            tint = navyText,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     Column {
                         Text(
-                            text = "Crypto YTD Net Position",
-                            style = MaterialTheme.typography.titleSmall.copy(
+                            text = "Crypto Portfolio & P&L",
+                            style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                                fontSize = 15.sp
                             ),
-                            color = Color(0xFF121660)
+                            color = navyText
                         )
                         Text(
-                            text = "Binance Realized P&L Ledger",
+                            text = "Binance & CoinGecko Live Market",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                            color = Color(0xFF121660).copy(alpha = 0.8f)
+                            color = navyText.copy(alpha = 0.7f)
                         )
                     }
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF121660),
-                    modifier = Modifier.clickable { onLogCryptoClick() }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // + Invest Button
+                    Button(
+                        onClick = onInvestClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = navyText),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = "Log P&L",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            ),
-                            color = Color.White
-                        )
+                        Icon(imageVector = Icons.Rounded.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Invest", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), color = Color.White)
+                    }
+
+                    // Payout Button
+                    Button(
+                        onClick = onPayoutClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0171DF)),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Payout", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), color = Color.White)
                     }
                 }
             }
 
+            // Portfolio Value Banner
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(netColor.copy(alpha = 0.08f))
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
-                        text = "TOTAL YTD REALIZED EARNINGS",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "LIVE PORTFOLIO VALUATION",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+                        color = navyText.copy(alpha = 0.7f)
                     )
                     Text(
-                        text = if (isNetPositive) "+${CurrencyFormatter.formatLkr(ytdNetLkr)}" else "-${CurrencyFormatter.formatLkr(-ytdNetLkr)}",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 20.sp
-                        ),
-                        color = netColor
+                        text = CurrencyFormatter.formatLkr(totalLiveValuationLkr),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 21.sp),
+                        color = navyText
                     )
                 }
 
                 Box(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .background(netColor.copy(alpha = 0.15f))
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isPnlPositive) Color(0xFFE5F6F1) else Color(0xFFFFEBEE))
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
-                        text = if (isNetPositive) "NET GAIN" else "NET LOSS",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = netColor
+                        text = if (isPnlPositive) "+${CurrencyFormatter.formatLkr(totalUnrealizedPnlLkr)}" else "-${CurrencyFormatter.formatLkr(-totalUnrealizedPnlLkr)}",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                        color = if (isPnlPositive) Color(0xFF3CAE8C) else Color(0xFFD32F2F)
                     )
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        .padding(10.dp)
+            // Active Coin Holdings Horizontal Carousel
+            if (holdings.isNotEmpty()) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                        text = "Q1 Gain",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = if (q1PnlLkr >= 0) "+${CurrencyFormatter.formatLkr(q1PnlLkr)}" else "-${CurrencyFormatter.formatLkr(-q1PnlLkr)}",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.5.sp
-                        ),
-                        color = if (q1PnlLkr >= 0) PrimaryGreen else MaterialTheme.colorScheme.error
-                    )
-                }
+                    items(holdings) { holding ->
+                        val currentRate = liveRates[holding.coinSymbol.uppercase()] ?: holding.avgBuyPriceLkr
+                        val currentValuation = holding.coinQuantity * currentRate
+                        val holdingPnl = currentValuation - holding.investedLkr
+                        val isPositive = holdingPnl >= 0
 
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        .padding(10.dp)
-                ) {
-                    Text(
-                        text = "Q3 Loss",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = if (q3PnlLkr >= 0) "+${CurrencyFormatter.formatLkr(q3PnlLkr)}" else "-${CurrencyFormatter.formatLkr(-q3PnlLkr)}",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.5.sp
-                        ),
-                        color = if (q3PnlLkr >= 0) PrimaryGreen else MaterialTheme.colorScheme.error
-                    )
+                        Card(
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(0.dp, Color.Transparent),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            modifier = Modifier.width(160.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = holding.coinSymbol.uppercase(),
+                                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                                        color = navyText
+                                    )
+                                    Text(
+                                        text = if (isPositive) "▲" else "▼",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        color = if (isPositive) Color(0xFF3CAE8C) else Color(0xFFD32F2F)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Text(
+                                    text = "${String.format(Locale.US, "%.4f", holding.coinQuantity)} ${holding.coinSymbol.uppercase()}",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Medium),
+                                    color = navyText.copy(alpha = 0.75f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Text(
+                                    text = CurrencyFormatter.formatLkr(currentValuation),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
+                                    color = navyText,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CryptoInvestModal(
+    liveRates: Map<String, Double>,
+    onDismiss: () -> Unit,
+    onConfirmInvest: (coinSymbol: String, investedLkr: Double) -> Unit
+) {
+    val coins = listOf("USDT", "ETH", "BTC", "SOL", "BNB", "ADA", "XRP", "DOGE")
+    var selectedCoin by remember { mutableStateOf("ETH") }
+    var amountInputText by remember { mutableStateOf("50000") }
+    val navyText = Color(0xFF121660)
+
+    val currentLiveRate = liveRates[selectedCoin.uppercase()] ?: when (selectedCoin.uppercase()) {
+        "USDT" -> 332.40
+        "ETH" -> 765516.00
+        "BTC" -> 26450000.00
+        "SOL" -> 51800.00
+        "BNB" -> 186200.00
+        "ADA" -> 142.50
+        "XRP" -> 182.00
+        else -> 48.20
+    }
+
+    val investedLkr = amountInputText.toDoubleOrNull() ?: 0.0
+    val calculatedCoinQty = if (currentLiveRate > 0) investedLkr / currentLiveRate else 0.0
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        title = {
+            Text("Invest in Crypto Coin", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = navyText)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Select Coin", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = navyText)
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(coins) { coin ->
+                        val isSelected = selectedCoin.equals(coin, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedCoin = coin },
+                            label = { Text(coin) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = navyText,
+                                selectedLabelColor = Color.White,
+                                containerColor = BrandSoftSlate,
+                                labelColor = navyText
+                            )
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = amountInputText,
+                    onValueChange = { amountInputText = it.filter { c -> c.isDigit() || c == '.' } },
+                    label = { Text("Invested LKR Sum") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(BrandSoftSlate)
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "LIVE RATE: 1 $selectedCoin = ${CurrencyFormatter.formatLkr(currentLiveRate)}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold),
+                            color = navyText
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "Auto-Calculated Coin Quantity: ${String.format(Locale.US, "%.6f", calculatedCoinQty)} $selectedCoin",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                            color = Color(0xFF0171DF)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (investedLkr > 0) {
+                        onConfirmInvest(selectedCoin, investedLkr)
+                    }
+                },
+                enabled = investedLkr > 0,
+                colors = ButtonDefaults.buttonColors(containerColor = navyText),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Confirm Investment", fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel", color = navyText, fontWeight = FontWeight.Bold) }
+        },
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CryptoPayoutModal(
+    holdings: List<CryptoHoldingEntity>,
+    liveRates: Map<String, Double>,
+    onDismiss: () -> Unit,
+    onConfirmPayout: (coinSymbol: String, payoutLkr: Double) -> Unit
+) {
+    val activeCoins = holdings.map { it.coinSymbol.uppercase() }.ifEmpty { listOf("ETH", "USDT") }
+    var selectedCoin by remember { mutableStateOf(activeCoins.firstOrNull() ?: "ETH") }
+    var payoutInputText by remember { mutableStateOf("25000") }
+    val navyText = Color(0xFF121660)
+
+    val currentHolding = holdings.find { it.coinSymbol.equals(selectedCoin, ignoreCase = true) }
+    val currentRate = liveRates[selectedCoin.uppercase()] ?: currentHolding?.avgBuyPriceLkr ?: 332.40
+    val maxLkrValue = (currentHolding?.coinQuantity ?: 0.0) * currentRate
+
+    val payoutLkr = payoutInputText.toDoubleOrNull() ?: 0.0
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        title = {
+            Text("Payout & Realize Gains", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = navyText)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Select Coin to Payout", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = navyText)
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(activeCoins) { coin ->
+                        val isSelected = selectedCoin.equals(coin, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedCoin = coin },
+                            label = { Text(coin) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = navyText,
+                                selectedLabelColor = Color.White,
+                                containerColor = BrandSoftSlate,
+                                labelColor = navyText
+                            )
+                        )
+                    }
+                }
+
+                if (currentHolding != null) {
+                    Text(
+                        text = "Holding: ${String.format(Locale.US, "%.4f", currentHolding.coinQuantity)} $selectedCoin (${CurrencyFormatter.formatLkr(maxLkrValue)})",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
+                        color = Color(0xFF0171DF)
+                    )
+                }
+
+                OutlinedTextField(
+                    value = payoutInputText,
+                    onValueChange = { payoutInputText = it.filter { c -> c.isDigit() || c == '.' } },
+                    label = { Text("LKR Payout Amount") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (payoutLkr > 0) {
+                        onConfirmPayout(selectedCoin, payoutLkr)
+                    }
+                },
+                enabled = payoutLkr > 0,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0171DF)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Confirm Payout", fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel", color = navyText, fontWeight = FontWeight.Bold) }
+        },
+        shape = RoundedCornerShape(16.dp)
+    )
 }
