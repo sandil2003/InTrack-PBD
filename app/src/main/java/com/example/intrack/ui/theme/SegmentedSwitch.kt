@@ -1,31 +1,25 @@
 package com.example.intrack.ui.theme
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -36,7 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Standard 2-segment sliding pill switch matching Figma node 2006:55 with tactile haptic response.
+ * Standard 2-segment sliding pill switch with fluid spring animation
+ * sliding the white indicator pill physically from left-to-right and right-to-left.
  */
 @Composable
 fun InTrackSegmentedSwitch(
@@ -49,42 +44,57 @@ fun InTrackSegmentedSwitch(
 ) {
     val haptics = LocalHapticFeedback.current
 
+    val alignmentBias by animateFloatAsState(
+        targetValue = if (isLeftSelected) -1f else 1f,
+        animationSpec = spring(
+            stiffness = Spring.StiffnessMediumLow,
+            dampingRatio = Spring.DampingRatioNoBouncy
+        ),
+        label = "switchPillAlignment"
+    )
+
+    val leftTextColor by animateColorAsState(
+        targetValue = if (isLeftSelected) Color(0xFF121660) else Color(0xFF121660).copy(alpha = 0.65f),
+        label = "switchLeftText"
+    )
+    val rightTextColor by animateColorAsState(
+        targetValue = if (!isLeftSelected) Color(0xFF121660) else Color(0xFF121660).copy(alpha = 0.65f),
+        label = "switchRightText"
+    )
+
+    // Darker Slate background without a border
+    val trackBg = Color(0xFFE2E6F2)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(48.dp)
-            .clip(RoundedCornerShape(9999.dp))
-            .background(FigmaSwitchBg)
-            .border(1.dp, FigmaBorder, RoundedCornerShape(9999.dp))
+            .clip(CircleShape)
+            .background(trackBg)
             .padding(4.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Sliding Pure White Indicator Pill
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.5f)
+                .fillMaxHeight()
+                .align(BiasAlignment(alignmentBias, 0f))
+                .clip(CircleShape)
+                .background(Color.White)
+        )
+
+        // Labels Row over the sliding pill
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Tab
-            val leftBgColor by animateColorAsState(
-                targetValue = if (isLeftSelected) Color.White else Color.Transparent,
-                animationSpec = tween(200),
-                label = "switchLeftBg"
-            )
-            val leftTextColor by animateColorAsState(
-                targetValue = if (isLeftSelected) FigmaTerracotta else FigmaMutedSlate,
-                animationSpec = tween(200),
-                label = "switchLeftText"
-            )
-
+            // Left Tab ("Daily Transactions")
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(leftBgColor)
-                    .then(
-                        if (isLeftSelected) Modifier.border(1.dp, FigmaBorderActive, RoundedCornerShape(9999.dp))
-                        else Modifier
-                    )
+                    .clip(CircleShape)
                     .clickable {
                         if (!isLeftSelected) {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -104,31 +114,14 @@ fun InTrackSegmentedSwitch(
                 )
             }
 
-            // Right Tab
-            val isRightSelected = !isLeftSelected
-            val rightBgColor by animateColorAsState(
-                targetValue = if (isRightSelected) Color.White else Color.Transparent,
-                animationSpec = tween(200),
-                label = "switchRightBg"
-            )
-            val rightTextColor by animateColorAsState(
-                targetValue = if (isRightSelected) FigmaTerracotta else FigmaMutedSlate,
-                animationSpec = tween(200),
-                label = "switchRightText"
-            )
-
+            // Right Tab ("Subscriptions")
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(rightBgColor)
-                    .then(
-                        if (isRightSelected) Modifier.border(1.dp, FigmaBorderActive, RoundedCornerShape(9999.dp))
-                        else Modifier
-                    )
+                    .clip(CircleShape)
                     .clickable {
-                        if (!isRightSelected) {
+                        if (isLeftSelected) {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             onRightSelect()
                         }
@@ -139,7 +132,7 @@ fun InTrackSegmentedSwitch(
                     text = rightLabel,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontSize = 13.5.sp,
-                        fontWeight = if (isRightSelected) FontWeight.Bold else FontWeight.SemiBold
+                        fontWeight = if (!isLeftSelected) FontWeight.Bold else FontWeight.SemiBold
                     ),
                     color = rightTextColor,
                     maxLines = 1

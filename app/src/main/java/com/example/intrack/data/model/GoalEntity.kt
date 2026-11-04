@@ -1,8 +1,12 @@
 package com.example.intrack.data.model
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.google.firebase.firestore.PropertyName
 
+@Entity(tableName = "goals")
 data class GoalEntity(
+    @PrimaryKey
     val id: String = "macbook_m4_goal",
     val userId: String = "",
     val title: String = "MacBook Pro M4 Fund",

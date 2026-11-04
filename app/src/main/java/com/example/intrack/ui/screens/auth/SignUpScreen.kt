@@ -75,7 +75,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.common.UiState
 import kotlinx.coroutines.launch
 
@@ -93,7 +93,7 @@ fun SignUpScreen(
     onSignUpSuccess: () -> Unit,
     onNavigateToSignIn: () -> Unit,
     onBackClick: () -> Unit = {},
-    viewModel: AuthViewModel = viewModel(),
+    viewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val authState by viewModel.authState.collectAsState()
@@ -196,7 +196,7 @@ fun SignUpScreen(
             // 3. Section - Primary Form Card (Figma node 2007:121)
             Card(
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, AuthBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier
@@ -217,7 +217,7 @@ fun SignUpScreen(
                             viewModel.clearError()
                         },
                         label = "Full Name",
-                        placeholder = "e.g. Alex Morgan",
+                        placeholder = "Enter your full name",
                         leadingIcon = Icons.Rounded.PersonOutline,
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Words,
@@ -355,7 +355,7 @@ fun SignUpScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Check,
                                     contentDescription = "Accepted",
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -456,20 +456,6 @@ fun SignUpScreen(
                                         )
                                     }
                                 }
-
-                                Text(
-                                    text = "Continue in Demo Mode →",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = AuthTerracotta,
-                                    modifier = Modifier
-                                        .align(Alignment.End)
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .clickable { viewModel.continueOffline() }
-                                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                                )
                             }
                         }
                     }
@@ -484,7 +470,7 @@ fun SignUpScreen(
                         shape = RoundedCornerShape(9999.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AuthPrimaryOrange,
-                            contentColor = Color.White
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -492,7 +478,7 @@ fun SignUpScreen(
                     ) {
                         if (authState is UiState.Loading) {
                             CircularProgressIndicator(
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
                             )
@@ -526,12 +512,6 @@ fun SignUpScreen(
                 onGoogleClick = {
                     focusManager.clearFocus()
                     viewModel.signInWithGoogle(context)
-                },
-                onAppleClick = {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Apple ID session initialized.")
-                        viewModel.continueOffline()
-                    }
                 },
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
@@ -603,7 +583,7 @@ fun SignUpScreen(
                     }
                 },
                 shape = RoundedCornerShape(20.dp),
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             )
         }
 
@@ -611,7 +591,7 @@ fun SignUpScreen(
         if (showTermsSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showTermsSheet = false },
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
                 Column(
@@ -663,11 +643,7 @@ fun SignUpScreen(
         // Google Sign-In Setup & SHA-1 Helper Modal
         if (showGoogleSetupDialog) {
             GoogleSetupModal(
-                onDismiss = { viewModel.dismissGoogleSetupDialog() },
-                onContinueDemo = {
-                    viewModel.dismissGoogleSetupDialog()
-                    viewModel.continueOffline()
-                }
+                onDismiss = { viewModel.dismissGoogleSetupDialog() }
             )
         }
     }

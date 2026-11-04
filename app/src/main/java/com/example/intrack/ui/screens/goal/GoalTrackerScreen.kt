@@ -60,7 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.GoalEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
@@ -85,12 +85,14 @@ fun GoalTrackerScreen(
     onNavigateToAddGoal: (() -> Unit)? = null,
     onNavigateBack: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = onNavigateToSettings,
     onSignOut: () -> Unit = {},
-    viewModel: GoalViewModel = viewModel(),
+    viewModel: GoalViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val goalsState by viewModel.goalsState.collectAsState()
-    var selectedFilter by remember { mutableStateOf("ALL") }
+    val portfolioSummary by viewModel.portfolioSummary.collectAsState()
+    val selectedFilter by viewModel.selectedFilter.collectAsState()
     var showAddGoalDialog by remember { mutableStateOf(false) }
     var depositGoal by remember { mutableStateOf<GoalEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -98,13 +100,14 @@ fun GoalTrackerScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = FigmaBg,
+        containerColor = Color.White,
         topBar = {
             InTrackTopBar(
                 title = "Goals",
                 onNavigateToSettings = onNavigateToSettings,
+                onNavigateToProfile = onNavigateToProfile,
                 onSignOut = onSignOut,
-                showProfileMenu = false
+                showProfileMenu = true
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -142,8 +145,7 @@ fun GoalTrackerScreen(
                         message = errorMsg,
                         actionLabel = "Retry",
                         onActionClick = {
-                            val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                            viewModel.loadGoals(currentUid)
+                            viewModel.loadGoals()
                         }
                     )
                 }
@@ -163,22 +165,12 @@ fun GoalTrackerScreen(
                     )
                 }
                 is UiState.Success -> {
-                    val goals = (goalsState as UiState.Success<List<GoalEntity>>).data
-                    val totalSaved = goals.sumOf { it.currentSavedLkr }
-                    val totalTarget = goals.sumOf { it.targetAmountLkr }
-                    val overallRatio = if (totalTarget > 0.0) (totalSaved / totalTarget).toFloat().coerceIn(0f, 1f) else 0f
-
-                    val completedCount = goals.count { it.isCompleted || (it.targetAmountLkr > 0.0 && it.currentSavedLkr >= it.targetAmountLkr) }
-                    val inProgressCount = goals.size - completedCount
-
-                    val filteredGoals = goals.filter { g ->
-                        val isDone = g.isCompleted || (g.targetAmountLkr > 0.0 && g.currentSavedLkr >= g.targetAmountLkr)
-                        when (selectedFilter) {
-                            "ACTIVE", "IN_PROGRESS" -> !isDone
-                            "DONE", "COMPLETED" -> isDone
-                            else -> true
-                        }
-                    }
+                    val totalSaved = portfolioSummary.totalSavedLkr
+                    val totalTarget = portfolioSummary.totalTargetLkr
+                    val overallRatio = portfolioSummary.overallRatio
+                    val completedCount = portfolioSummary.completedCount
+                    val inProgressCount = portfolioSummary.inProgressCount
+                    val filteredGoals = portfolioSummary.filteredGoals
 
                     LazyColumn(
                         modifier = Modifier
@@ -214,7 +206,7 @@ fun GoalTrackerScreen(
                                     InTrackFilterPill(
                                         label = label,
                                         isSelected = selectedFilter == key,
-                                        onClick = { selectedFilter = key }
+                                        onClick = { viewModel.setSelectedFilter(key) }
                                     )
                                 }
                             }
@@ -225,7 +217,7 @@ fun GoalTrackerScreen(
                             item {
                                 EmptyFilterGoalsCard(
                                     filter = selectedFilter,
-                                    onResetFilter = { selectedFilter = "ALL" }
+                                    onResetFilter = { viewModel.setSelectedFilter("ALL") }
                                 )
                             }
                         } else {
@@ -252,8 +244,7 @@ fun GoalTrackerScreen(
         AddGoalBottomSheet(
             onDismiss = { showAddGoalDialog = false },
             onSubmit = { newGoal ->
-                val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                viewModel.addGoal(newGoal.copy(userId = currentUid))
+                viewModel.addGoal(newGoal)
                 showAddGoalDialog = false
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Created financial goal '${newGoal.title}'!")
@@ -302,8 +293,11 @@ fun FigmaGoalsOverviewCard(
     val effectiveRatio = if (isFullyCompleted) 1f else overallRatio.coerceIn(0f, 1f)
     val percentageInt = (effectiveRatio * 100).toInt()
 
+    val navyText = Color(0xFF121660)
+
     InTrackCard(
         shape = InTrackCardShape,
+        containerColor = BrandWarmYellow,
         elevation = 0.5.dp,
         modifier = modifier.fillMaxWidth()
     ) {
@@ -326,13 +320,13 @@ fun FigmaGoalsOverviewCard(
                         modifier = Modifier
                             .size(26.dp)
                             .clip(CircleShape)
-                            .background(FigmaSoftPeach),
+                            .background(navyText.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.TrackChanges,
                             contentDescription = null,
-                            tint = FigmaTerracotta,
+                            tint = navyText,
                             modifier = Modifier.size(15.dp)
                         )
                     }
@@ -343,7 +337,7 @@ fun FigmaGoalsOverviewCard(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         ),
-                        color = FigmaMutedBrown
+                        color = navyText
                     )
                 }
 
@@ -353,14 +347,14 @@ fun FigmaGoalsOverviewCard(
                 ) {
                     InTrackStatusBadge(
                         text = "$activeCount Active",
-                        containerColor = FigmaSoftPeach,
-                        contentColor = FigmaTerracotta,
+                        containerColor = navyText.copy(alpha = 0.12f),
+                        contentColor = navyText,
                         fontSize = 11.sp
                     )
                     InTrackStatusBadge(
                         text = "$completedCount Done",
-                        containerColor = Color(0xFFE8F5E9),
-                        contentColor = Color(0xFF2E7D32),
+                        containerColor = navyText.copy(alpha = 0.2f),
+                        contentColor = navyText,
                         fontSize = 11.sp
                     )
                 }
@@ -376,7 +370,7 @@ fun FigmaGoalsOverviewCard(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
                 ),
-                color = FigmaDarkText
+                color = navyText
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -385,8 +379,8 @@ fun FigmaGoalsOverviewCard(
             InTrackProgressBar(
                 progress = effectiveRatio,
                 height = 8.dp,
-                fillColor = if (isFullyCompleted) Color(0xFF2E7D32) else FigmaTerracotta,
-                trackColor = FigmaTrackBg,
+                fillColor = navyText,
+                trackColor = navyText.copy(alpha = 0.2f),
                 animate = true
             )
         }
@@ -421,15 +415,18 @@ fun FigmaGoalCard(
     val categoryIcon = GoalCategoryHelper.getCategoryIcon(goal.category)
     val categoryLabel = GoalCategoryHelper.getCategoryLabel(goal.category)
 
+    val navyText = Color(0xFF121660)
+
     val (badgeText, badgeColor, badgeWeight) = when {
-        isCompleted -> Triple("• Done 🎉", Color(0xFF2E7D32), FontWeight.SemiBold)
-        isOverdue -> Triple("• Overdue", FigmaTerracotta, FontWeight.Bold)
-        daysLeft == 0L -> Triple("• Due today", FigmaTerracotta, FontWeight.Bold)
-        else -> Triple("• ${daysLeft}d left", FigmaMutedSlate, FontWeight.Normal)
+        isCompleted -> Triple("• Done 🎉", Color(0xFF3CAE8C), FontWeight.SemiBold)
+        isOverdue -> Triple("• Overdue", navyText, FontWeight.Bold)
+        daysLeft == 0L -> Triple("• Due today", navyText, FontWeight.Bold)
+        else -> Triple("• ${daysLeft}d left", navyText.copy(alpha = 0.7f), FontWeight.Normal)
     }
 
     InTrackCard(
         shape = InTrackMediumCardShape,
+        containerColor = BrandSoftSlate,
         elevation = 0.5.dp,
         onClick = onClick,
         modifier = modifier.fillMaxWidth()
@@ -455,13 +452,13 @@ fun FigmaGoalCard(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(if (isCompleted) Color(0xFFE8F5E9) else FigmaSoftPeach),
+                            .background(Color.White),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = categoryIcon,
                             contentDescription = categoryLabel,
-                            tint = if (isCompleted) Color(0xFF2E7D32) else FigmaTerracotta,
+                            tint = navyText,
                             modifier = Modifier.size(19.dp)
                         )
                     }
@@ -472,7 +469,7 @@ fun FigmaGoalCard(
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = FigmaDarkText,
+                        color = navyText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
@@ -496,25 +493,25 @@ fun FigmaGoalCard(
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                     contentDescription = "View Details",
-                    tint = FigmaMutedSlate.copy(alpha = 0.35f),
+                    tint = navyText.copy(alpha = 0.4f),
                     modifier = Modifier.size(12.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Smooth animated progress bar (100% full when completed)
+            // Smooth animated progress bar
             InTrackProgressBar(
                 progress = effectiveProgress,
                 height = 6.dp,
-                fillColor = if (isCompleted) Color(0xFF2E7D32) else FigmaTerracotta,
-                trackColor = FigmaTrackBg,
+                fillColor = if (isCompleted) Color(0xFF3CAE8C) else navyText,
+                trackColor = navyText.copy(alpha = 0.15f),
                 animate = true
             )
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Bottom Row: Completion % on left, compact interactive + Deposit pill button on right (or Completed ✨ if done)
+            // Bottom Row: Completion % on left, compact interactive + Deposit pill button on right
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -526,7 +523,7 @@ fun FigmaGoalCard(
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = if (isCompleted) Color(0xFF2E7D32) else FigmaTerracotta,
+                    color = navyText,
                     maxLines = 1,
                     softWrap = false
                 )
@@ -535,7 +532,7 @@ fun FigmaGoalCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(999.dp))
-                            .background(FigmaSoftPeach)
+                            .background(navyText)
                             .clickable(
                                 role = Role.Button,
                                 onClickLabel = "Deposit to ${goal.title}",
@@ -551,7 +548,7 @@ fun FigmaGoalCard(
                             Icon(
                                 imageVector = Icons.Rounded.Add,
                                 contentDescription = null,
-                                tint = FigmaTerracotta,
+                                tint = Color.White,
                                 modifier = Modifier.size(13.dp)
                             )
                             Text(
@@ -560,7 +557,7 @@ fun FigmaGoalCard(
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = FigmaTerracotta,
+                                color = Color.White,
                                 maxLines = 1,
                                 softWrap = false
                             )
@@ -573,7 +570,7 @@ fun FigmaGoalCard(
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Color(0xFF2E7D32),
+                        color = Color(0xFF3CAE8C),
                         maxLines = 1,
                         softWrap = false
                     )

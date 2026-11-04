@@ -1,5 +1,9 @@
 package com.example.intrack.ui.screens.subscriptions
 
+import com.example.intrack.ui.theme.*
+
+import androidx.compose.material3.MaterialTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -82,7 +86,7 @@ fun ViewSubscriptionScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F3EF))
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
     ) {
         Column(
@@ -90,7 +94,7 @@ fun ViewSubscriptionScreen(
                 .fillMaxSize()
                 .padding(top = 16.dp)
                 .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
         ) {
             ViewSubscriptionContent(
                 subscription = subscription,
@@ -120,7 +124,7 @@ fun ViewSubscriptionBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = null,
         modifier = modifier.imePadding()
     ) {
@@ -234,13 +238,13 @@ fun ViewSubscriptionContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Category Chip Indicator (Pill, fill #F5DED4, border 1dp #E3BEB6)
+            // Category Chip Indicator (Pill, fill FigmaSoftPeach, border 1dp FigmaBorder)
             Row(
                 modifier = Modifier
                     .height(28.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFF5DED4))
-                    .border(1.dp, Color(0xFFE3BEB6), CircleShape)
+                    .background(FigmaSoftPeach)
+                    .border(1.dp, FigmaBorder, CircleShape)
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -248,7 +252,7 @@ fun ViewSubscriptionContent(
                 Icon(
                     imageVector = categoryIcon,
                     contentDescription = null,
-                    tint = Color(0xFFB52705),
+                    tint = FigmaTerracotta,
                     modifier = Modifier.size(13.dp)
                 )
                 Text(
@@ -256,16 +260,16 @@ fun ViewSubscriptionContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF5B0D00)
+                    color = FigmaDarkText
                 )
             }
 
-            // Close modal button (36x36dp circle, fill #F5F3EF)
+            // Close modal button (36x36dp circle, fill background)
             Box(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFF5F3EF))
+                    .background(MaterialTheme.colorScheme.background)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -275,7 +279,7 @@ fun ViewSubscriptionContent(
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close",
-                    tint = Color(0xFF585F6B),
+                    tint = FigmaMutedSlate,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -291,19 +295,19 @@ fun ViewSubscriptionContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Rounded square badge (56x56dp, fill #F5DED4, border 1dp #E3BEB6, cr 16dp)
+            // Rounded square badge (56x56dp, fill FigmaSoftPeach, border 1dp FigmaBorder, cr 16dp)
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFF5DED4).copy(alpha = 0.7f))
-                    .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(16.dp)),
+                    .background(FigmaSoftPeach)
+                    .border(1.dp, FigmaBorder, RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = categoryIcon,
                     contentDescription = subscription.name,
-                    tint = Color(0xFFB52705),
+                    tint = FigmaTerracotta,
                     modifier = Modifier.size(26.dp)
                 )
             }
@@ -313,7 +317,7 @@ fun ViewSubscriptionContent(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1B1C1A),
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2
             )
         }
@@ -350,7 +354,7 @@ fun ViewSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFFB52705)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -365,7 +369,7 @@ fun ViewSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1B1C1A),
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.alignByBaseline()
                     )
 
@@ -374,7 +378,7 @@ fun ViewSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1B1C1A),
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         softWrap = false,
                         modifier = Modifier.alignByBaseline()
@@ -403,7 +407,7 @@ fun ViewSubscriptionContent(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(16.dp))
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -423,13 +427,13 @@ fun ViewSubscriptionContent(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF5F3EF)),
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.CalendarToday,
                                 contentDescription = null,
-                                tint = Color(0xFF585F6B),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -440,14 +444,14 @@ fun ViewSubscriptionContent(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Normal,
-                                color = Color(0xFF585F6B)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = subscription.billingCycle.lowercase().replaceFirstChar { it.uppercase() },
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF1B1C1A)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -455,7 +459,7 @@ fun ViewSubscriptionContent(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xFFF5F3EF))
+                            .background(MaterialTheme.colorScheme.background)
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
@@ -486,13 +490,13 @@ fun ViewSubscriptionContent(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF5F3EF)),
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = if (subscription.paymentAccount == "CARD_PRIMARY") Icons.Rounded.CreditCard else Icons.Rounded.AccountBalance,
                                 contentDescription = null,
-                                tint = Color(0xFF585F6B),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -503,14 +507,14 @@ fun ViewSubscriptionContent(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Normal,
-                                color = Color(0xFF585F6B)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = paymentSourceLabel,
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF1B1C1A)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -553,13 +557,13 @@ fun ViewSubscriptionContent(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF5F3EF)),
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Sync,
                                 contentDescription = null,
-                                tint = Color(0xFF585F6B),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -570,14 +574,14 @@ fun ViewSubscriptionContent(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Normal,
-                                color = Color(0xFF585F6B)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = if (subscription.isAutoPayment) "Enabled" else "Manual",
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF1B1C1A)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -609,13 +613,13 @@ fun ViewSubscriptionContent(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF5F3EF)),
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = categoryIcon,
                                 contentDescription = null,
-                                tint = Color(0xFF585F6B),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -626,14 +630,14 @@ fun ViewSubscriptionContent(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Normal,
-                                color = Color(0xFF585F6B)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = categoryDisplayName,
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF1B1C1A)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -665,13 +669,13 @@ fun ViewSubscriptionContent(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF5F3EF)),
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
                                 contentDescription = null,
-                                tint = Color(0xFF585F6B),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -682,14 +686,14 @@ fun ViewSubscriptionContent(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Normal,
-                                color = Color(0xFF585F6B)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "LKR " + String.format(Locale.US, "%,.2f", totalPaid),
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF1B1C1A)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -750,7 +754,7 @@ fun ViewSubscriptionContent(
                     .fillMaxWidth()
                     .height(48.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFFF5C38))
+                    .background(MaterialTheme.colorScheme.primary)
                     .clickable {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onEdit()
@@ -764,7 +768,7 @@ fun ViewSubscriptionContent(
                     Icon(
                         imageVector = Icons.Rounded.Edit,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
@@ -772,7 +776,7 @@ fun ViewSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -783,8 +787,8 @@ fun ViewSubscriptionContent(
                     .fillMaxWidth()
                     .height(48.dp)
                     .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE3BEB6), CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                     .clickable {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onDelete()
@@ -798,7 +802,7 @@ fun ViewSubscriptionContent(
                     Icon(
                         imageVector = Icons.Rounded.Delete,
                         contentDescription = null,
-                        tint = Color(0xFFB52705),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
@@ -806,7 +810,7 @@ fun ViewSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFFB52705)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }

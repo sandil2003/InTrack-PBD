@@ -1,7 +1,6 @@
 package com.example.intrack.ui.screens.settings
 
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -12,17 +11,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,7 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Logout
-import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
@@ -45,9 +47,10 @@ import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -65,8 +68,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,24 +84,44 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.theme.AppThemeMode
+import com.example.intrack.ui.theme.BrandSoftSlate
 import com.example.intrack.ui.theme.BrandTangerine
+import com.example.intrack.ui.theme.BrandWarmYellow
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
-import com.google.firebase.auth.FirebaseAuth
+import com.example.intrack.viewmodel.AuthViewModel
+import com.example.intrack.viewmodel.IncomeViewModel
+import com.example.intrack.viewmodel.ExpenseViewModel
+import com.example.intrack.viewmodel.GoalViewModel
+import com.example.intrack.viewmodel.SubscriptionViewModel
+import com.example.intrack.data.repository.IncomeRepository
+import com.example.intrack.data.repository.IncomeRepositoryImpl
+import com.example.intrack.data.repository.ExpenseRepository
+import com.example.intrack.data.repository.ExpenseRepositoryImpl
+import com.example.intrack.data.repository.GoalRepository
+import com.example.intrack.data.repository.GoalRepositoryImpl
+import com.example.intrack.data.repository.SubscriptionRepository
+import com.example.intrack.data.repository.SubscriptionRepositoryImpl
+import com.example.intrack.util.FinancialExportService
+import com.example.intrack.util.KavinduScenarioSeeder
+import com.example.intrack.ui.common.UiState
+import androidx.compose.material.icons.rounded.Dataset
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Design Tokens matching Figma node 2015:802
-private val FigmaBg = Color(0xFFFFFFFF)
-private val FigmaDark = Color(0xFF1B1C1A)
-private val FigmaMuted = Color(0xFF6B5B53)
-private val FigmaSubtle = Color(0xFF8A7B73)
-private val FigmaBorder = Color(0xFFEFE9E0)
-private val FigmaPeachTint = Color(0xFFF5DED4)
-private val FigmaRust = Color(0xFFB52705)
-private val FigmaIconBg = Color(0xFFFFF2EC)
+private val FigmaBg: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.background
+private val FigmaDark: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurface
+private val FigmaMuted: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurfaceVariant
+private val FigmaSubtle: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+private val FigmaBorder: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.outlineVariant
+private val FigmaPeachTint: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.primaryContainer
+private val FigmaRust: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.primary
+private val FigmaIconBg: Color @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.surfaceContainerHighest
 private val FigmaActiveGreen = Color(0xFF2ECC71)
 private val FigmaSuccessBadgeBg = Color(0xFFE8F8F0)
 private val FigmaSuccessBadgeText = Color(0xFF1E8449)
@@ -110,29 +134,31 @@ fun SettingsScreen(
     onSignOut: () -> Unit,
     themeMode: AppThemeMode = AppThemeMode.LIGHT,
     onThemeModeChange: (AppThemeMode) -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
+    authViewModel: AuthViewModel = hiltViewModel(),
+    incomeViewModel: IncomeViewModel = hiltViewModel(),
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
+    goalViewModel: GoalViewModel = hiltViewModel(),
+    subscriptionViewModel: SubscriptionViewModel = hiltViewModel(),
+    incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
+    expenseRepository: ExpenseRepository = ExpenseRepositoryImpl(),
+    goalRepository: GoalRepository = GoalRepositoryImpl(),
+    subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // User details from Firebase Auth
-    val currentUser = FirebaseAuth.getInstance().currentUser
-    val userName = currentUser?.displayName?.takeIf { it.isNotBlank() } ?: "Alex Morgan"
-    val userEmail = currentUser?.email?.takeIf { it.isNotBlank() } ?: "alex.morgan@financeflow.app"
-    val userInitials = remember(userName) {
-        val parts = userName.trim().split(" ")
-        if (parts.size >= 2) {
-            "${parts[0].firstOrNull()?.uppercase() ?: "A"}${parts[1].firstOrNull()?.uppercase() ?: "M"}"
-        } else {
-            userName.take(2).uppercase().ifEmpty { "AM" }
-        }
-    }
+    val userProfile by authViewModel.userProfile.collectAsState()
+    val userName by authViewModel.userDisplayName.collectAsState()
+    val userEmail by authViewModel.userEmail.collectAsState()
+    val userInitials by authViewModel.userInitials.collectAsState()
 
-    // State for interactive preferences
-    var baseCurrency by remember { mutableStateOf("LKR (Rs) • Sri Lankan Rupee") }
-    var billingCycle by remember { mutableStateOf("1st of Every Month") }
-    var weeklyStartDay by remember { mutableStateOf("Monday") }
+    // State for interactive preferences persisted to Firestore UserProfile
+    val baseCurrency = userProfile.baseCurrency
+    val billingCycle = userProfile.billingCycle
+    val weeklyStartDay = userProfile.weeklyStartDay
 
     // Toggle states
     var pushNotificationsEnabled by remember { mutableStateOf(true) }
@@ -163,457 +189,315 @@ fun SettingsScreen(
         label = "syncRotationAngle"
     )
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = FigmaBg,
-        topBar = {
-            Surface(
-                color = FigmaBg,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-            ) {
-                Row(
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val isWideScreen = maxWidth >= 600.dp
+        val isCompactWidth = maxWidth < 360.dp
+        val horizontalPadding = when {
+            isCompactWidth -> 12.dp
+            isWideScreen -> 24.dp
+            else -> 16.dp
+        }
+        val contentMaxWidth = if (isWideScreen) 1040.dp else 560.dp
+
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            containerColor = Color.White,
+            topBar = {
+                Surface(
+                    color = Color.White,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .statusBarsPadding()
                 ) {
-                    IconButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            tint = FigmaDark
-                        )
-                    }
-
-                    Text(
-                        text = "Settings & Account",
-                        fontFamily = PlusJakartaSansFontFamily,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = FigmaDark
-                    )
-
-                    IconButton(
-                        onClick = { showHelpDialog = true },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.HelpOutline,
-                            contentDescription = "Help & Info",
-                            tint = FigmaDark
-                        )
-                    }
-                }
-            }
-        },
-        modifier = modifier.fillMaxSize()
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Spacer(modifier = Modifier.height(2.dp))
-
-            // ==========================================
-            // PROFILE CARD
-            // ==========================================
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, FigmaBorder),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Avatar with online status badge
-                    Box(modifier = Modifier.size(54.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape)
-                                .background(FigmaPeachTint),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = userInitials,
-                                fontFamily = PlusJakartaSansFontFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 19.sp,
-                                color = FigmaRust
-                            )
-                        }
-
-                        // Green Active Dot
-                        Box(
-                            modifier = Modifier
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                                .align(Alignment.BottomEnd)
-                                .padding(2.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                                    .background(FigmaActiveGreen)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = contentMaxWidth)
+                                .padding(horizontal = horizontalPadding, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
+                            IconButton(
+                                onClick = onNavigateBack,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(BrandSoftSlate)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = Color(0xFF121660)
+                                )
+                            }
+
                             Text(
-                                text = userName,
+                                text = "Settings & Account",
                                 fontFamily = PlusJakartaSansFontFamily,
-                                fontSize = 17.sp,
+                                fontSize = if (isCompactWidth) 16.sp else 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = FigmaDark
+                                color = Color(0xFF121660)
                             )
 
-                            // Premium Plan Badge
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = FigmaPeachTint
+                            IconButton(
+                                onClick = { showHelpDialog = true },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(BrandSoftSlate)
                             ) {
-                                Text(
-                                    text = "PREMIUM PLAN",
-                                    fontFamily = PlusJakartaSansFontFamily,
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = FigmaRust,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp)
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
+                                    contentDescription = "Help & Info",
+                                    tint = Color(0xFF121660)
                                 )
                             }
                         }
+                    }
+                }
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                if (isWideScreen) {
+                    // ==========================================
+                    // RESPONSIVE 2-COLUMN LAYOUT (Tablets / Landscape)
+                    // ==========================================
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = contentMaxWidth)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = horizontalPadding, vertical = 8.dp)
+                            .padding(bottom = 36.dp)
+                            .navigationBarsPadding(),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        // Left Column (Profile, Appearance, Privacy & Security, Log Out, Version)
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(18.dp)
+                        ) {
+                            SettingsProfileCard(
+                                userInitials = userInitials,
+                                userName = userName,
+                                userEmail = userEmail,
+                                syncStatusText = syncStatusText,
+                                isCompactWidth = isCompactWidth,
+                                onClick = onNavigateToProfile
+                            )
 
-                        Spacer(modifier = Modifier.height(2.dp))
+                            SettingsSectionHeader(title = "APPEARANCE")
+                            AppearanceGroupCard(
+                                themeMode = themeMode,
+                                onThemeModeChange = onThemeModeChange,
+                                isCompactWidth = isCompactWidth
+                            )
 
-                        Text(
-                            text = userEmail,
-                            fontFamily = PlusJakartaSansFontFamily,
-                            fontSize = 13.sp,
-                            color = FigmaMuted
+                            SettingsSectionHeader(title = "PRIVACY & SECURITY")
+                            PrivacySecurityGroupCard(
+                                biometricsEnabled = biometricsEnabled,
+                                onBiometricsChange = { biometricsEnabled = it },
+                                isCompactWidth = isCompactWidth,
+                                onTwoFactorClick = { showTwoFactorDialog = true }
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LogOutButton(onClick = { showLogoutDialog = true })
+                            Spacer(modifier = Modifier.height(2.dp))
+                            FooterVersionText(modifier = Modifier.align(Alignment.CenterHorizontally))
+                        }
+
+                        // Right Column (Wallet & Currency, Subscriptions & Notifications, Data Management)
+                        Column(
+                            modifier = Modifier
+                                .weight(1.15f)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(18.dp)
+                        ) {
+                            SettingsSectionHeader(title = "WALLET & CURRENCY")
+                            WalletCurrencyGroupCard(
+                                baseCurrency = baseCurrency,
+                                billingCycle = billingCycle,
+                                weeklyStartDay = weeklyStartDay,
+                                isCompactWidth = isCompactWidth,
+                                onCurrencyClick = { showCurrencyDialog = true },
+                                onBillingCycleClick = { showBillingCycleDialog = true },
+                                onWeeklyStartClick = { showWeeklyStartDialog = true }
+                            )
+
+                            SettingsSectionHeader(title = "SUBSCRIPTIONS & NOTIFICATIONS")
+                            NotificationsGroupCard(
+                                pushNotificationsEnabled = pushNotificationsEnabled,
+                                onPushNotificationsChange = { pushNotificationsEnabled = it },
+                                renewalRemindersEnabled = renewalRemindersEnabled,
+                                onRenewalRemindersChange = { renewalRemindersEnabled = it },
+                                autoDebitMarginEnabled = autoDebitMarginEnabled,
+                                onAutoDebitMarginChange = { autoDebitMarginEnabled = it },
+                                isCompactWidth = isCompactWidth
+                            )
+
+                            SettingsSectionHeader(title = "DATA MANAGEMENT")
+                            DataManagementGroupCard(
+                                isSyncing = isSyncing,
+                                syncRotation = syncRotation,
+                                isCompactWidth = isCompactWidth,
+                                onExportClick = { showExportSheet = true },
+                                onSeedScenarioClick = {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Seeding Kavindu's complete scenario...")
+                                        val uid = userProfile.uid.ifBlank { authViewModel.userProfile.value.uid }
+                                        val result = KavinduScenarioSeeder.seedCompleteScenario(
+                                            userId = uid,
+                                            incomeRepository = incomeRepository,
+                                            expenseRepository = expenseRepository,
+                                            goalRepository = goalRepository,
+                                            subscriptionRepository = subscriptionRepository
+                                        )
+                                        if (result.isSuccess) {
+                                            snackbarHostState.showSnackbar("Scenario successfully seeded! 2 Zombie Subs, MacBook Fund, Crypto Q1/Q3 loaded.")
+                                        } else {
+                                            snackbarHostState.showSnackbar("Seeding error: ${result.exceptionOrNull()?.message}")
+                                        }
+                                    }
+                                },
+                                onSyncClick = {
+                                    if (!isSyncing) {
+                                        coroutineScope.launch {
+                                            isSyncing = true
+                                            syncStatusText = "Syncing with Cloud..."
+                                            delay(1200)
+                                            isSyncing = false
+                                            syncStatusText = "Cloud Active • Just now"
+                                            snackbarHostState.showSnackbar("Cloud vault synchronized successfully with Firebase!")
+                                        }
+                                    }
+                                },
+                                onClearCacheClick = { showClearCacheDialog = true }
+                            )
+                        }
+                    }
+                } else {
+                    // ==========================================
+                    // RESPONSIVE SINGLE-COLUMN LAYOUT (Phones / Portrait)
+                    // ==========================================
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = contentMaxWidth)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = horizontalPadding, vertical = 8.dp)
+                            .padding(bottom = 36.dp)
+                            .navigationBarsPadding(),
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        SettingsProfileCard(
+                            userInitials = userInitials,
+                            userName = userName,
+                            userEmail = userEmail,
+                            syncStatusText = syncStatusText,
+                            isCompactWidth = isCompactWidth,
+                            onClick = onNavigateToProfile
                         )
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        SettingsSectionHeader(title = "WALLET & CURRENCY")
+                        WalletCurrencyGroupCard(
+                            baseCurrency = baseCurrency,
+                            billingCycle = billingCycle,
+                            weeklyStartDay = weeklyStartDay,
+                            isCompactWidth = isCompactWidth,
+                            onCurrencyClick = { showCurrencyDialog = true },
+                            onBillingCycleClick = { showBillingCycleDialog = true },
+                            onWeeklyStartClick = { showWeeklyStartDialog = true }
+                        )
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(FigmaActiveGreen)
-                            )
-                            Text(
-                                text = syncStatusText,
-                                fontFamily = PlusJakartaSansFontFamily,
-                                fontSize = 11.5.sp,
-                                color = FigmaSubtle,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
+                        SettingsSectionHeader(title = "SUBSCRIPTIONS & NOTIFICATIONS")
+                        NotificationsGroupCard(
+                            pushNotificationsEnabled = pushNotificationsEnabled,
+                            onPushNotificationsChange = { pushNotificationsEnabled = it },
+                            renewalRemindersEnabled = renewalRemindersEnabled,
+                            onRenewalRemindersChange = { renewalRemindersEnabled = it },
+                            autoDebitMarginEnabled = autoDebitMarginEnabled,
+                            onAutoDebitMarginChange = { autoDebitMarginEnabled = it },
+                            isCompactWidth = isCompactWidth
+                        )
 
-            // ==========================================
-            // SECTION 1: WALLET & CURRENCY
-            // ==========================================
-            SettingsSectionHeader(title = "WALLET & CURRENCY")
+                        SettingsSectionHeader(title = "PRIVACY & SECURITY")
+                        PrivacySecurityGroupCard(
+                            biometricsEnabled = biometricsEnabled,
+                            onBiometricsChange = { biometricsEnabled = it },
+                            isCompactWidth = isCompactWidth,
+                            onTwoFactorClick = { showTwoFactorDialog = true }
+                        )
 
-            SettingsGroupCard {
-                SettingsActionRow(
-                    icon = Icons.Rounded.CurrencyExchange,
-                    title = "Base Currency",
-                    subtitle = baseCurrency,
-                    onClick = { showCurrencyDialog = true }
-                )
-
-                HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
-
-                SettingsActionRow(
-                    icon = Icons.Rounded.CalendarMonth,
-                    title = "Monthly Billing Cycle",
-                    subtitle = billingCycle,
-                    onClick = { showBillingCycleDialog = true }
-                )
-
-                HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
-
-                SettingsActionRow(
-                    icon = Icons.Rounded.DateRange,
-                    title = "Weekly Start Day",
-                    subtitle = weeklyStartDay,
-                    onClick = { showWeeklyStartDialog = true }
-                )
-            }
-
-            // ==========================================
-            // SECTION 2: SUBSCRIPTIONS & NOTIFICATIONS
-            // ==========================================
-            SettingsSectionHeader(title = "SUBSCRIPTIONS & NOTIFICATIONS")
-
-            SettingsGroupCard {
-                SettingsToggleRow(
-                    icon = Icons.Rounded.Notifications,
-                    title = "Push Notifications",
-                    subtitle = "Instant updates on ledger entries",
-                    checked = pushNotificationsEnabled,
-                    onCheckedChange = { pushNotificationsEnabled = it }
-                )
-
-                HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
-
-                SettingsToggleRow(
-                    icon = Icons.Rounded.Alarm,
-                    title = "Renewal Reminders",
-                    subtitle = "72h Before Renewal",
-                    checked = renewalRemindersEnabled,
-                    onCheckedChange = { renewalRemindersEnabled = it }
-                )
-
-                HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
-
-                SettingsToggleRow(
-                    icon = Icons.Rounded.Security,
-                    title = "Auto-Debit Safety Margin",
-                    subtitle = "Warns when balance is low",
-                    checked = autoDebitMarginEnabled,
-                    onCheckedChange = { autoDebitMarginEnabled = it }
-                )
-            }
-
-            // ==========================================
-            // SECTION 3: PRIVACY & SECURITY
-            // ==========================================
-            SettingsSectionHeader(title = "PRIVACY & SECURITY")
-
-            SettingsGroupCard {
-                SettingsToggleRow(
-                    icon = Icons.Rounded.Fingerprint,
-                    title = "Biometrics (Face ID)",
-                    subtitle = "Quick access to vault",
-                    checked = biometricsEnabled,
-                    onCheckedChange = { biometricsEnabled = it }
-                )
-
-                HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
-
-                SettingsActionRow(
-                    icon = Icons.Rounded.Shield,
-                    title = "Two-Factor Auth (2FA)",
-                    subtitle = "Authenticator app enabled",
-                    badge = "Active",
-                    onClick = { showTwoFactorDialog = true }
-                )
-            }
-
-            // ==========================================
-            // SECTION 4: DATA MANAGEMENT
-            // ==========================================
-            SettingsSectionHeader(title = "DATA MANAGEMENT")
-
-            SettingsGroupCard {
-                SettingsActionRow(
-                    icon = Icons.Rounded.FileDownload,
-                    title = "Statement Export",
-                    subtitle = ".xlsx, .csv, .pdf",
-                    onClick = { showExportSheet = true }
-                )
-
-                HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
-
-                SettingsActionRow(
-                    icon = Icons.Rounded.Sync,
-                    title = "Force Cloud Vault Sync",
-                    subtitle = "Manual reconcile with server",
-                    iconModifier = if (isSyncing) Modifier.rotate(syncRotation) else Modifier,
-                    onClick = {
-                        if (!isSyncing) {
-                            coroutineScope.launch {
-                                isSyncing = true
-                                syncStatusText = "Syncing with Cloud..."
-                                delay(1200)
-                                isSyncing = false
-                                syncStatusText = "Cloud Active • Just now"
-                                snackbarHostState.showSnackbar("Cloud vault synchronized successfully with Firebase!")
-                            }
-                        }
-                    }
-                )
-
-                HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
-
-                SettingsActionRow(
-                    icon = Icons.Rounded.DeleteSweep,
-                    title = "Clear Cache / Local Data",
-                    subtitle = "14.2 MB cached files",
-                    onClick = { showClearCacheDialog = true }
-                )
-            }
-
-            // ==========================================
-            // SECTION 5: APPEARANCE (THEME MODE)
-            // ==========================================
-            SettingsSectionHeader(title = "APPEARANCE")
-
-            SettingsGroupCard {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "App Theme Mode",
-                        fontFamily = PlusJakartaSansFontFamily,
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = FigmaDark
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Choose your preferred interface theme",
-                        fontFamily = PlusJakartaSansFontFamily,
-                        fontSize = 12.5.sp,
-                        color = FigmaMuted
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf(
-                            AppThemeMode.LIGHT to "Light",
-                            AppThemeMode.DARK to "Dark",
-                            AppThemeMode.SYSTEM to "System"
-                        ).forEach { (mode, label) ->
-                            val isSelected = themeMode == mode
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { onThemeModeChange(mode) },
-                                label = {
-                                    Text(
-                                        text = label,
-                                        fontFamily = PlusJakartaSansFontFamily,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 12.5.sp
+                        SettingsSectionHeader(title = "DATA MANAGEMENT")
+                        DataManagementGroupCard(
+                            isSyncing = isSyncing,
+                            syncRotation = syncRotation,
+                            isCompactWidth = isCompactWidth,
+                            onExportClick = { showExportSheet = true },
+                            onSeedScenarioClick = {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Seeding Kavindu's complete scenario...")
+                                    val uid = userProfile.uid.ifBlank { authViewModel.userProfile.value.uid }
+                                    val result = KavinduScenarioSeeder.seedCompleteScenario(
+                                        userId = uid,
+                                        incomeRepository = incomeRepository,
+                                        expenseRepository = expenseRepository,
+                                        goalRepository = goalRepository,
+                                        subscriptionRepository = subscriptionRepository
                                     )
-                                },
-                                leadingIcon = if (isSelected) {
-                                    {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp),
-                                            tint = BrandTangerine
-                                        )
+                                    if (result.isSuccess) {
+                                        snackbarHostState.showSnackbar("Scenario successfully seeded! 2 Zombie Subs, MacBook Fund, Crypto Q1/Q3 loaded.")
+                                    } else {
+                                        snackbarHostState.showSnackbar("Seeding error: ${result.exceptionOrNull()?.message}")
                                     }
-                                } else null,
-                                shape = RoundedCornerShape(12.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = FigmaPeachTint,
-                                    selectedLabelColor = FigmaRust,
-                                    containerColor = Color(0xFFFBF8F5),
-                                    labelColor = FigmaDark
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = isSelected,
-                                    borderColor = if (isSelected) FigmaRust else FigmaBorder,
-                                    selectedBorderColor = FigmaRust
-                                ),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                                }
+                            },
+                            onSyncClick = {
+                                if (!isSyncing) {
+                                    coroutineScope.launch {
+                                        isSyncing = true
+                                        syncStatusText = "Syncing with Cloud..."
+                                        delay(1200)
+                                        isSyncing = false
+                                        syncStatusText = "Cloud Active • Just now"
+                                        snackbarHostState.showSnackbar("Cloud vault synchronized successfully with Firebase!")
+                                    }
+                                }
+                            },
+                            onClearCacheClick = { showClearCacheDialog = true }
+                        )
+
+                        SettingsSectionHeader(title = "APPEARANCE")
+                        AppearanceGroupCard(
+                            themeMode = themeMode,
+                            onThemeModeChange = onThemeModeChange,
+                            isCompactWidth = isCompactWidth
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LogOutButton(onClick = { showLogoutDialog = true })
+                        Spacer(modifier = Modifier.height(2.dp))
+                        FooterVersionText(modifier = Modifier.align(Alignment.CenterHorizontally))
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // ==========================================
-            // LOG OUT BUTTON
-            // ==========================================
-            OutlinedButton(
-                onClick = { showLogoutDialog = true },
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.2.dp, FigmaDestructive.copy(alpha = 0.35f)),
-                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color(0xFFFFF2EE)
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.Logout,
-                        contentDescription = "Log Out",
-                        tint = FigmaDestructive,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Log Out",
-                        fontFamily = PlusJakartaSansFontFamily,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = FigmaDestructive
-                    )
-                }
-            }
-
-            // ==========================================
-            // FOOTER APP VERSION
-            // ==========================================
-            Text(
-                text = "FinanceFlow v2.4.0 (Build 382)",
-                fontFamily = PlusJakartaSansFontFamily,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = FigmaSubtle,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
         }
     }
 
     // =========================================================================
-    // DIALOGS & BOTTOM SHEETS
+    // RESPONSIVE DIALOGS & BOTTOM SHEETS
     // =========================================================================
 
     // 1. Currency Dialog
@@ -630,7 +514,8 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showCurrencyDialog = false },
             shape = RoundedCornerShape(20.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.widthIn(max = 460.dp),
             title = {
                 Text(
                     text = "Select Base Currency",
@@ -641,17 +526,23 @@ fun SettingsScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 280.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     currencies.forEach { item ->
                         val isSelected = baseCurrency == item
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) FigmaPeachTint else Color(0xFFFAF8F5),
+                            color = if (isSelected) FigmaPeachTint else MaterialTheme.colorScheme.surface,
                             border = BorderStroke(1.dp, if (isSelected) FigmaRust else FigmaBorder),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    baseCurrency = item
+                                    authViewModel.updatePreferences(baseCurrency = item)
                                     showCurrencyDialog = false
                                 }
                         ) {
@@ -667,7 +558,10 @@ fun SettingsScreen(
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 13.5.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) FigmaRust else FigmaDark
+                                    color = if (isSelected) FigmaRust else FigmaDark,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
                                 if (isSelected) {
                                     Icon(
@@ -704,7 +598,8 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showBillingCycleDialog = false },
             shape = RoundedCornerShape(20.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.widthIn(max = 460.dp),
             title = {
                 Text(
                     text = "Monthly Billing Cycle",
@@ -715,17 +610,23 @@ fun SettingsScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 280.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     cycles.forEach { item ->
                         val isSelected = billingCycle == item
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) FigmaPeachTint else Color(0xFFFAF8F5),
+                            color = if (isSelected) FigmaPeachTint else MaterialTheme.colorScheme.surface,
                             border = BorderStroke(1.dp, if (isSelected) FigmaRust else FigmaBorder),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    billingCycle = item
+                                    authViewModel.updatePreferences(billingCycle = item)
                                     showBillingCycleDialog = false
                                 }
                         ) {
@@ -741,7 +642,10 @@ fun SettingsScreen(
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 13.5.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) FigmaRust else FigmaDark
+                                    color = if (isSelected) FigmaRust else FigmaDark,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
                                 if (isSelected) {
                                     Icon(
@@ -770,7 +674,8 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showWeeklyStartDialog = false },
             shape = RoundedCornerShape(20.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.widthIn(max = 460.dp),
             title = {
                 Text(
                     text = "Weekly Start Day",
@@ -781,17 +686,23 @@ fun SettingsScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 280.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     listOf("Monday", "Sunday").forEach { item ->
                         val isSelected = weeklyStartDay == item
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) FigmaPeachTint else Color(0xFFFAF8F5),
+                            color = if (isSelected) FigmaPeachTint else MaterialTheme.colorScheme.surface,
                             border = BorderStroke(1.dp, if (isSelected) FigmaRust else FigmaBorder),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    weeklyStartDay = item
+                                    authViewModel.updatePreferences(weeklyStartDay = item)
                                     showWeeklyStartDialog = false
                                 }
                         ) {
@@ -836,7 +747,8 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showTwoFactorDialog = false },
             shape = RoundedCornerShape(20.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.widthIn(max = 460.dp),
             icon = {
                 Icon(
                     imageVector = Icons.Rounded.Shield,
@@ -875,86 +787,126 @@ fun SettingsScreen(
     if (showExportSheet) {
         ModalBottomSheet(
             onDismissRequest = { showExportSheet = false },
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-                    .navigationBarsPadding(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "Export Financial Statement",
-                    fontFamily = PlusJakartaSansFontFamily,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = FigmaDark
-                )
-                Text(
-                    text = "Choose your desired file format for export:",
-                    fontFamily = PlusJakartaSansFontFamily,
-                    fontSize = 13.sp,
-                    color = FigmaMuted
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 560.dp)
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .navigationBarsPadding(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Export Financial Statement",
+                        fontFamily = PlusJakartaSansFontFamily,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = FigmaDark
+                    )
+                    Text(
+                        text = "Choose your desired file format for export:",
+                        fontFamily = PlusJakartaSansFontFamily,
+                        fontSize = 13.sp,
+                        color = FigmaMuted
+                    )
 
-                listOf(
-                    Triple("Excel Workbook (.xlsx)", "Complete data sheets with category formulas", Icons.Rounded.FileDownload),
-                    Triple("CSV Spreadsheet (.csv)", "Plain tabular export for accounting tools", Icons.Rounded.FileDownload),
-                    Triple("Audit PDF Statement (.pdf)", "Formatted ledger statement with charts", Icons.Rounded.FileDownload)
-                ).forEach { (format, desc, icon) ->
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = Color(0xFFFAF8F5),
-                        border = BorderStroke(1.dp, FigmaBorder),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                showExportSheet = false
-                                Toast.makeText(context, "Exporting $format...", Toast.LENGTH_SHORT).show()
-                            }
-                    ) {
-                        Row(
+                    listOf(
+                        Triple("Excel Workbook (.xlsx)", "Complete data sheets with category formulas", Icons.Rounded.FileDownload),
+                        Triple("CSV Spreadsheet (.csv)", "Plain tabular export for accounting tools", Icons.Rounded.FileDownload),
+                        Triple("Audit PDF Statement (.pdf)", "Formatted ledger statement with charts", Icons.Rounded.FileDownload)
+                    ).forEach { (format, desc, icon) ->
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, FigmaBorder),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .clickable {
+                                    showExportSheet = false
+                                    coroutineScope.launch {
+                                        try {
+                                            val incomes = (incomeViewModel.incomesState.value as? UiState.Success)?.data ?: emptyList()
+                                            val expenses = (expenseViewModel.expensesState.value as? UiState.Success)?.data ?: emptyList()
+                                            val subscriptions = (subscriptionViewModel.subscriptionsState.value as? UiState.Success)?.data ?: emptyList()
+                                            val goals = (goalViewModel.goalsState.value as? UiState.Success)?.data ?: emptyList()
+
+                                            if (format.contains(".pdf", ignoreCase = true)) {
+                                                val file = FinancialExportService.exportPdf(
+                                                    context = context,
+                                                    userName = userName,
+                                                    incomes = incomes,
+                                                    expenses = expenses,
+                                                    subscriptions = subscriptions,
+                                                    goals = goals
+                                                )
+                                                FinancialExportService.shareExportedFile(context, file, "application/pdf", "Share Financial Audit PDF")
+                                            } else {
+                                                val file = FinancialExportService.exportCsv(
+                                                    context = context,
+                                                    incomes = incomes,
+                                                    expenses = expenses,
+                                                    subscriptions = subscriptions,
+                                                    goals = goals
+                                                )
+                                                FinancialExportService.shareExportedFile(context, file, "text/csv", "Share Financial CSV")
+                                            }
+                                        } catch (e: Exception) {
+                                            snackbarHostState.showSnackbar("Export error: ${e.message}")
+                                        }
+                                    }
+                                }
                         ) {
-                            Box(
+                            Row(
                                 modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(FigmaIconBg),
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    tint = BrandTangerine,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(14.dp))
-                            Column {
-                                Text(
-                                    text = format,
-                                    fontFamily = PlusJakartaSansFontFamily,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = FigmaDark
-                                )
-                                Text(
-                                    text = desc,
-                                    fontFamily = PlusJakartaSansFontFamily,
-                                    fontSize = 12.sp,
-                                    color = FigmaMuted
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(FigmaIconBg),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = BrandTangerine,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = format,
+                                        fontFamily = PlusJakartaSansFontFamily,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = FigmaDark,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = desc,
+                                        fontFamily = PlusJakartaSansFontFamily,
+                                        fontSize = 12.sp,
+                                        color = FigmaMuted,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
-                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
@@ -964,7 +916,8 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showClearCacheDialog = false },
             shape = RoundedCornerShape(20.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.widthIn(max = 460.dp),
             title = {
                 Text(
                     text = "Clear Cached Data?",
@@ -1008,7 +961,8 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showHelpDialog = false },
             shape = RoundedCornerShape(20.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.widthIn(max = 460.dp),
             title = {
                 Text(
                     text = "InTrack Support & Guide",
@@ -1019,7 +973,13 @@ fun SettingsScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 260.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Text(
                         text = "• Vault Sync: Keeps your offline ledger and Firestore database synchronized automatically in real-time.\n\n• Safety Margin: Alerts you when active recurring subscriptions exceed 60% of liquid card balances.\n\n• Need assistance? Contact our engineering team at support@intrack.app",
                         fontFamily = PlusJakartaSansFontFamily,
@@ -1042,7 +1002,8 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
             shape = RoundedCornerShape(20.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.widthIn(max = 460.dp),
             title = {
                 Text(
                     text = "Sign Out?",
@@ -1065,7 +1026,7 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         showLogoutDialog = false
-                        FirebaseAuth.getInstance().signOut()
+                        authViewModel.signOut()
                         onSignOut()
                     }
                 ) {
@@ -1082,18 +1043,459 @@ fun SettingsScreen(
 }
 
 // =========================================================================
-// REUSABLE HELPER COMPOSABLES
+// REUSABLE & RESPONSIVE SECTION CARDS
 // =========================================================================
+
+@Composable
+private fun SettingsProfileCard(
+    userInitials: String,
+    userName: String,
+    userEmail: String,
+    syncStatusText: String,
+    isCompactWidth: Boolean,
+    onClick: () -> Unit
+) {
+    val avatarSize = if (isCompactWidth) 48.dp else 54.dp
+    val avatarFontSize = if (isCompactWidth) 17.sp else 19.sp
+    val navyText = Color(0xFF121660)
+
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
+        border = BorderStroke(0.dp, Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(if (isCompactWidth) 14.dp else 18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar with online status badge
+            Box(modifier = Modifier.size(avatarSize)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .background(navyText),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = userInitials,
+                        fontFamily = PlusJakartaSansFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = avatarFontSize,
+                        color = Color.White
+                    )
+                }
+
+                // Green Active Dot
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .align(Alignment.BottomEnd)
+                        .padding(2.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(FigmaActiveGreen)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(if (isCompactWidth) 12.dp else 16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = userName.ifBlank { "Account User" },
+                        fontFamily = PlusJakartaSansFontFamily,
+                        fontSize = if (isCompactWidth) 15.sp else 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = navyText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+
+                    // Premium Plan Badge
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = navyText
+                    ) {
+                        Text(
+                            text = "PREMIUM PLAN",
+                            fontFamily = PlusJakartaSansFontFamily,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = userEmail,
+                    fontFamily = PlusJakartaSansFontFamily,
+                    fontSize = if (isCompactWidth) 12.sp else 13.sp,
+                    color = navyText.copy(alpha = 0.85f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(navyText)
+                    )
+                    Text(
+                        text = syncStatusText,
+                        fontFamily = PlusJakartaSansFontFamily,
+                        fontSize = 11.5.sp,
+                        color = navyText,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = "View Profile",
+                tint = navyText,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun WalletCurrencyGroupCard(
+    baseCurrency: String,
+    billingCycle: String,
+    weeklyStartDay: String,
+    isCompactWidth: Boolean,
+    onCurrencyClick: () -> Unit,
+    onBillingCycleClick: () -> Unit,
+    onWeeklyStartClick: () -> Unit
+) {
+    SettingsGroupCard {
+        SettingsActionRow(
+            icon = Icons.Rounded.CurrencyExchange,
+            title = "Base Currency",
+            subtitle = baseCurrency,
+            isCompact = isCompactWidth,
+            onClick = onCurrencyClick
+        )
+
+        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+
+        SettingsActionRow(
+            icon = Icons.Rounded.CalendarMonth,
+            title = "Monthly Billing Cycle",
+            subtitle = billingCycle,
+            isCompact = isCompactWidth,
+            onClick = onBillingCycleClick
+        )
+
+        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+
+        SettingsActionRow(
+            icon = Icons.Rounded.DateRange,
+            title = "Weekly Start Day",
+            subtitle = weeklyStartDay,
+            isCompact = isCompactWidth,
+            onClick = onWeeklyStartClick
+        )
+    }
+}
+
+@Composable
+private fun NotificationsGroupCard(
+    pushNotificationsEnabled: Boolean,
+    onPushNotificationsChange: (Boolean) -> Unit,
+    renewalRemindersEnabled: Boolean,
+    onRenewalRemindersChange: (Boolean) -> Unit,
+    autoDebitMarginEnabled: Boolean,
+    onAutoDebitMarginChange: (Boolean) -> Unit,
+    isCompactWidth: Boolean
+) {
+    SettingsGroupCard {
+        SettingsToggleRow(
+            icon = Icons.Rounded.Notifications,
+            title = "Push Notifications",
+            subtitle = "Instant updates on ledger entries",
+            checked = pushNotificationsEnabled,
+            isCompact = isCompactWidth,
+            onCheckedChange = onPushNotificationsChange
+        )
+
+        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+
+        SettingsToggleRow(
+            icon = Icons.Rounded.Alarm,
+            title = "Renewal Reminders",
+            subtitle = "72h Before Renewal",
+            checked = renewalRemindersEnabled,
+            isCompact = isCompactWidth,
+            onCheckedChange = onRenewalRemindersChange
+        )
+
+        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+
+        SettingsToggleRow(
+            icon = Icons.Rounded.Security,
+            title = "Auto-Debit Safety Margin",
+            subtitle = "Warns when balance is low",
+            checked = autoDebitMarginEnabled,
+            isCompact = isCompactWidth,
+            onCheckedChange = onAutoDebitMarginChange
+        )
+    }
+}
+
+@Composable
+private fun PrivacySecurityGroupCard(
+    biometricsEnabled: Boolean,
+    onBiometricsChange: (Boolean) -> Unit,
+    isCompactWidth: Boolean,
+    onTwoFactorClick: () -> Unit
+) {
+    SettingsGroupCard {
+        SettingsToggleRow(
+            icon = Icons.Rounded.Fingerprint,
+            title = "Biometrics (Face ID)",
+            subtitle = "Quick access to vault",
+            checked = biometricsEnabled,
+            isCompact = isCompactWidth,
+            onCheckedChange = onBiometricsChange
+        )
+
+        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+
+        SettingsActionRow(
+            icon = Icons.Rounded.Shield,
+            title = "Two-Factor Auth (2FA)",
+            subtitle = "Authenticator app enabled",
+            badge = "Active",
+            isCompact = isCompactWidth,
+            onClick = onTwoFactorClick
+        )
+    }
+}
+
+@Composable
+private fun DataManagementGroupCard(
+    isSyncing: Boolean,
+    syncRotation: Float,
+    isCompactWidth: Boolean,
+    onExportClick: () -> Unit,
+    onSyncClick: () -> Unit,
+    onClearCacheClick: () -> Unit,
+    onSeedScenarioClick: () -> Unit = {}
+) {
+    SettingsGroupCard {
+        SettingsActionRow(
+            icon = Icons.Rounded.Dataset,
+            title = "Seed Kavindu Scenario Data",
+            subtitle = "Populates 2 zombie subs, MacBook fund & crypto",
+            isCompact = isCompactWidth,
+            onClick = onSeedScenarioClick
+        )
+
+        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+        SettingsActionRow(
+            icon = Icons.Rounded.FileDownload,
+            title = "Statement Export",
+            subtitle = ".xlsx, .csv, .pdf",
+            isCompact = isCompactWidth,
+            onClick = onExportClick
+        )
+
+        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+
+        SettingsActionRow(
+            icon = Icons.Rounded.Sync,
+            title = "Force Cloud Vault Sync",
+            subtitle = "Manual reconcile with server",
+            iconModifier = if (isSyncing) Modifier.rotate(syncRotation) else Modifier,
+            isCompact = isCompactWidth,
+            onClick = onSyncClick
+        )
+
+        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+
+        SettingsActionRow(
+            icon = Icons.Rounded.DeleteSweep,
+            title = "Clear Cache / Local Data",
+            subtitle = "14.2 MB cached files",
+            isCompact = isCompactWidth,
+            onClick = onClearCacheClick
+        )
+    }
+}
+
+@Composable
+private fun AppearanceGroupCard(
+    themeMode: AppThemeMode,
+    onThemeModeChange: (AppThemeMode) -> Unit,
+    isCompactWidth: Boolean
+) {
+    val navyText = Color(0xFF121660)
+    SettingsGroupCard {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(if (isCompactWidth) 12.dp else 16.dp)
+        ) {
+            Text(
+                text = "App Theme Mode",
+                fontFamily = PlusJakartaSansFontFamily,
+                fontSize = if (isCompactWidth) 13.5.sp else 14.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = navyText
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Choose your preferred interface theme",
+                fontFamily = PlusJakartaSansFontFamily,
+                fontSize = if (isCompactWidth) 11.5.sp else 12.5.sp,
+                color = navyText.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(if (isCompactWidth) 6.dp else 8.dp)
+            ) {
+                listOf(
+                    AppThemeMode.LIGHT to "Light",
+                    AppThemeMode.DARK to "Dark",
+                    AppThemeMode.SYSTEM to "System"
+                ).forEach { (mode, label) ->
+                    val isSelected = themeMode == mode
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { onThemeModeChange(mode) },
+                        label = {
+                            Text(
+                                text = label,
+                                fontFamily = PlusJakartaSansFontFamily,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = if (isCompactWidth) 11.5.sp else 12.5.sp,
+                                maxLines = 1
+                            )
+                        },
+                        leadingIcon = if (isSelected && !isCompactWidth) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = Color.White
+                                )
+                            }
+                        } else null,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = navyText,
+                            selectedLabelColor = Color.White,
+                            containerColor = Color.White,
+                            labelColor = navyText
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            borderColor = Color.Transparent,
+                            selectedBorderColor = Color.Transparent
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogOutButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF121660)
+        ),
+        elevation = androidx.compose.material3.ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.Logout,
+                contentDescription = "Log Out",
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Log Out",
+                fontFamily = PlusJakartaSansFontFamily,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+private fun FooterVersionText(modifier: Modifier = Modifier) {
+    Text(
+        text = "InTrack v2.4.0 (Build 382)",
+        fontFamily = PlusJakartaSansFontFamily,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Medium,
+        color = Color(0xFF121660).copy(alpha = 0.6f),
+        modifier = modifier
+    )
+}
 
 @Composable
 private fun SettingsSectionHeader(title: String) {
     Text(
         text = title,
         fontFamily = PlusJakartaSansFontFamily,
-        fontSize = 11.sp,
+        fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 0.8.sp,
-        color = FigmaSubtle,
+        color = Color(0xFF121660),
         modifier = Modifier.padding(start = 4.dp, top = 2.dp)
     )
 }
@@ -1102,8 +1504,9 @@ private fun SettingsSectionHeader(title: String) {
 private fun SettingsGroupCard(content: @Composable () -> Unit) {
     Card(
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, FigmaBorder),
+        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+        border = BorderStroke(0.dp, Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -1119,60 +1522,70 @@ private fun SettingsActionRow(
     subtitle: String,
     badge: String? = null,
     iconModifier: Modifier = Modifier,
+    isCompact: Boolean = false,
     onClick: () -> Unit
 ) {
+    val navyText = Color(0xFF121660)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(
+                horizontal = if (isCompact) 12.dp else 16.dp,
+                vertical = if (isCompact) 11.dp else 14.dp
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(38.dp)
+                .size(if (isCompact) 34.dp else 38.dp)
                 .clip(CircleShape)
-                .background(FigmaIconBg),
+                .background(Color.White),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                tint = BrandTangerine,
-                modifier = iconModifier.size(19.dp)
+                tint = navyText,
+                modifier = iconModifier.size(if (isCompact) 17.dp else 19.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(if (isCompact) 10.dp else 14.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 fontFamily = PlusJakartaSansFontFamily,
-                fontSize = 14.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = FigmaDark
+                fontSize = if (isCompact) 13.5.sp else 14.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = navyText,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(1.5.dp))
             Text(
                 text = subtitle,
                 fontFamily = PlusJakartaSansFontFamily,
-                fontSize = 12.sp,
-                color = FigmaMuted
+                fontSize = if (isCompact) 11.5.sp else 12.sp,
+                color = navyText.copy(alpha = 0.7f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
 
         if (!badge.isNullOrBlank()) {
+            Spacer(modifier = Modifier.width(6.dp))
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = FigmaSuccessBadgeBg
+                color = navyText
             ) {
                 Text(
                     text = badge,
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = FigmaSuccessBadgeText,
+                    color = Color.White,
                     modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
                 )
             }
@@ -1182,7 +1595,7 @@ private fun SettingsActionRow(
         Icon(
             imageVector = Icons.Rounded.ChevronRight,
             contentDescription = null,
-            tint = FigmaSubtle.copy(alpha = 0.6f),
+            tint = navyText.copy(alpha = 0.5f),
             modifier = Modifier.size(20.dp)
         )
     }
@@ -1194,57 +1607,68 @@ private fun SettingsToggleRow(
     title: String,
     subtitle: String,
     checked: Boolean,
+    isCompact: Boolean = false,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val navyText = Color(0xFF121660)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(
+                horizontal = if (isCompact) 12.dp else 16.dp,
+                vertical = if (isCompact) 10.dp else 12.dp
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(38.dp)
+                .size(if (isCompact) 34.dp else 38.dp)
                 .clip(CircleShape)
-                .background(FigmaIconBg),
+                .background(Color.White),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                tint = BrandTangerine,
-                modifier = Modifier.size(19.dp)
+                tint = navyText,
+                modifier = Modifier.size(if (isCompact) 17.dp else 19.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(if (isCompact) 10.dp else 14.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 fontFamily = PlusJakartaSansFontFamily,
-                fontSize = 14.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = FigmaDark
+                fontSize = if (isCompact) 13.5.sp else 14.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = navyText,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(1.5.dp))
             Text(
                 text = subtitle,
                 fontFamily = PlusJakartaSansFontFamily,
-                fontSize = 12.sp,
-                color = FigmaMuted
+                fontSize = if (isCompact) 11.5.sp else 12.sp,
+                color = navyText.copy(alpha = 0.7f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
+
+        Spacer(modifier = Modifier.width(8.dp))
 
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = BrandTangerine,
+                checkedTrackColor = navyText,
                 uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = Color(0xFFE2DCD5)
+                uncheckedTrackColor = navyText.copy(alpha = 0.2f)
             )
         )
     }

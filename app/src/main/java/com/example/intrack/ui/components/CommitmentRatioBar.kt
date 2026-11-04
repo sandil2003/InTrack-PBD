@@ -25,8 +25,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.intrack.ui.theme.EssentialsColor
-import com.example.intrack.ui.theme.LifestyleColor
 import com.example.intrack.util.CurrencyFormatter
 
 @Composable
@@ -42,10 +40,12 @@ fun CommitmentRatioBar(
     val committedPct = if (total > 0) ((committedLkr / total) * 100).toInt() else 0
     val discretionaryPct = if (total > 0) (100 - committedPct) else 0
 
+    val navyText = Color(0xFF121660)
+
     OutlinedCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.outlinedCardColors(containerColor = Color(0xFFFFD13E)),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -54,42 +54,33 @@ fun CommitmentRatioBar(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = "Commitment Ratio",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Two-tone continuous segmented bar using weight for exact proportional rendering
+            // Two-tone continuous segmented bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(10.dp)
                     .clip(RoundedCornerShape(5.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .background(navyText.copy(alpha = 0.2f))
             ) {
                 if (total > 0) {
                     Box(
                         modifier = Modifier
                             .weight(committedRatio)
                             .height(10.dp)
-                            .background(EssentialsColor)
+                            .background(navyText)
                     )
                     Box(
                         modifier = Modifier
                             .weight(discretionaryRatio)
                             .height(10.dp)
-                            .background(LifestyleColor)
+                            .background(navyText.copy(alpha = 0.5f))
                     )
                 } else {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(10.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .background(navyText.copy(alpha = 0.2f))
                     )
                 }
             }
@@ -105,20 +96,20 @@ fun CommitmentRatioBar(
                         modifier = Modifier
                             .size(12.dp)
                             .clip(CircleShape)
-                            .background(EssentialsColor)
+                            .background(navyText)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
                             text = "Essentials ($committedPct%)",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = navyText
                         )
                         Text(
                             text = CurrencyFormatter.formatLkr(committedLkr),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = navyText
                         )
                     }
                 }
@@ -128,20 +119,20 @@ fun CommitmentRatioBar(
                         modifier = Modifier
                             .size(12.dp)
                             .clip(CircleShape)
-                            .background(LifestyleColor)
+                            .background(navyText.copy(alpha = 0.5f))
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = "Lifestyle ($discretionaryPct%)",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = navyText
                         )
                         Text(
                             text = CurrencyFormatter.formatLkr(discretionaryLkr),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = navyText
                         )
                     }
                 }

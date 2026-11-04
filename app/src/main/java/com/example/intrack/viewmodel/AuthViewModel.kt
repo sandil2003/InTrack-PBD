@@ -10,6 +10,7 @@ import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.intrack.data.model.UserProfile
 import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.data.repository.AuthRepositoryImpl
 import com.example.intrack.ui.common.UiState
@@ -20,6 +21,9 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -32,9 +36,12 @@ enum class PasswordStrengthLevel(val label: String, val activeSegments: Int, val
     STRONG("Strong", 4, Color(0xFF10B981))
 }
 
-class AuthViewModel(
-    private val authRepository: AuthRepository = AuthRepositoryImpl()
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    private val authRepository: AuthRepository
 ) : ViewModel() {
+
+    constructor() : this(AuthRepositoryImpl())
 
     companion object {
         const val DEBUG_SHA1_FINGERPRINT = "41:22:92:CF:87:CF:84:BA:62:2B:2E:01:FF:06:F6:1D:A2:B9:B0:61"
@@ -50,21 +57,141 @@ class AuthViewModel(
     private val _showGoogleSetupDialog = MutableStateFlow(false)
     val showGoogleSetupDialog: StateFlow<Boolean> = _showGoogleSetupDialog
 
+    private val _userProfile = MutableStateFlow(UserProfile())
+    val userProfile: StateFlow<UserProfile> = _userProfile
+
+    private val _userDisplayName = MutableStateFlow("")
+    val userDisplayName: StateFlow<String> = _userDisplayName
+
+    private val _userEmail = MutableStateFlow("")
+    val userEmail: StateFlow<String> = _userEmail
+
+    private val _userInitials = MutableStateFlow("U")
+    val userInitials: StateFlow<String> = _userInitials
+
+    private var profileListenerJob: Job? = null
+
     init {
         checkUser()
     }
 
+    private fun applyProfileState(profile: UserProfile) {
+        _userProfile.value = profile
+        _userDisplayName.value = profile.displayName.ifBlank { profile.firstName }
+        _userEmail.value = profile.email
+        _userInitials.value = profile.initials
+    }
+
+    private fun refreshProfileInfo(explicitName: String? = null, explicitEmail: String? = null) {
+        val currentUser = authRepository.getCurrentUser()
+        if (currentUser == null) {
+            profileListenerJob?.cancel()
+            profileListenerJob = null
+            _userProfile.value = UserProfile()
+            _userDisplayName.value = ""
+            _userEmail.value = ""
+            _userInitials.value = "U"
+            return
+        }
+
+        val name = explicitName?.takeIf { it.isNotBlank() }
+            ?: authRepository.getCurrentUserDisplayName()
+        val email = explicitEmail?.takeIf { it.isNotBlank() }
+            ?: authRepository.getCurrentUserEmail()
+
+        val immediateProfile = _userProfile.value.copy(
+            uid = currentUser.uid,
+            displayName = name,
+            email = email
+        )
+        applyProfileState(immediateProfile)
+
+        profileListenerJob?.cancel()
+        profileListenerJob = viewModelScope.launch {
+            authRepository.observeUserProfile(currentUser.uid).collect { firestoreProfile ->
+                if (firestoreProfile != null) {
+                    val mergedProfile = firestoreProfile.copy(
+                        displayName = firestoreProfile.displayName.ifBlank { name },
+                        email = firestoreProfile.email.ifBlank { email }
+                    )
+                    applyProfileState(mergedProfile)
+                }
+            }
+        }
+    }
+
     fun checkUser() {
         val currentUser = authRepository.getCurrentUser()
-        if (currentUser != null) {
+        refreshProfileInfo()
+        if (currentUser != null && currentUser.uid.isNotBlank()) {
             _authState.value = UiState.Success(currentUser.uid)
         } else {
             _authState.value = UiState.Idle
         }
     }
 
+    fun updatePreferences(
+        baseCurrency: String = _userProfile.value.baseCurrency,
+        billingCycle: String = _userProfile.value.billingCycle,
+        weeklyStartDay: String = _userProfile.value.weeklyStartDay
+    ) {
+        val uid = authRepository.getCurrentUserId()
+        val updated = _userProfile.value.copy(
+            baseCurrency = baseCurrency,
+            billingCycle = billingCycle,
+            weeklyStartDay = weeklyStartDay
+        )
+        applyProfileState(updated)
+        if (uid.isNotBlank()) {
+            viewModelScope.launch {
+                authRepository.updateUserPreferences(uid, baseCurrency, billingCycle, weeklyStartDay)
+            }
+        }
+    }
+
+    fun updateUserProfileDetails(
+        displayName: String,
+        phoneNumber: String = "",
+        bio: String = "",
+        onComplete: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        val trimmedName = displayName.trim()
+        if (trimmedName.isBlank()) {
+            onComplete(false, "Name cannot be empty")
+            return
+        }
+
+        val uid = authRepository.getCurrentUserId()
+        val updated = _userProfile.value.copy(
+            displayName = trimmedName,
+            phoneNumber = phoneNumber.trim(),
+            bio = bio.trim()
+        )
+        applyProfileState(updated)
+
+        viewModelScope.launch {
+            val result = authRepository.updateUserProfileDetails(
+                userId = uid,
+                displayName = trimmedName,
+                phoneNumber = phoneNumber.trim(),
+                bio = bio.trim()
+            )
+            result.fold(
+                onSuccess = {
+                    onComplete(true, null)
+                },
+                onFailure = { error ->
+                    onComplete(false, error.localizedMessage ?: "Failed to update profile")
+                }
+            )
+        }
+    }
+
     fun signOut() {
+        profileListenerJob?.cancel()
+        profileListenerJob = null
         authRepository.signOut()
+        refreshProfileInfo()
         _authState.value = UiState.Idle
     }
 
@@ -100,6 +227,10 @@ class AuthViewModel(
             val result = authRepository.signInWithEmail(trimmedEmail, pass)
             result.fold(
                 onSuccess = { user ->
+                    refreshProfileInfo(
+                        explicitName = user.displayName,
+                        explicitEmail = user.email ?: trimmedEmail
+                    )
                     _authState.value = UiState.Success(user.uid)
                     onSuccess()
                 },
@@ -147,6 +278,10 @@ class AuthViewModel(
             val result = authRepository.signUpWithEmail(trimmedName, trimmedEmail, pass)
             result.fold(
                 onSuccess = { user ->
+                    refreshProfileInfo(
+                        explicitName = trimmedName,
+                        explicitEmail = trimmedEmail
+                    )
                     _authState.value = UiState.Success(user.uid)
                     onSuccess()
                 },
@@ -178,30 +313,6 @@ class AuthViewModel(
                 }
             )
         }
-    }
-
-    fun signInGuest(onSuccess: () -> Unit = {}) {
-        viewModelScope.launch {
-            _authState.value = UiState.Loading
-            val result = authRepository.signInAnonymously()
-            result.fold(
-                onSuccess = { user ->
-                    _authState.value = UiState.Success(user.uid)
-                    onSuccess()
-                },
-                onFailure = { throwable ->
-                    _authState.value = UiState.Error(
-                        message = throwable.message ?: "Sign in failed",
-                        throwable = throwable
-                    )
-                }
-            )
-        }
-    }
-
-    fun continueOffline(onSuccess: () -> Unit = {}) {
-        _authState.value = UiState.Success("guest_user")
-        onSuccess()
     }
 
     fun signInWithGoogle(
@@ -244,7 +355,6 @@ class AuthViewModel(
                     _authState.value = UiState.Error("Unexpected credential type received.")
                 }
             } catch (e: GetCredentialCancellationException) {
-                // User dismissed the account selection bottom sheet
                 _authState.value = UiState.Idle
             } catch (e: NoCredentialException) {
                 _authState.value = UiState.Error("No Google accounts found on this device.")
@@ -277,6 +387,10 @@ class AuthViewModel(
             val authResult = authRepository.signInWithGoogle(idToken)
             authResult.fold(
                 onSuccess = { user ->
+                    refreshProfileInfo(
+                        explicitName = user.displayName,
+                        explicitEmail = user.email
+                    )
                     _authState.value = UiState.Success(user.uid)
                     onSuccess()
                 },
@@ -289,19 +403,16 @@ class AuthViewModel(
     }
 
     fun getWebClientId(context: Context): String {
-        // 1. Check if generated by google-services plugin (client_type: 3)
         val defaultIdRes = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
         if (defaultIdRes != 0) {
             val id = context.getString(defaultIdRes)
             if (id.isNotBlank() && !id.contains("webclientid")) return id
         }
-        // 2. Fallback to server_client_id in strings.xml
         val customIdRes = context.resources.getIdentifier("server_client_id", "string", context.packageName)
         if (customIdRes != 0) {
             val id = context.getString(customIdRes)
             if (id.isNotBlank() && !id.contains("webclientid")) return id
         }
-        // 3. Fallback to intrack-finance web client ID
         return DEFAULT_WEB_CLIENT_ID
     }
 

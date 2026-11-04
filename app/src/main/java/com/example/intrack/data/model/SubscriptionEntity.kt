@@ -1,8 +1,12 @@
 package com.example.intrack.data.model
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.google.firebase.firestore.PropertyName
 
+@Entity(tableName = "subscriptions")
 data class SubscriptionEntity(
+    @PrimaryKey
     val id: String = "",
     val userId: String = "",
     val name: String = "", // e.g. Rent, Gym Membership, SaaS Cloud Plan, Netflix Premium
@@ -19,4 +23,3 @@ data class SubscriptionEntity(
     @get:PropertyName("isAutoPayment")
     val isAutoPayment: Boolean = false
 )
-

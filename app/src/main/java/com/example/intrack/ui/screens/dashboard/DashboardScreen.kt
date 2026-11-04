@@ -90,19 +90,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.ExpenseEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.components.AddGoalSquareCard
+import com.example.intrack.ui.components.CatchUpSheet
+import androidx.compose.material.icons.rounded.Favorite
 import com.example.intrack.ui.components.CommitmentRatioBar
 import com.example.intrack.ui.components.GoalSquareCard
 import com.example.intrack.ui.components.ProfileSettingsBottomSheet
 import com.example.intrack.ui.components.QuickExpenseBottomSheet
 import com.example.intrack.ui.screens.expenses.AddExpenseBottomSheet
-import com.example.intrack.ui.theme.PrimaryGreen
-import com.example.intrack.ui.theme.TangerineShade2
-import com.example.intrack.ui.theme.TangerineShade3
+import com.example.intrack.ui.screens.expenses.AddExpenseDialog
+import com.example.intrack.ui.theme.*
 import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.ui.theme.AppThemeMode
 import com.example.intrack.util.DateUtils
@@ -120,16 +121,20 @@ fun DashboardScreen(
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToAllTransactions: () -> Unit = onNavigateToExpenses,
     onNavigateToSettings: () -> Unit = {},
-    viewModel: DashboardViewModel = viewModel(),
+    onNavigateToProfile: () -> Unit = onNavigateToSettings,
+    viewModel: DashboardViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val userGreetingName by viewModel.userGreetingName.collectAsState()
+    val userInitials by viewModel.userInitials.collectAsState()
+    val selectedCategoryFilter by viewModel.selectedCategoryFilter.collectAsState()
+    val selectedAccountFilter by viewModel.selectedAccountFilter.collectAsState()
     var showProfileSheet by remember { mutableStateOf(false) }
     var showExpenseSheet by remember { mutableStateOf(false) }
+    var showCatchUpSheet by remember { mutableStateOf(false) }
     var showNotificationsSheet by remember { mutableStateOf(false) }
     var hasUnreadNotifications by remember { mutableStateOf(true) }
-    var selectedCategoryFilter by remember { mutableStateOf("ALL") }
-    var selectedAccountFilter by remember { mutableStateOf("ALL") }
     var accountFilterExpanded by remember { mutableStateOf(false) }
     var categoryFilterExpanded by remember { mutableStateOf(false) }
     var showActivityFilters by remember { mutableStateOf(false) }
@@ -146,7 +151,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
-                            .clickable { onNavigateToSettings() }
+                            .clickable { onNavigateToProfile() }
                             .padding(horizontal = 6.dp, vertical = 6.dp)
                     ) {
                         Box(
@@ -157,7 +162,7 @@ fun DashboardScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "K",
+                                text = userInitials,
                                 style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -166,7 +171,7 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Hi, Kavindu 👋",
+                                text = "Hi, $userGreetingName 👋",
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontSize = 19.sp,
                                     fontWeight = FontWeight.Bold,
@@ -207,12 +212,12 @@ fun DashboardScreen(
                 },
                 windowInsets = TopAppBarDefaults.windowInsets,
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = Color.White
                 )
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.White,
         modifier = modifier
     ) { innerPadding ->
         when (uiState) {
@@ -230,32 +235,22 @@ fun DashboardScreen(
                     title = "Unable to Load Dashboard",
                     message = error,
                     onActionClick = {
-                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-                        viewModel.loadDashboard(currentUid)
+                        viewModel.loadDashboard()
                     },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
             is UiState.Success -> {
                 val data = (uiState as UiState.Success<DashboardData>).data
-
-                // Filter & Weekly Grouping for Recent Transactions
-                val filteredRecent = data.recentTransactions.filter { expense ->
-                    val matchesCategory = if (selectedCategoryFilter == "ALL") true else expense.category.equals(selectedCategoryFilter, ignoreCase = true)
-                    val matchesAccount = if (selectedAccountFilter == "ALL") true else expense.paymentAccount.equals(selectedAccountFilter, ignoreCase = true)
-                    matchesCategory && matchesAccount
-                }
-
-                val groupedRecent = remember(filteredRecent) {
-                    filteredRecent.groupBy { formatWeeklyDashboardTimeTier(it.dateSpentMillis) }
-                }
+                val filteredRecent = data.filteredRecentTransactions
+                val groupedRecent = data.groupedRecentTransactions
 
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(22.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
                         Spacer(modifier = Modifier.height(2.dp))
@@ -264,6 +259,8 @@ fun DashboardScreen(
                             totalExpense = data.totalExpenseLkr
                         )
                     }
+
+
 
                     item {
                         QuickActionButtons(
@@ -290,9 +287,11 @@ fun DashboardScreen(
                             ) {
                                 Text(
                                     text = "Savings Goals",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = Color(0xFF121660)
                                 )
                                 Row(
                                     modifier = Modifier.clickable { onNavigateToGoal(null) },
@@ -300,24 +299,25 @@ fun DashboardScreen(
                                 ) {
                                     Text(
                                         text = "See All",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = PrimaryGreen,
-                                        fontWeight = FontWeight.Bold
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = PrimaryGreen
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                         contentDescription = null,
                                         tint = PrimaryGreen,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(15.dp)
                                     )
                                 }
                             }
 
                             if (data.goals.isEmpty()) {
-                                GoalSquareCard(
-                                    goal = data.macBookGoalProgress,
-                                    onClick = { onNavigateToGoal(data.macBookGoalProgress.id) }
+                                AddGoalSquareCard(
+                                    onClick = { onNavigateToGoal(null) }
                                 )
                             } else {
                                 LazyRow(
@@ -340,7 +340,7 @@ fun DashboardScreen(
                         }
                     }
 
-                    // Section Header with Filter Toggle & "See All"
+                    // Section Header with Filter Toggle, Filters & Transactions List Feed
                     item {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
@@ -351,13 +351,12 @@ fun DashboardScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "RECENT TRANSACTIONS",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.6.sp
+                                    text = "Recent Transactions",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold
                                     ),
-                                    color = Color(0xFF6B5E57)
+                                    color = Color(0xFF121660)
                                 )
 
                                 Row(
@@ -370,14 +369,14 @@ fun DashboardScreen(
                                         modifier = Modifier
                                             .size(30.dp)
                                             .clip(CircleShape)
-                                            .background(if (showActivityFilters || hasActiveFilters) Color(0xFFF0EBE5) else Color.Transparent)
+                                            .background(if (showActivityFilters || hasActiveFilters) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
                                             .clickable { showActivityFilters = !showActivityFilters },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Rounded.Tune,
                                             contentDescription = "Toggle Filters",
-                                            tint = if (showActivityFilters || hasActiveFilters) BrandTangerine else Color(0xFF585F6B),
+                                            tint = if (showActivityFilters || hasActiveFilters) BrandTangerine else MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -388,238 +387,236 @@ fun DashboardScreen(
                                     ) {
                                         Text(
                                             text = "See All",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = PrimaryGreen,
-                                            fontWeight = FontWeight.Bold
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = PrimaryGreen
                                         )
                                         Spacer(modifier = Modifier.width(2.dp))
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                             contentDescription = null,
                                             tint = PrimaryGreen,
-                                            modifier = Modifier.size(14.dp)
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
                                 }
                             }
-                        }
-                    }
 
-                    // Toggleable Filters
-                    if (showActivityFilters) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                // 1. Account Dropdown
-                                val accountOptions = listOf(
-                                    "ALL" to "All Accounts",
-                                    "CASH" to "Cash Wallet",
-                                    "CARD_PRIMARY" to "Card Primary",
-                                    "ACCOUNT_SECONDARY" to "Bank Primary"
-                                )
-                                val selectedAccLabel = accountOptions.find { it.first == selectedAccountFilter }?.second ?: "All Accounts"
+                            if (showActivityFilters) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    // 1. Account Dropdown
+                                    val accountOptions = listOf(
+                                        "ALL" to "All Accounts",
+                                        "CASH" to "Cash Wallet",
+                                        "CARD_PRIMARY" to "Card Primary",
+                                        "ACCOUNT_SECONDARY" to "Bank Primary"
+                                    )
+                                    val selectedAccLabel = accountOptions.find { it.first == selectedAccountFilter }?.second ?: "All Accounts"
 
-                                Box(modifier = Modifier.weight(1f)) {
-                                    ExposedDropdownMenuBox(
-                                        expanded = accountFilterExpanded,
-                                        onExpandedChange = { accountFilterExpanded = !accountFilterExpanded },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(Color.White)
-                                                .border(1.dp, Color(0xFFEDE8E3), RoundedCornerShape(12.dp))
-                                                .padding(horizontal = 12.dp, vertical = 10.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(
-                                                    text = selectedAccLabel,
-                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                        fontSize = 12.5.sp,
-                                                        fontWeight = FontWeight.SemiBold
-                                                    ),
-                                                    color = Color(0xFF1B1C1A),
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-
-                                                Icon(
-                                                    imageVector = Icons.Rounded.ArrowDropDown,
-                                                    contentDescription = "Dropdown",
-                                                    tint = Color(0xFF585F6B),
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                        }
-
-                                        ExposedDropdownMenu(
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        ExposedDropdownMenuBox(
                                             expanded = accountFilterExpanded,
-                                            onDismissRequest = { accountFilterExpanded = false },
-                                            modifier = Modifier.background(Color.White)
+                                            onExpandedChange = { accountFilterExpanded = !accountFilterExpanded },
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            accountOptions.forEach { (key, label) ->
-                                                val isSelected = selectedAccountFilter == key
-                                                DropdownMenuItem(
-                                                    text = {
-                                                        Text(
-                                                            text = label,
-                                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                                fontSize = 13.sp,
-                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                                            ),
-                                                            color = if (isSelected) BrandTangerine else Color(0xFF1B1C1A)
-                                                        )
-                                                    },
-                                                    onClick = {
-                                                        selectedAccountFilter = key
-                                                        accountFilterExpanded = false
-                                                    },
-                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                                                )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.surface)
+                                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = selectedAccLabel,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontSize = 12.5.sp,
+                                                            fontWeight = FontWeight.SemiBold
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.ArrowDropDown,
+                                                        contentDescription = "Dropdown",
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            ExposedDropdownMenu(
+                                                expanded = accountFilterExpanded,
+                                                onDismissRequest = { accountFilterExpanded = false },
+                                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                            ) {
+                                                accountOptions.forEach { (key, label) ->
+                                                    val isSelected = selectedAccountFilter == key
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Text(
+                                                                text = label,
+                                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                                    fontSize = 13.sp,
+                                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                                ),
+                                                                color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            viewModel.setAccountFilter(key)
+                                                            accountFilterExpanded = false
+                                                        },
+                                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                // 2. Category Dropdown
-                                val categoryOptions = listOf(
-                                    "ALL" to "All Categories",
-                                    "MISC" to "Groceries",
-                                    "DINING_OUT" to "Dining",
-                                    "TRANSPORT" to "Transport",
-                                    "RENT" to "Housing",
-                                    "SUBSCRIPTION" to "Subscriptions",
-                                    "UTILITIES" to "Utilities"
-                                )
-                                val selectedCatLabel = categoryOptions.find { it.first == selectedCategoryFilter }?.second ?: "All Categories"
+                                    // 2. Category Dropdown
+                                    val categoryOptions = listOf(
+                                        "ALL" to "All Categories",
+                                        "MISC" to "Groceries",
+                                        "DINING_OUT" to "Dining",
+                                        "TRANSPORT" to "Transport",
+                                        "RENT" to "Housing",
+                                        "SUBSCRIPTION" to "Subscriptions",
+                                        "UTILITIES" to "Utilities"
+                                    )
+                                    val selectedCatLabel = categoryOptions.find { it.first == selectedCategoryFilter }?.second ?: "All Categories"
 
-                                Box(modifier = Modifier.weight(1f)) {
-                                    ExposedDropdownMenuBox(
-                                        expanded = categoryFilterExpanded,
-                                        onExpandedChange = { categoryFilterExpanded = !categoryFilterExpanded },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(Color.White)
-                                                .border(1.dp, Color(0xFFEDE8E3), RoundedCornerShape(12.dp))
-                                                .padding(horizontal = 12.dp, vertical = 10.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(
-                                                    text = selectedCatLabel,
-                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                        fontSize = 12.5.sp,
-                                                        fontWeight = FontWeight.SemiBold
-                                                    ),
-                                                    color = Color(0xFF1B1C1A),
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-
-                                                Icon(
-                                                    imageVector = Icons.Rounded.ArrowDropDown,
-                                                    contentDescription = "Dropdown",
-                                                    tint = Color(0xFF585F6B),
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                        }
-
-                                        ExposedDropdownMenu(
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        ExposedDropdownMenuBox(
                                             expanded = categoryFilterExpanded,
-                                            onDismissRequest = { categoryFilterExpanded = false },
-                                            modifier = Modifier.background(Color.White)
+                                            onExpandedChange = { categoryFilterExpanded = !categoryFilterExpanded },
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            categoryOptions.forEach { (key, label) ->
-                                                val isSelected = selectedCategoryFilter == key
-                                                DropdownMenuItem(
-                                                    text = {
-                                                        Text(
-                                                            text = label,
-                                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                                fontSize = 13.sp,
-                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                                            ),
-                                                            color = if (isSelected) BrandTangerine else Color(0xFF1B1C1A)
-                                                        )
-                                                    },
-                                                    onClick = {
-                                                        selectedCategoryFilter = key
-                                                        categoryFilterExpanded = false
-                                                    },
-                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                                                )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.surface)
+                                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = selectedCatLabel,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontSize = 12.5.sp,
+                                                            fontWeight = FontWeight.SemiBold
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.ArrowDropDown,
+                                                        contentDescription = "Dropdown",
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            ExposedDropdownMenu(
+                                                expanded = categoryFilterExpanded,
+                                                onDismissRequest = { categoryFilterExpanded = false },
+                                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                            ) {
+                                                categoryOptions.forEach { (key, label) ->
+                                                    val isSelected = selectedCategoryFilter == key
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Text(
+                                                                text = label,
+                                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                                    fontSize = 13.sp,
+                                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                                ),
+                                                                color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            viewModel.setCategoryFilter(key)
+                                                            categoryFilterExpanded = false
+                                                        },
+                                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
 
-                    // Transactions List Feed with Weekly Headers
-                    if (filteredRecent.isEmpty()) {
-                        item {
-                            EmptyStateView(
-                                title = "No recent transactions",
-                                message = "Logged expenses matching active filters will appear here.",
-                                actionLabel = "Add Expense",
-                                onActionClick = { showExpenseSheet = true }
-                            )
-                        }
-                    } else {
-                        groupedRecent.forEach { (weekTier, expensesInGroup) ->
-                            item(key = "dashboard_section_$weekTier") {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    // Highlighted Weekly Section Header Row
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 2.dp, vertical = 6.dp),
-                                        horizontalArrangement = Arrangement.Start,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
+                            Spacer(modifier = Modifier.height(2.dp))
+
+                            if (filteredRecent.isEmpty()) {
+                                EmptyStateView(
+                                    title = "No recent transactions",
+                                    message = "Logged expenses matching active filters will appear here.",
+                                    actionLabel = "Add Expense",
+                                    onActionClick = { showExpenseSheet = true }
+                                )
+                            } else {
+                                groupedRecent.forEach { (weekTier, expensesInGroup) ->
+                                    val showGroupHeader = !(groupedRecent.size == 1 && weekTier == "This Week")
+                                    if (showGroupHeader) {
+                                        Row(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(BrandTangerine.copy(alpha = 0.12f))
-                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 2.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.Start,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                text = weekTier,
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    letterSpacing = 0.3.sp
-                                                ),
-                                                color = BrandTangerine
-                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(Color(0xFF0171DF))
+                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = weekTier,
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 11.5.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        letterSpacing = 0.3.sp
+                                                    ),
+                                                    color = Color.White
+                                                )
+                                            }
                                         }
                                     }
 
-                                    // Always visible Flat Transaction Rows
                                     expensesInGroup.forEachIndexed { index, expense ->
                                         RecentExpenseRow(expense = expense)
                                         if (index < expensesInGroup.lastIndex) {
                                             HorizontalDivider(
-                                                modifier = Modifier.fillMaxWidth(),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp),
                                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                                 thickness = 0.8.dp
                                             )
@@ -639,8 +636,28 @@ fun DashboardScreen(
         }
     }
 
+    if (showCatchUpSheet) {
+        CatchUpSheet(
+            daysMissed = if (uiState is UiState.Success) (uiState as UiState.Success<DashboardData>).data.daysSinceLastExpense else 7L,
+            onConfirmBulkEstimate = { amt, note ->
+                viewModel.logBulkCatchUpExpense(amt, note)
+                showCatchUpSheet = false
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Logged ${CurrencyFormatter.formatLkr(amt)} catch-up estimate! Zero guilt, back on track 🚀")
+                }
+            },
+            onConfirmFreshStart = {
+                showCatchUpSheet = false
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Gap forgiven! Fresh start activated for your MacBook Pro M4 goal ✨")
+                }
+            },
+            onDismiss = { showCatchUpSheet = false }
+        )
+    }
+
     if (showExpenseSheet) {
-        AddExpenseBottomSheet(
+        AddExpenseDialog(
             onDismiss = { showExpenseSheet = false },
             onSubmit = { expense ->
                 viewModel.logExpense(expense)
@@ -667,6 +684,10 @@ fun DashboardScreen(
             onNavigateToGoal = {
                 showNotificationsSheet = false
                 onNavigateToGoal(null)
+            },
+            onNavigateToExpenses = {
+                showNotificationsSheet = false
+                onNavigateToExpenses()
             }
         )
     }
@@ -679,6 +700,7 @@ fun DashboardScreen(
                 showProfileSheet = false
                 onSignOut()
             },
+            onNavigateToProfile = onNavigateToProfile,
             onDismiss = { showProfileSheet = false }
         )
     }
@@ -701,7 +723,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
 
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth()
@@ -723,7 +745,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.5.sp
                     ),
-                    color = Color(0xFF6B5E57),
+                    color = Color(0xFF121660),
                     textAlign = TextAlign.Center
                 )
             }
@@ -745,7 +767,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = heroColor,
+                    color = Color(0xFF121660),
                     modifier = Modifier.alignByBaseline()
                 )
                 Text(
@@ -755,7 +777,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.5).sp
                     ),
-                    color = Color(0xFF1B1C1A),
+                    color = Color(0xFF121660),
                     maxLines = 1,
                     modifier = Modifier.alignByBaseline()
                 )
@@ -769,30 +791,21 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(Color(0xFFE3BEB6))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (animatedInflowFraction > 0f) {
                     Box(
                         modifier = Modifier
                             .weight(animatedInflowFraction.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(PrimaryGreen)
+                            .background(Color(0xFF121660))
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Subtle Hairline Divider
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth(),
-                thickness = 0.8.dp,
-                color = Color(0xFFF2ECE6)
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 5. Inflow vs Outflow Legend Breakdown
+            // 4. Inflow vs Outflow Legend Breakdown
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -807,7 +820,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                             contentDescription = "Inflow",
-                            tint = PrimaryGreen,
+                            tint = Color(0xFF121660),
                             modifier = Modifier.size(15.dp)
                         )
                         Text(
@@ -816,7 +829,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Color(0xFF6B5E57)
+                            color = Color(0xFF121660)
                         )
                     }
                     Spacer(modifier = Modifier.height(3.dp))
@@ -826,7 +839,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Color(0xFF1B1C1A)
+                        color = Color(0xFF121660)
                     )
                 }
 
@@ -839,7 +852,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                             contentDescription = "Outflow",
-                            tint = Color(0xFFB52705),
+                            tint = Color(0xFF121660),
                             modifier = Modifier.size(15.dp)
                         )
                         Text(
@@ -848,7 +861,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Color(0xFF6B5E57)
+                            color = Color(0xFF121660)
                         )
                     }
                     Spacer(modifier = Modifier.height(3.dp))
@@ -858,7 +871,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Color(0xFF1B1C1A)
+                        color = Color(0xFF121660)
                     )
                 }
             }
@@ -921,19 +934,19 @@ fun QuickActionButtons(
                 .height(48.dp),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
+                containerColor = BrandSoftSlate,
+                contentColor = Color(0xFF121660)
             ),
             border = BorderStroke(0.dp, Color.Transparent)
         ) {
             Icon(
                 imageVector = Icons.Default.Payments,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = Color(0xFF121660),
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Log Income", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text("Log Income", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFF121660))
         }
     }
 }
@@ -949,22 +962,21 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
         expense.category.uppercase() == "MISC" -> Icons.Default.ShoppingCart
         else -> Icons.Default.LocalCafe
     }
-    val iconBg = if (expense.paymentAccount.uppercase() == "CASH") {
-        TangerineShade3.copy(alpha = 0.2f)
-    } else {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-    }
-    val iconTint = if (expense.paymentAccount.uppercase() == "CASH") {
-        TangerineShade2
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
+    val iconBg = BrandSoftSlate
+    val iconTint = Color(0xFF121660)
 
     val accountLabel = when (expense.paymentAccount.uppercase()) {
         "CARD_PRIMARY" -> "Card Primary"
         "ACCOUNT_SECONDARY" -> "Secondary"
         "CASH" -> "Cash"
         else -> expense.paymentAccount.replace("_", " ")
+    }
+
+    val (accBg, accText) = when (expense.paymentAccount.uppercase()) {
+        "CASH" -> Pair(Color(0xFFFFF7DB), Color(0xFF121660))
+        "CARD_PRIMARY" -> Pair(Color(0xFFE5F1FD), Color(0xFF0171DF))
+        "ACCOUNT_SECONDARY" -> Pair(Color(0xFFE8EEFC), Color(0xFF121660))
+        else -> Pair(BrandSoftSlate, Color(0xFF121660))
     }
 
     Row(
@@ -980,7 +992,7 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
                     .background(iconBg),
                 contentAlignment = Alignment.Center
@@ -989,7 +1001,7 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
                     imageVector = categoryIcon,
                     contentDescription = expense.category,
                     tint = iconTint,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(19.dp)
                 )
             }
 
@@ -998,30 +1010,27 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
             Column {
                 Text(
                     text = expense.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.5.sp,
+                        lineHeight = 17.sp
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (expense.paymentAccount.uppercase() == "CASH") {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(TangerineShade3.copy(alpha = 0.25f))
-                                .padding(horizontal = 5.dp, vertical = 1.dp)
-                        ) {
-                            Text(
-                                text = "Cash",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
-                                color = TangerineShade2
-                            )
-                        }
-                    } else {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(accBg)
+                            .padding(horizontal = 6.dp, vertical = 1.5.dp)
+                    ) {
                         Text(
                             text = accountLabel,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                            color = accText
                         )
                     }
                     Text(
@@ -1042,8 +1051,10 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
 
         Text(
             text = "- ${CurrencyFormatter.formatLkr(expense.amountLkr)}",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            ),
             color = MaterialTheme.colorScheme.onSurface
         )
     }
@@ -1060,7 +1071,8 @@ fun DashboardNotificationsBottomSheet(
     shockInsightMessage: String,
     onDismiss: () -> Unit,
     onNavigateToSubscriptions: () -> Unit,
-    onNavigateToGoal: () -> Unit
+    onNavigateToGoal: () -> Unit,
+    onNavigateToExpenses: () -> Unit = {}
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1078,6 +1090,48 @@ fun DashboardNotificationsBottomSheet(
             )
             Spacer(modifier = Modifier.height(14.dp))
 
+            if (shockInsightMessage.isNotBlank()) {
+                OutlinedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToExpenses() },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = BrandTangerine.copy(alpha = 0.08f)
+                    ),
+                    border = BorderStroke(1.dp, BrandTangerine.copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = BrandTangerine,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Lifestyle Leak Insight",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = BrandTangerine
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = shockInsightMessage,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
             OutlinedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1090,7 +1144,7 @@ fun DashboardNotificationsBottomSheet(
                     modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(20.dp))
+                    Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = BrandTangerine, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
@@ -1152,6 +1206,156 @@ fun DashboardNotificationsBottomSheet(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+fun ShockInsightBanner(
+    shockInsightMessage: String,
+    onNavigateToExpenses: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onNavigateToExpenses() }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(BrandTangerine.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "Insight",
+                    tint = BrandTangerine,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "LIFESTYLE LEAK ALERT",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    color = BrandTangerine
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = shockInsightMessage,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        lineHeight = 16.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "View Expenses",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun CatchUpBanner(
+    daysMissed: Long,
+    onOpenCatchUp: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onOpenCatchUp() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = BrandTangerine.copy(alpha = 0.08f)
+        ),
+        border = BorderStroke(1.2.dp, BrandTangerine.copy(alpha = 0.35f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(BrandTangerine.copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Favorite,
+                        contentDescription = null,
+                        tint = BrandTangerine,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        text = if (daysMissed > 0) "Missed $daysMissed Days of Logging?" else "Missed Days During a Crunch?",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.5.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Use Forgiving Return to catch up or reset with zero guilt",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BrandTangerine)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "Catch Up",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    ),
+                    color = Color.White
+                )
+            }
         }
     }
 }

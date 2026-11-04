@@ -30,7 +30,7 @@ fun InTrackHeroAmount(
     prefix: String = "LKR",
     amountFontSize: TextUnit = 30.sp,
     prefixFontSize: TextUnit = 18.sp,
-    textColor: Color = FigmaDarkText,
+    textColor: Color = MaterialTheme.colorScheme.onSurface,
     prefixColor: Color = FigmaTerracotta,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Center
 ) {

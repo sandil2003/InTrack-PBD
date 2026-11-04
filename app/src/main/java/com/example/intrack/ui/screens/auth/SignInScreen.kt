@@ -72,15 +72,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.common.UiState
 import kotlinx.coroutines.launch
 
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalContext
 
 /**
  * Sign In Screen matching Figma node 2007:30
@@ -91,7 +89,7 @@ fun SignInScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit,
     onBackClick: (() -> Unit)? = null,
-    viewModel: AuthViewModel = viewModel(),
+    viewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val authState by viewModel.authState.collectAsState()
@@ -198,7 +196,7 @@ fun SignInScreen(
             // 3. Section - Primary Form Card (Figma node 2007:61)
             Card(
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, AuthBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier
@@ -324,20 +322,6 @@ fun SignInScreen(
                                         )
                                     }
                                 }
-
-                                Text(
-                                    text = "Continue in Demo Mode →",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = AuthTerracotta,
-                                    modifier = Modifier
-                                        .align(Alignment.End)
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .clickable { viewModel.continueOffline() }
-                                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                                )
                             }
                         }
                     }
@@ -352,7 +336,7 @@ fun SignInScreen(
                         shape = RoundedCornerShape(9999.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AuthPrimaryOrange,
-                            contentColor = Color.White
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -360,7 +344,7 @@ fun SignInScreen(
                     ) {
                         if (authState is UiState.Loading) {
                             CircularProgressIndicator(
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
                             )
@@ -384,40 +368,6 @@ fun SignInScreen(
                             }
                         }
                     }
-
-                    // Biometric Quick Auth Option (Figma node 2007:90)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(9999.dp))
-                            .background(AuthSoftPeach)
-                            .border(1.dp, Color(0xFFF0DCD3), RoundedCornerShape(9999.dp))
-                            .clickable {
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Biometric authentication verified.")
-                                    viewModel.continueOffline()
-                                }
-                            },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Fingerprint,
-                            contentDescription = "Biometrics",
-                            tint = AuthTerracotta,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Biometrics",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontSize = 13.5.sp,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = AuthDarkText
-                        )
-                    }
                 }
             }
 
@@ -428,12 +378,6 @@ fun SignInScreen(
                 onGoogleClick = {
                     focusManager.clearFocus()
                     viewModel.signInWithGoogle(context)
-                },
-                onAppleClick = {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Apple ID session initialized.")
-                        viewModel.continueOffline()
-                    }
                 },
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
@@ -505,7 +449,7 @@ fun SignInScreen(
                     }
                 },
                 shape = RoundedCornerShape(20.dp),
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             )
         }
 
@@ -516,7 +460,7 @@ fun SignInScreen(
                     showForgotPasswordSheet = false
                     viewModel.clearResetState()
                 },
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
                 Column(
@@ -571,7 +515,7 @@ fun SignInScreen(
                             .height(48.dp)
                     ) {
                         if (resetPasswordState is UiState.Loading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         } else {
                             Text("Send Reset Link", fontWeight = FontWeight.Bold)
                         }
@@ -583,11 +527,7 @@ fun SignInScreen(
         // Google Sign-In Setup & SHA-1 Helper Modal
         if (showGoogleSetupDialog) {
             GoogleSetupModal(
-                onDismiss = { viewModel.dismissGoogleSetupDialog() },
-                onContinueDemo = {
-                    viewModel.dismissGoogleSetupDialog()
-                    viewModel.continueOffline()
-                }
+                onDismiss = { viewModel.dismissGoogleSetupDialog() }
             )
         }
     }

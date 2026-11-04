@@ -63,9 +63,12 @@ import com.example.intrack.ui.screens.subscriptions.AddSubscriptionScreen
 import com.example.intrack.ui.screens.subscriptions.SubscriptionAuditScreen
 import com.example.intrack.ui.screens.transactions.AllTransactionsScreen
 import com.example.intrack.ui.screens.settings.SettingsScreen
+import com.example.intrack.ui.screens.profile.ProfileScreen
 import com.example.intrack.ui.screens.expenses.EditExpenseScreen
 
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.theme.AppThemeMode
+import com.example.intrack.viewmodel.AuthViewModel
 
 
 private data class BottomNavItem(
@@ -79,10 +82,18 @@ fun FinFlowNavGraph(
     navController: NavHostController = rememberNavController(),
     themeMode: AppThemeMode = AppThemeMode.LIGHT,
     onThemeModeChange: (AppThemeMode) -> Unit = {},
+    authViewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Login.route
+
+    val handleSignOut: () -> Unit = {
+        authViewModel.signOut()
+        navController.navigate(Screen.Login.route) {
+            popUpTo(0) { inclusive = true }
+        }
+    }
 
     val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && currentRoute != Screen.AddExpense.route && currentRoute != Screen.AddSubscription.route && currentRoute != Screen.AddGoal.route && !currentRoute.startsWith("edit_expense")
 
@@ -156,11 +167,7 @@ fun FinFlowNavGraph(
                 DashboardScreen(
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
-                    onSignOut = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
+                    onSignOut = handleSignOut,
                     onNavigateToGoal = { goalId ->
                         if (!goalId.isNullOrEmpty()) {
                             navController.navigate(Screen.GoalDetail.createRoute(goalId))
@@ -182,6 +189,9 @@ fun FinFlowNavGraph(
                     },
                     onNavigateToSettings = {
                         navigateToRoute(Screen.Settings.route)
+                    },
+                    onNavigateToProfile = {
+                        navigateToRoute(Screen.Profile.route)
                     }
                 )
             }
@@ -195,7 +205,10 @@ fun FinFlowNavGraph(
             composable(Screen.IncomeHub.route) {
                 IncomeHubScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToGoal = { navigateToRoute(Screen.GoalTracker.route) }
+                    onNavigateToGoal = { navigateToRoute(Screen.GoalTracker.route) },
+                    onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
+                    onNavigateToProfile = { navigateToRoute(Screen.Profile.route) },
+                    onSignOut = handleSignOut
                 )
             }
 
@@ -214,13 +227,10 @@ fun FinFlowNavGraph(
                     initialTab = tab,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
+                    onNavigateToProfile = { navigateToRoute(Screen.Profile.route) },
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
-                    onSignOut = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
+                    onSignOut = handleSignOut
                 )
             }
 
@@ -229,13 +239,10 @@ fun FinFlowNavGraph(
                     initialTab = "subscriptions",
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
+                    onNavigateToProfile = { navigateToRoute(Screen.Profile.route) },
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
-                    onSignOut = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
+                    onSignOut = handleSignOut
                 )
             }
 
@@ -249,11 +256,8 @@ fun FinFlowNavGraph(
                     },
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                    onSignOut = {
-                        navController.navigate(Screen.SignIn.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                    onSignOut = handleSignOut
                 )
             }
 
@@ -293,14 +297,19 @@ fun FinFlowNavGraph(
                 )
             }
 
+            composable(Screen.Profile.route) {
+                ProfileScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onSignOut = handleSignOut
+                )
+            }
+
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onSignOut = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                    onSignOut = handleSignOut,
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange
                 )

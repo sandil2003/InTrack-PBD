@@ -57,9 +57,13 @@ import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -88,10 +92,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.ExpenseEntity
+import com.example.intrack.ui.theme.BrandTangerine
+import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
-import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -119,17 +124,13 @@ data class ExpenseAccountItem(
 fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
     onExpenseSaved: () -> Unit = onNavigateBack,
-    expenseViewModel: ExpenseViewModel = viewModel(),
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val currentUserId = remember {
-        FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F3EF))
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
     ) {
         Column(
@@ -137,17 +138,257 @@ fun AddExpenseScreen(
                 .fillMaxSize()
                 .padding(top = 16.dp)
                 .clip(RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp))
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
         ) {
             AddExpenseContent(
                 onDismiss = onNavigateBack,
                 onSubmit = { newExpense ->
-                    expenseViewModel.addExpense(newExpense.copy(userId = currentUserId))
+                    expenseViewModel.addExpense(newExpense)
                     onExpenseSaved()
                 }
             )
         }
     }
+}
+
+/**
+ * Modal Card Dialog version of "Add an expense" matching the Income page's AlertDialog design language.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddExpenseDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (ExpenseEntity) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var titleText by remember { mutableStateOf("") }
+    var amountInput by remember { mutableStateOf("") }
+    var selectedCategoryKey by remember { mutableStateOf("DINING_OUT") }
+    var selectedAccountKey by remember { mutableStateOf("CARD_PRIMARY") }
+    var commitmentType by remember { mutableStateOf("DISCRETIONARY") }
+
+    val categories = remember {
+        listOf(
+            ExpenseCategoryItem("DINING_OUT", "Dining", Icons.Rounded.Restaurant),
+            ExpenseCategoryItem("TRANSPORT", "Transport", Icons.Rounded.DirectionsCar),
+            ExpenseCategoryItem("MISC", "Groceries", Icons.Rounded.ShoppingCart),
+            ExpenseCategoryItem("UTILITIES", "Utilities", Icons.Rounded.Bolt),
+            ExpenseCategoryItem("RENT", "Rent", Icons.Rounded.Home),
+            ExpenseCategoryItem("LIFESTYLE", "Lifestyle", Icons.Rounded.Spa),
+            ExpenseCategoryItem("ATM_WITHDRAWAL", "ATM Cash", Icons.Rounded.Payments)
+        )
+    }
+
+    val accounts = remember {
+        listOf(
+            ExpenseAccountItem("CARD_PRIMARY", "Card Primary", "Card", Icons.Rounded.CreditCard),
+            ExpenseAccountItem("CASH", "Cash Wallet", "Cash", Icons.Rounded.AccountBalanceWallet),
+            ExpenseAccountItem("ACCOUNT_SECONDARY", "Secondary", "Bank", Icons.Rounded.AccountBalance)
+        )
+    }
+
+    val parsedAmount = amountInput.toDoubleOrNull() ?: 0.0
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Log New Expense",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = titleText,
+                    onValueChange = { titleText = it },
+                    label = { Text("Expense Title / Note") },
+                    placeholder = { Text("e.g. Lunch with team, Groceries") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = amountInput,
+                    onValueChange = { newValue ->
+                        val filtered = newValue.filter { it.isDigit() || it == '.' }
+                        amountInput = filtered
+                    },
+                    label = { Text("Amount (LKR)") },
+                    placeholder = { Text("0.00") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "Category",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    categories.forEach { category ->
+                        val isSelected = selectedCategoryKey == category.key
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                selectedCategoryKey = category.key
+                                when (category.key) {
+                                    "RENT", "UTILITIES", "MISC" -> commitmentType = "COMMITTED"
+                                    "ATM_WITHDRAWAL" -> {
+                                        commitmentType = "TRANSFER"
+                                        selectedAccountKey = "CARD_PRIMARY"
+                                    }
+                                    else -> commitmentType = "DISCRETIONARY"
+                                }
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = category.icon,
+                                    contentDescription = category.displayName,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            label = { Text(category.displayName, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Paid From",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    accounts.forEach { account ->
+                        FilterChip(
+                            selected = selectedAccountKey == account.key,
+                            onClick = { selectedAccountKey = account.key },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = account.icon,
+                                    contentDescription = account.title,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            label = { Text(account.title, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Commitment Tier",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = commitmentType == "COMMITTED",
+                        onClick = { commitmentType = "COMMITTED" },
+                        label = { Text("Committed (Needs)", style = MaterialTheme.typography.labelSmall) },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = commitmentType == "DISCRETIONARY",
+                        onClick = { commitmentType = "DISCRETIONARY" },
+                        label = { Text("Discretionary (Wants)", style = MaterialTheme.typography.labelSmall) },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BrandTangerine.copy(alpha = 0.12f))
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Total Outflow",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = BrandTangerine
+                    )
+                    Text(
+                        text = CurrencyFormatter.formatLkr(parsedAmount),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandTangerine
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (parsedAmount > 0.0) {
+                        val selectedCat = categories.find { it.key == selectedCategoryKey }
+                        val defaultTitle = if (selectedCategoryKey == "ATM_WITHDRAWAL") "ATM Cash Withdrawal" else (selectedCat?.displayName ?: "Expense")
+                        val finalTitle = titleText.trim().ifEmpty { defaultTitle }
+                        val finalCommitment = if (selectedCategoryKey == "ATM_WITHDRAWAL") "TRANSFER" else commitmentType
+
+                        val newExpense = ExpenseEntity(
+                            id = UUID.randomUUID().toString(),
+                            userId = "",
+                            title = finalTitle,
+                            amountLkr = parsedAmount,
+                            category = selectedCategoryKey,
+                            paymentAccount = selectedAccountKey,
+                            commitmentType = finalCommitment,
+                            dateSpentMillis = System.currentTimeMillis(),
+                            isRecurring = false,
+                            notes = titleText.trim().ifBlank { null }
+                        )
+                        onSubmit(newExpense)
+                    }
+                },
+                enabled = parsedAmount > 0.0,
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BrandTangerine)
+            ) {
+                Text("Save Expense", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier
+    )
 }
 
 /**
@@ -254,7 +495,7 @@ fun AddExpenseContent(
                     .width(48.dp)
                     .height(6.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFE4E2DE))
+                    .background(MaterialTheme.colorScheme.outlineVariant)
             )
         }
 
@@ -275,13 +516,13 @@ fun AddExpenseContent(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFF5DED4)),
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
                         contentDescription = "New Transaction Icon",
-                        tint = Color(0xFFB52705),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -292,7 +533,7 @@ fun AddExpenseContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1B1C1A)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -301,7 +542,7 @@ fun AddExpenseContent(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFEFEEEA))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -311,7 +552,7 @@ fun AddExpenseContent(
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close modal",
-                    tint = Color(0xFF585F6B),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -326,8 +567,8 @@ fun AddExpenseContent(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFFFBF9F5))
-                .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
                 .padding(20.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -337,7 +578,7 @@ fun AddExpenseContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF585F6B),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 0.5.sp
                 )
 
@@ -354,7 +595,7 @@ fun AddExpenseContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF6B5B53)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -371,7 +612,7 @@ fun AddExpenseContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 32.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF1B1C1A)
+                            color = MaterialTheme.colorScheme.onSurface
                         ),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal,
@@ -388,7 +629,7 @@ fun AddExpenseContent(
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 32.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFFC4BBB5)
+                                    color = MaterialTheme.colorScheme.outline
                                 )
                             }
                             innerTextField()
@@ -403,7 +644,7 @@ fun AddExpenseContent(
                         modifier = Modifier
                             .width(2.dp)
                             .height(28.dp)
-                            .background(Color(0xFFB52705).copy(alpha = cursorAlpha))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = cursorAlpha))
                     )
                 }
 
@@ -413,7 +654,7 @@ fun AddExpenseContent(
                         text = amountErrorMessage!!,
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 12.sp,
-                        color = Color(0xFFB52705),
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -437,7 +678,7 @@ fun AddExpenseContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF5B413B)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 // "+ New Tag" button (11sp, SemiBold 600, #B52705)
@@ -446,7 +687,7 @@ fun AddExpenseContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFFB52705),
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -468,10 +709,10 @@ fun AddExpenseContent(
             ) {
                 categories.forEach { category ->
                     val isSelected = selectedCategoryKey == category.key
-                    val chipBg = if (isSelected) Color(0xFFF5DED4) else Color.White
-                    val chipBorder = if (isSelected) Color(0xFFE3BEB6) else Color(0xFFE4E2DE)
-                    val chipContentColor = if (isSelected) Color(0xFF5B0D00) else Color(0xFF6B5B53)
-                    val iconColor = if (isSelected) Color(0xFFB52705) else Color(0xFF6B5B53)
+                    val chipBg = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                    val chipBorder = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                    val chipContentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                    val iconColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
                     Row(
                         modifier = Modifier
@@ -529,8 +770,8 @@ fun AddExpenseContent(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFEFF6FF))
-                    .border(1.dp, Color(0xFFBFDBFE), RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
                     .padding(12.dp)
             ) {
                 Row(
@@ -541,13 +782,13 @@ fun AddExpenseContent(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFDBEAFE)),
+                            .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.SwapHoriz,
                             contentDescription = null,
-                            tint = Color(0xFF2563EB),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -557,14 +798,14 @@ fun AddExpenseContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E40AF)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "Transfers to Cash wallet • Excluded from expense outflows",
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 11.sp,
-                            color = Color(0xFF3B82F6),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 15.sp
                         )
                     }
@@ -590,7 +831,7 @@ fun AddExpenseContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF585F6B),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 0.5.sp
                 )
                 Text(
@@ -602,7 +843,7 @@ fun AddExpenseContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (commitmentType == "COMMITTED") Color(0xFFB52705) else Color(0xFF6B5B53)
+                    color = if (commitmentType == "COMMITTED") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -612,9 +853,9 @@ fun AddExpenseContent(
             ) {
                 // Option 1: Essentials / Committed
                 val isCommittedSelected = commitmentType == "COMMITTED"
-                val committedBg = if (isCommittedSelected) Color(0xFFF5DED4) else Color(0xFFFBF9F5)
-                val committedBorder = if (isCommittedSelected) Color(0xFFB52705) else Color(0xFFE4E2DE)
-                val committedText = if (isCommittedSelected) Color(0xFFB52705) else Color(0xFF585F6B)
+                val committedBg = if (isCommittedSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                val committedBorder = if (isCommittedSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                val committedText = if (isCommittedSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
                 Box(
                     modifier = Modifier
@@ -650,7 +891,7 @@ fun AddExpenseContent(
                                 text = "Rent, bills, groceries",
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 10.sp,
-                                color = Color(0xFF8C7E75)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -658,9 +899,9 @@ fun AddExpenseContent(
 
                 // Option 2: Lifestyle / Discretionary
                 val isDiscretionarySelected = commitmentType == "DISCRETIONARY"
-                val discBg = if (isDiscretionarySelected) Color(0xFFF5DED4) else Color(0xFFFBF9F5)
-                val discBorder = if (isDiscretionarySelected) Color(0xFFB52705) else Color(0xFFE4E2DE)
-                val discText = if (isDiscretionarySelected) Color(0xFFB52705) else Color(0xFF585F6B)
+                val discBg = if (isDiscretionarySelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                val discBorder = if (isDiscretionarySelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                val discText = if (isDiscretionarySelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
                 Box(
                     modifier = Modifier
@@ -696,7 +937,7 @@ fun AddExpenseContent(
                                 text = "Dining, leisure, wants",
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 10.sp,
-                                color = Color(0xFF8C7E75)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -718,7 +959,7 @@ fun AddExpenseContent(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF5B413B)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -730,11 +971,11 @@ fun AddExpenseContent(
             ) {
                 accounts.forEach { account ->
                     val isSelected = selectedAccountKey == account.key
-                    val cardBg = if (isSelected) Color(0xFFFFF8F5) else Color(0xFFFBF9F5)
-                    val cardBorder = if (isSelected) Color(0xFFB52705) else Color(0xFFE4E2DE)
+                    val cardBg = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface
+                    val cardBorder = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
                     val borderWidth = if (isSelected) 2.dp else 1.dp
-                    val iconColor = if (isSelected) Color(0xFFB52705) else Color(0xFF585F6B)
-                    val titleColor = if (isSelected) Color(0xFF1B1C1A) else Color(0xFF6B5B53)
+                    val iconColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    val titleColor = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
 
                     Column(
                         modifier = Modifier
@@ -775,7 +1016,7 @@ fun AddExpenseContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Normal,
-                            color = Color(0xFF585F6B),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
                         )
                     }
@@ -792,8 +1033,8 @@ fun AddExpenseContent(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFFBF9F5))
-                .border(1.dp, Color(0xFFE4E2DE), RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
                 .padding(12.dp)
         ) {
             Row(
@@ -810,13 +1051,13 @@ fun AddExpenseContent(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFE4E2DE)),
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.CalendarToday,
                             contentDescription = "Calendar",
-                            tint = Color(0xFF585F6B),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -828,7 +1069,7 @@ fun AddExpenseContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF585F6B),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 0.5.sp
                         )
 
@@ -838,7 +1079,7 @@ fun AddExpenseContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1B1C1A)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -858,7 +1099,7 @@ fun AddExpenseContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFFB52705)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -873,8 +1114,8 @@ fun AddExpenseContent(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFFBF9F5))
-                .border(1.dp, Color(0xFFE4E2DE), RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Row(
@@ -885,7 +1126,7 @@ fun AddExpenseContent(
                 Icon(
                     imageVector = Icons.Rounded.Edit,
                     contentDescription = "Note",
-                    tint = Color(0xFF585F6B),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
 
@@ -899,7 +1140,7 @@ fun AddExpenseContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
-                        color = Color(0xFF1B1C1A)
+                        color = MaterialTheme.colorScheme.onSurface
                     ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -912,7 +1153,7 @@ fun AddExpenseContent(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Normal,
-                                color = Color(0xFF9CA3AF)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
                         }
                         innerTextField()
@@ -930,8 +1171,8 @@ fun AddExpenseContent(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFF5F3EF))
-                .border(1.dp, Color(0xFFE4E2DE), RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
@@ -952,13 +1193,13 @@ fun AddExpenseContent(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFF5DED4)),
+                            .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Sync,
                             contentDescription = "Recurring",
-                            tint = Color(0xFFB52705),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -970,7 +1211,7 @@ fun AddExpenseContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1B1C1A)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         // Subtitle: "Auto-tracked in Subscriptions" (12sp, Regular 400, #585F6B)
@@ -979,14 +1220,14 @@ fun AddExpenseContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Normal,
-                            color = Color(0xFF585F6B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
                 // Custom Styled Toggle Switch (44x24dp track, 20x20dp thumb)
                 val trackColor by animateColorAsState(
-                    targetValue = if (isRecurring) Color(0xFFB52705) else Color(0xFFE4E2DE),
+                    targetValue = if (isRecurring) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                     animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                     label = "trackColor"
                 )
@@ -1009,8 +1250,8 @@ fun AddExpenseContent(
                             .offset(x = thumbOffset)
                             .size(20.dp)
                             .clip(CircleShape)
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFD1D5DB), CircleShape)
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                     )
                 }
             }
@@ -1026,7 +1267,7 @@ fun AddExpenseContent(
                 .padding(horizontal = 20.dp)
                 .height(56.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFFF5C38))
+                .background(MaterialTheme.colorScheme.primary)
                 .clickable {
                     val rawAmount = amountInput.replace(",", "").trim()
                     val parsedAmount = rawAmount.toDoubleOrNull()
@@ -1042,10 +1283,9 @@ fun AddExpenseContent(
 
                     val finalCommitmentType = if (selectedCategoryKey == "ATM_WITHDRAWAL") "TRANSFER" else commitmentType
 
-                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest_user"
                     val newExpense = ExpenseEntity(
                         id = UUID.randomUUID().toString(),
-                        userId = currentUid,
+                        userId = "",
                         title = finalTitle,
                         amountLkr = parsedAmount,
                         category = selectedCategoryKey,
@@ -1068,7 +1308,7 @@ fun AddExpenseContent(
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(20.dp)
                 )
 
@@ -1078,7 +1318,7 @@ fun AddExpenseContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }
@@ -1107,7 +1347,7 @@ fun AddExpenseContent(
                         text = "Done",
                         fontFamily = PlusJakartaSansFontFamily,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFB52705)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             },
@@ -1116,7 +1356,7 @@ fun AddExpenseContent(
                     Text(
                         text = "Cancel",
                         fontFamily = PlusJakartaSansFontFamily,
-                        color = Color(0xFF585F6B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -1128,6 +1368,9 @@ fun AddExpenseContent(
     // Dialog for adding a custom category tag
     if (showNewTagDialog) {
         AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             onDismissRequest = { showNewTagDialog = false },
             title = {
                 Text(
@@ -1135,7 +1378,7 @@ fun AddExpenseContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    color = Color(0xFF1B1C1A)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
@@ -1144,7 +1387,7 @@ fun AddExpenseContent(
                         text = "Enter tag name:",
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 13.sp,
-                        color = Color(0xFF585F6B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
@@ -1153,8 +1396,8 @@ fun AddExpenseContent(
                         singleLine = true,
                         placeholder = { Text("e.g. Health, Pets, Education") },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFB52705),
-                            cursorColor = Color(0xFFB52705)
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = MaterialTheme.colorScheme.primary
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -1185,7 +1428,7 @@ fun AddExpenseContent(
                         text = "Add",
                         fontFamily = PlusJakartaSansFontFamily,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFB52705)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             },
@@ -1194,7 +1437,7 @@ fun AddExpenseContent(
                     Text(
                         text = "Cancel",
                         fontFamily = PlusJakartaSansFontFamily,
-                        color = Color(0xFF585F6B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
