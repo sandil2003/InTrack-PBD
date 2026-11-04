@@ -13,26 +13,62 @@ import java.util.Calendar
 
 object KavinduScenarioSeeder {
 
+    private fun getDynamicCurrentMonthDate(day: Int, hour: Int = 12): Long {
+        val cal = Calendar.getInstance()
+        val maxDays = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        cal.set(Calendar.DAY_OF_MONTH, day.coerceIn(1, maxDays))
+        cal.set(Calendar.HOUR_OF_DAY, hour)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
+    }
+
     fun getSeedGoals(userId: String, now: Long = System.currentTimeMillis()): List<GoalEntity> {
+        val monthStart = getDynamicCurrentMonthDate(1)
         return listOf(
             GoalEntity(
                 id = "macbook_m4_goal",
                 userId = userId,
                 title = "MacBook Pro M4 Fund",
                 targetAmountLkr = 490000.0,
-                currentSavedLkr = 11200.0,
-                targetDateMillis = now + (365L * 24 * 60 * 60 * 1000L),
+                currentSavedLkr = 112000.0,
+                targetDateMillis = monthStart + (365L * 24 * 60 * 60 * 1000L),
                 monthlyTargetRunRateLkr = 40833.33,
-                initialDepositLkr = 11200.0,
+                initialDepositLkr = 50000.0,
                 isCompleted = false,
-                createdAtMillis = now - (30L * 24 * 60 * 60 * 1000L)
+                createdAtMillis = monthStart - (30L * 24 * 60 * 60 * 1000L)
+            ),
+            GoalEntity(
+                id = "emergency_fund_goal",
+                userId = userId,
+                title = "6-Month Emergency Buffer",
+                targetAmountLkr = 600000.0,
+                currentSavedLkr = 204000.0,
+                targetDateMillis = monthStart + (180L * 24 * 60 * 60 * 1000L),
+                monthlyTargetRunRateLkr = 66000.00,
+                initialDepositLkr = 100000.0,
+                isCompleted = false,
+                createdAtMillis = monthStart - (60L * 24 * 60 * 60 * 1000L)
+            ),
+            GoalEntity(
+                id = "travel_conference_goal",
+                userId = userId,
+                title = "Tech Conference & Travel",
+                targetAmountLkr = 150000.0,
+                currentSavedLkr = 34500.0,
+                targetDateMillis = monthStart + (232L * 24 * 60 * 60 * 1000L),
+                monthlyTargetRunRateLkr = 15000.00,
+                initialDepositLkr = 20000.0,
+                isCompleted = false,
+                createdAtMillis = monthStart - (15L * 24 * 60 * 60 * 1000L)
             )
         )
     }
 
     fun getSeedSubscriptions(userId: String = "kavindu_demo", now: Long = System.currentTimeMillis()): List<SubscriptionEntity> {
+        val nextBilling = getDynamicCurrentMonthDate(15)
         return listOf(
-            // Committed Fixed: Rent LKR 34,000 on Secondary Account
             SubscriptionEntity(
                 id = "sub_rent",
                 userId = userId,
@@ -43,9 +79,8 @@ object KavinduScenarioSeeder {
                 category = "HOUSING",
                 status = "ACTIVE",
                 isAutoPayment = false,
-                nextBillingMillis = now + 14L * 24 * 3600 * 1000L
+                nextBillingMillis = nextBilling
             ),
-            // Committed Fixed: Gym Membership Auto-Debit on Secondary Account
             SubscriptionEntity(
                 id = "sub_gym",
                 userId = userId,
@@ -56,9 +91,8 @@ object KavinduScenarioSeeder {
                 category = "FITNESS",
                 status = "ACTIVE",
                 isAutoPayment = true,
-                nextBillingMillis = now + 9L * 24 * 3600 * 1000L
+                nextBillingMillis = getDynamicCurrentMonthDate(12)
             ),
-            // Zombie Subscription 1: Cloud SaaS Video Streaming (Intended to cancel 6 months ago)
             SubscriptionEntity(
                 id = "sub_zombie_saas",
                 userId = userId,
@@ -70,9 +104,8 @@ object KavinduScenarioSeeder {
                 status = "UNUSED_FLAGGED",
                 isFlaggedForReview = true,
                 isAutoPayment = true,
-                nextBillingMillis = now + 4L * 24 * 3600 * 1000L
+                nextBillingMillis = getDynamicCurrentMonthDate(8)
             ),
-            // Zombie Subscription 2: Pro Dev Server / Cloud Utility (Intended to cancel 6 months ago)
             SubscriptionEntity(
                 id = "sub_zombie_cloud",
                 userId = userId,
@@ -84,7 +117,7 @@ object KavinduScenarioSeeder {
                 status = "UNUSED_FLAGGED",
                 isFlaggedForReview = true,
                 isAutoPayment = true,
-                nextBillingMillis = now + 6L * 24 * 3600 * 1000L
+                nextBillingMillis = getDynamicCurrentMonthDate(10)
             )
         )
     }
@@ -94,17 +127,12 @@ object KavinduScenarioSeeder {
         now: Long = System.currentTimeMillis(),
         currentYear: Int = Calendar.getInstance().get(Calendar.YEAR)
     ): List<IncomeEntity> {
-        fun getMillisInQuarter(monthIndex0: Int, day: Int): Long {
-            val c = Calendar.getInstance()
-            c.set(Calendar.YEAR, currentYear)
-            c.set(Calendar.MONTH, monthIndex0)
-            c.set(Calendar.DAY_OF_MONTH, day)
-            c.set(Calendar.HOUR_OF_DAY, 11)
-            return c.timeInMillis
-        }
+        val day1 = getDynamicCurrentMonthDate(1, 9)
+        val day2 = getDynamicCurrentMonthDate(2, 14)
+        val day3 = getDynamicCurrentMonthDate(3, 11)
+        val day4 = getDynamicCurrentMonthDate(4, 16)
 
         return listOf(
-            // Channel 1: Salary (Current Month base 120,000 + bonus 20,000)
             IncomeEntity(
                 id = "inc_salary_curr",
                 userId = userId,
@@ -114,9 +142,8 @@ object KavinduScenarioSeeder {
                 originalCurrency = "LKR",
                 realizedAmountLkr = 140000.0,
                 status = "PAID",
-                dateReceivedMillis = now - 2L * 24 * 3600 * 1000L
+                dateReceivedMillis = day1
             ),
-            // Channel 2: Freelance Paid milestone
             IncomeEntity(
                 id = "inc_freelance_paid",
                 userId = userId,
@@ -127,9 +154,8 @@ object KavinduScenarioSeeder {
                 originalCurrency = "LKR",
                 realizedAmountLkr = 45000.0,
                 status = "PAID",
-                dateReceivedMillis = now - 7L * 24 * 3600 * 1000L
+                dateReceivedMillis = day2
             ),
-            // Channel 2: Freelance Pending / Overdue Invoice (Triggers follow-up alert!)
             IncomeEntity(
                 id = "inc_freelance_overdue",
                 userId = userId,
@@ -140,52 +166,41 @@ object KavinduScenarioSeeder {
                 originalCurrency = "LKR",
                 realizedAmountLkr = 60000.0,
                 status = "OVERDUE",
-                invoiceSentMillis = now - 19L * 24 * 3600 * 1000L,
-                dateReceivedMillis = now - 19L * 24 * 3600 * 1000L
+                invoiceSentMillis = day1,
+                dateReceivedMillis = day4
             ),
-            // Channel 3: Google AdSense USD payout converted to LKR
             IncomeEntity(
                 id = "inc_adsense_curr",
                 userId = userId,
                 channel = "ADSENSE",
-                title = "Tech Blog AdSense Payout (\$62)",
-                originalAmount = 62.0,
+                title = "Tech Blog AdSense Payout (\$210 USD)",
+                originalAmount = 210.0,
                 originalCurrency = "USD",
-                exchangeRate = 304.5,
-                realizedAmountLkr = 18879.0,
+                exchangeRate = 305.0,
+                realizedAmountLkr = 64050.0,
                 status = "PAID",
-                dateReceivedMillis = now - 11L * 24 * 3600 * 1000L
+                dateReceivedMillis = day3
             ),
-            // Channel 4: Crypto Q1 Significant Gain (Binance USDT/ETH)
             IncomeEntity(
-                id = "inc_crypto_q1_gain",
+                id = "inc_crypto_gain",
                 userId = userId,
                 channel = "CRYPTO",
-                title = "Binance USDT/ETH Realized Gain (Q1)",
-                originalAmount = 45000.0,
+                title = "Binance USDT/ETH Realized Gain",
+                originalAmount = 28500.0,
                 originalCurrency = "LKR",
-                realizedAmountLkr = 45000.0,
+                realizedAmountLkr = 28500.0,
                 status = "PAID",
-                dateReceivedMillis = getMillisInQuarter(1, 18) // February (Q1)
-            ),
-            // Channel 4: Crypto Q3 Material Loss (Binance Altcoin drop)
-            IncomeEntity(
-                id = "inc_crypto_q3_loss",
-                userId = userId,
-                channel = "CRYPTO",
-                title = "Altcoin Realized Trading Loss (Q3)",
-                originalAmount = -23000.0,
-                originalCurrency = "LKR",
-                realizedAmountLkr = -23000.0,
-                status = "PAID",
-                dateReceivedMillis = getMillisInQuarter(7, 22) // August (Q3)
+                dateReceivedMillis = day2
             )
         )
     }
 
     fun getSeedExpenses(userId: String = "kavindu_demo", now: Long = System.currentTimeMillis()): List<ExpenseEntity> {
+        val day1 = getDynamicCurrentMonthDate(1, 10)
+        val day2 = getDynamicCurrentMonthDate(2, 12)
+        val day3 = getDynamicCurrentMonthDate(3, 15)
+
         return listOf(
-            // Committed: Rent LKR 34,000 (Current month)
             ExpenseEntity(
                 id = "exp_rent_curr",
                 userId = userId,
@@ -194,20 +209,8 @@ object KavinduScenarioSeeder {
                 category = "RENT",
                 paymentAccount = "ACCOUNT_SECONDARY",
                 commitmentType = "COMMITTED",
-                dateSpentMillis = now - 5L * 24 * 3600 * 1000L
+                dateSpentMillis = day1
             ),
-            // Committed: Gym Auto-Debit LKR 4,500 (Secondary Account)
-            ExpenseEntity(
-                id = "exp_gym_curr",
-                userId = userId,
-                title = "Gym Membership (Secondary Auto-Debit)",
-                amountLkr = 4500.0,
-                category = "FITNESS",
-                paymentAccount = "ACCOUNT_SECONDARY",
-                commitmentType = "COMMITTED",
-                dateSpentMillis = now - 12L * 24 * 3600 * 1000L
-            ),
-            // Committed: Fiber Home Broadband
             ExpenseEntity(
                 id = "exp_wifi_curr",
                 userId = userId,
@@ -216,9 +219,38 @@ object KavinduScenarioSeeder {
                 category = "UTILITIES",
                 paymentAccount = "CARD_PRIMARY",
                 commitmentType = "COMMITTED",
-                dateSpentMillis = now - 6L * 24 * 3600 * 1000L
+                dateSpentMillis = day1
             ),
-            // DISCRETIONARY HABIT LEAK: Coffee & Pastry Shock (Kavindu spends LKR 24,000/mo on café visits)
+            ExpenseEntity(
+                id = "exp_gym_curr",
+                userId = userId,
+                title = "Gym Membership (Secondary Auto-Debit)",
+                amountLkr = 4500.0,
+                category = "FITNESS",
+                paymentAccount = "ACCOUNT_SECONDARY",
+                commitmentType = "COMMITTED",
+                dateSpentMillis = day2
+            ),
+            ExpenseEntity(
+                id = "exp_groceries",
+                userId = userId,
+                title = "Keells Supermarket Essentials",
+                amountLkr = 18500.0,
+                category = "MISC",
+                paymentAccount = "CARD_PRIMARY",
+                commitmentType = "COMMITTED",
+                dateSpentMillis = day2
+            ),
+            ExpenseEntity(
+                id = "exp_tech_conf",
+                userId = userId,
+                title = "DevCon Ticket Registration",
+                amountLkr = 12500.0,
+                category = "TECH",
+                paymentAccount = "CARD_PRIMARY",
+                commitmentType = "DISCRETIONARY",
+                dateSpentMillis = day3
+            ),
             ExpenseEntity(
                 id = "exp_coffee_1",
                 userId = userId,
@@ -227,7 +259,7 @@ object KavinduScenarioSeeder {
                 category = "DINING_OUT",
                 paymentAccount = "CASH",
                 commitmentType = "DISCRETIONARY",
-                dateSpentMillis = now - 1L * 24 * 3600 * 1000L
+                dateSpentMillis = day3
             ),
             ExpenseEntity(
                 id = "exp_coffee_2",
@@ -237,7 +269,7 @@ object KavinduScenarioSeeder {
                 category = "DINING_OUT",
                 paymentAccount = "CARD_PRIMARY",
                 commitmentType = "DISCRETIONARY",
-                dateSpentMillis = now - 3L * 24 * 3600 * 1000L
+                dateSpentMillis = day3
             ),
             ExpenseEntity(
                 id = "exp_coffee_3",
@@ -247,7 +279,7 @@ object KavinduScenarioSeeder {
                 category = "DINING_OUT",
                 paymentAccount = "CASH",
                 commitmentType = "DISCRETIONARY",
-                dateSpentMillis = now - 4L * 24 * 3600 * 1000L
+                dateSpentMillis = day2
             ),
             ExpenseEntity(
                 id = "exp_coffee_4",
@@ -257,7 +289,7 @@ object KavinduScenarioSeeder {
                 category = "DINING_OUT",
                 paymentAccount = "CASH",
                 commitmentType = "DISCRETIONARY",
-                dateSpentMillis = now - 7L * 24 * 3600 * 1000L
+                dateSpentMillis = day1
             ),
             ExpenseEntity(
                 id = "exp_coffee_5",
@@ -267,19 +299,18 @@ object KavinduScenarioSeeder {
                 category = "DINING_OUT",
                 paymentAccount = "CARD_PRIMARY",
                 commitmentType = "DISCRETIONARY",
-                dateSpentMillis = now - 9L * 24 * 3600 * 1000L
+                dateSpentMillis = day2
             ),
             ExpenseEntity(
                 id = "exp_ubereats_curr",
                 userId = userId,
-                title = "UberEats Late Night Meals",
+                title = "UberEats Late Night Dinner",
                 amountLkr = 7400.0,
                 category = "DINING_OUT",
                 paymentAccount = "CARD_PRIMARY",
                 commitmentType = "DISCRETIONARY",
-                dateSpentMillis = now - 8L * 24 * 3600 * 1000L
+                dateSpentMillis = day3
             ),
-            // INTERNAL TRANSFER: ATM Cash Withdrawal LKR 15,000 (Must NOT be counted as an expense!)
             ExpenseEntity(
                 id = "exp_atm_transfer",
                 userId = userId,
@@ -288,7 +319,7 @@ object KavinduScenarioSeeder {
                 category = "ATM_WITHDRAWAL",
                 paymentAccount = "CASH",
                 commitmentType = "TRANSFER",
-                dateSpentMillis = now - 10L * 24 * 3600 * 1000L
+                dateSpentMillis = day2
             )
         )
     }
@@ -317,14 +348,14 @@ object KavinduScenarioSeeder {
             goalRepository.addGoalContribution(
                 userId = userId,
                 contribution = GoalContributionEntity(
-                    id = "initial_contrib",
+                    id = "nov_deposit_1",
                     goalId = macBookGoal.id,
                     userId = userId,
-                    amountLkr = 11200.0,
-                    sourceTitle = "Initial Savings Baseline",
-                    sourceId = "seed",
-                    timestampMillis = macBookGoal.createdAtMillis,
-                    note = "Saved after 12 months of earning"
+                    amountLkr = 25000.0,
+                    sourceTitle = "Salary Allocation",
+                    sourceId = "salary",
+                    timestampMillis = getDynamicCurrentMonthDate(2),
+                    note = "Monthly goal contribution from salary"
                 )
             )
 

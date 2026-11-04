@@ -77,6 +77,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import com.example.intrack.ui.theme.*
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -253,7 +254,7 @@ fun IncomeHubScreen(
 
                 FloatingActionButton(
                     onClick = { isFabExpanded = !isFabExpanded },
-                    containerColor = BrandTangerine,
+                    containerColor = Color(0xFF121660),
                     contentColor = Color.White,
                     shape = CircleShape,
                     modifier = Modifier.size(56.dp)
@@ -269,7 +270,7 @@ fun IncomeHubScreen(
             }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.White,
         modifier = modifier
     ) { innerPadding ->
         Box(
@@ -317,7 +318,7 @@ fun IncomeHubScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(22.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // Month Realized Inflow Hero Card & Distribution Bar
                         item {
@@ -341,7 +342,7 @@ fun IncomeHubScreen(
                                         .fillMaxWidth()
                                         .clickable { showPendingInvoicesSheet = true },
                                     shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    colors = CardDefaults.outlinedCardColors(containerColor = Color(0xFF3CAE8C)),
                                     border = BorderStroke(0.dp, Color.Transparent),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                                 ) {
@@ -360,13 +361,13 @@ fun IncomeHubScreen(
                                                 modifier = Modifier
                                                     .size(32.dp)
                                                     .clip(CircleShape)
-                                                    .background(BrandTangerine.copy(alpha = 0.12f)),
+                                                    .background(Color.White.copy(alpha = 0.2f)),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
                                                     imageVector = Icons.Rounded.Description,
                                                     contentDescription = null,
-                                                    tint = BrandTangerine,
+                                                    tint = Color.White,
                                                     modifier = Modifier.size(16.dp)
                                                 )
                                             }
@@ -378,7 +379,7 @@ fun IncomeHubScreen(
                                                         fontSize = 13.5.sp,
                                                         fontWeight = FontWeight.Bold
                                                     ),
-                                                    color = MaterialTheme.colorScheme.onSurface
+                                                    color = Color.White
                                                 )
                                                 Text(
                                                     text = "Tap to manage unpaid invoices",
@@ -386,7 +387,7 @@ fun IncomeHubScreen(
                                                         fontSize = 11.sp,
                                                         fontWeight = FontWeight.Medium
                                                     ),
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    color = Color.White.copy(alpha = 0.85f)
                                                 )
                                             }
                                         }
@@ -398,7 +399,7 @@ fun IncomeHubScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .clip(CircleShape)
-                                                    .background(BrandTangerine.copy(alpha = 0.12f))
+                                                    .background(Color.White.copy(alpha = 0.2f))
                                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                                             ) {
                                                 Text(
@@ -407,14 +408,14 @@ fun IncomeHubScreen(
                                                         fontSize = 11.sp,
                                                         fontWeight = FontWeight.Bold
                                                     ),
-                                                    color = BrandTangerine
+                                                    color = Color.White
                                                 )
                                             }
 
                                             Icon(
                                                 imageVector = Icons.Default.ChevronRight,
                                                 contentDescription = "Open Invoices",
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                tint = Color.White,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -437,172 +438,169 @@ fun IncomeHubScreen(
                             )
                         }
 
-                        // {THIS MONTH} ACTIVITIES SECTION HEADER
+                        // ACTIVITIES SECTION HEADER & FEED
                         item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 2.dp, vertical = 2.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "${selectedMonth.uppercase()} ACTIVITIES",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.6.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-
-                                val hasActiveChannelFilter = selectedChannelFilter != "ALL"
-
-                                Box(
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
                                     modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(CircleShape)
-                                        .background(if (showActivityFilters || hasActiveChannelFilter) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
-                                        .clickable { showActivityFilters = !showActivityFilters },
-                                    contentAlignment = Alignment.Center
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 2.dp, vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Tune,
-                                        contentDescription = "Toggle Filters",
-                                        tint = if (showActivityFilters || hasActiveChannelFilter) BrandTangerine else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp)
+                                    Text(
+                                        text = "$selectedMonth Activities",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = Color(0xFF121660)
                                     )
-                                }
-                            }
-                        }
 
-                        // Toggleable Stream Filter Dropdown
-                        if (showActivityFilters) {
-                            item {
-                                val channelOptions = listOf(
-                                    "ALL" to "All Inflow Streams",
-                                    "SALARY" to "Salary Only",
-                                    "FREELANCE" to "Freelance Payments",
-                                    "ADSENSE" to "AdSense Inflows",
-                                    "CRYPTO" to "Crypto Realized P&L"
-                                )
-                                val selectedLabel = channelOptions.find { it.first == selectedChannelFilter }?.second ?: "All Inflow Streams"
+                                    val hasActiveChannelFilter = selectedChannelFilter != "ALL"
 
-                                Box(modifier = Modifier.fillMaxWidth()) {
-                                    ExposedDropdownMenuBox(
-                                        expanded = channelFilterExpanded,
-                                        onExpandedChange = { channelFilterExpanded = !channelFilterExpanded },
-                                        modifier = Modifier.fillMaxWidth()
+                                    Box(
+                                        modifier = Modifier
+                                            .size(30.dp)
+                                            .clip(CircleShape)
+                                            .background(if (showActivityFilters || hasActiveChannelFilter) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
+                                            .clickable { showActivityFilters = !showActivityFilters },
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(MaterialTheme.colorScheme.surface)
-                                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                                                .padding(horizontal = 14.dp, vertical = 10.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(
-                                                    text = selectedLabel,
-                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                        fontSize = 12.5.sp,
-                                                        fontWeight = FontWeight.SemiBold
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
+                                        Icon(
+                                            imageVector = Icons.Rounded.Tune,
+                                            contentDescription = "Toggle Filters",
+                                            tint = if (showActivityFilters || hasActiveChannelFilter) BrandTangerine else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
 
-                                                Icon(
-                                                    imageVector = Icons.Rounded.ArrowDropDown,
-                                                    contentDescription = "Dropdown",
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                        }
+                                if (showActivityFilters) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    val channelOptions = listOf(
+                                        "ALL" to "All Inflow Streams",
+                                        "SALARY" to "Salary Only",
+                                        "FREELANCE" to "Freelance Payments",
+                                        "ADSENSE" to "AdSense Inflows",
+                                        "CRYPTO" to "Crypto Realized P&L"
+                                    )
+                                    val selectedLabel = channelOptions.find { it.first == selectedChannelFilter }?.second ?: "All Inflow Streams"
 
-                                        ExposedDropdownMenu(
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        ExposedDropdownMenuBox(
                                             expanded = channelFilterExpanded,
-                                            onDismissRequest = { channelFilterExpanded = false },
-                                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                            onExpandedChange = { channelFilterExpanded = !channelFilterExpanded },
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            channelOptions.forEach { (key, label) ->
-                                                val isSelected = selectedChannelFilter == key
-                                                DropdownMenuItem(
-                                                    text = {
-                                                        Text(
-                                                            text = label,
-                                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                                fontSize = 13.sp,
-                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                                            ),
-                                                            color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
-                                                        )
-                                                    },
-                                                    onClick = {
-                                                        viewModel.setChannelFilter(key)
-                                                        channelFilterExpanded = false
-                                                    },
-                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                                                )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.surface)
+                                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = selectedLabel,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontSize = 12.5.sp,
+                                                            fontWeight = FontWeight.SemiBold
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.ArrowDropDown,
+                                                        contentDescription = "Dropdown",
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            ExposedDropdownMenu(
+                                                expanded = channelFilterExpanded,
+                                                onDismissRequest = { channelFilterExpanded = false },
+                                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                            ) {
+                                                channelOptions.forEach { (key, label) ->
+                                                    val isSelected = selectedChannelFilter == key
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Text(
+                                                                text = label,
+                                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                                    fontSize = 13.sp,
+                                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                                ),
+                                                                color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            viewModel.setChannelFilter(key)
+                                                            channelFilterExpanded = false
+                                                        },
+                                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
-                        }
 
-                        // Activities Feed
-                        if (monthPaidIncomes.isEmpty()) {
-                            item {
-                                EmptyStateView(
-                                    title = "No inflows logged for $selectedMonth",
-                                    message = "Use the + FAB to log salary, freelance, AdSense, or crypto."
-                                )
-                            }
-                        } else {
-                            groupedMonthIncomes.forEach { (weekTier, incomesInGroup) ->
-                                item(key = "income_section_$weekTier") {
-                                    Column(modifier = Modifier.fillMaxWidth()) {
-                                        // Highlighted Weekly Section Header Row (without transaction count)
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 2.dp, vertical = 6.dp),
-                                            horizontalArrangement = Arrangement.Start,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                if (monthPaidIncomes.isEmpty()) {
+                                    EmptyStateView(
+                                        title = "No inflows logged for $selectedMonth",
+                                        message = "Use the + FAB to log salary, freelance, AdSense, or crypto."
+                                    )
+                                } else {
+                                    groupedMonthIncomes.forEach { (weekTier, incomesInGroup) ->
+                                        val showGroupHeader = !(groupedMonthIncomes.size == 1 && weekTier == "This Week")
+                                        if (showGroupHeader) {
+                                            Row(
                                                 modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(BrandTangerine.copy(alpha = 0.12f))
-                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 2.dp, vertical = 6.dp),
+                                                horizontalArrangement = Arrangement.Start,
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text(
-                                                    text = weekTier,
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        letterSpacing = 0.3.sp
-                                                    ),
-                                                    color = BrandTangerine
-                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(Color(0xFF0171DF))
+                                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = weekTier,
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontSize = 11.5.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            letterSpacing = 0.3.sp
+                                                        ),
+                                                        color = Color.White
+                                                    )
+                                                }
                                             }
                                         }
 
-                                        // Always visible Flat Inflow History Rows
                                         incomesInGroup.forEachIndexed { index, income ->
                                             InflowHistoryRow(income = income)
                                             if (index < incomesInGroup.lastIndex) {
                                                 HorizontalDivider(
-                                                    modifier = Modifier.fillMaxWidth(),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 4.dp),
                                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                                     thickness = 0.8.dp
                                                 )
@@ -971,7 +969,7 @@ fun TotalInflowBreakdownCard(
 
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.0.dp),
         modifier = Modifier.fillMaxWidth()
@@ -994,7 +992,7 @@ fun TotalInflowBreakdownCard(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.5.sp
                     ),
-                    color = mutedLabelColor,
+                    color = Color(0xFF121660),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1003,13 +1001,13 @@ fun TotalInflowBreakdownCard(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(PrimaryGreen.copy(alpha = 0.12f)),
+                        .background(Color(0xFF121660).copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                         contentDescription = "Realized Inflow",
-                        tint = PrimaryGreen,
+                        tint = Color(0xFF121660),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -1032,7 +1030,7 @@ fun TotalInflowBreakdownCard(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = PrimaryGreen,
+                    color = Color(0xFF121660),
                     modifier = Modifier.alignByBaseline()
                 )
                 Text(
@@ -1042,7 +1040,7 @@ fun TotalInflowBreakdownCard(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.5).sp
                     ),
-                    color = darkTextColor,
+                    color = Color(0xFF121660),
                     maxLines = 1,
                     modifier = Modifier.alignByBaseline()
                 )
@@ -1050,7 +1048,7 @@ fun TotalInflowBreakdownCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 2b. Rolling 3-Month Average Run-Rate Comparison (Section 6.2)
+            // 2b. Rolling 3-Month Average Run-Rate Comparison
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -1059,10 +1057,7 @@ fun TotalInflowBreakdownCard(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(
-                            if (isAhead) PrimaryGreen.copy(alpha = 0.12f)
-                            else MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        .background(Color(0xFF121660).copy(alpha = 0.12f))
                         .padding(horizontal = 12.dp, vertical = 5.dp)
                 ) {
                     Row(
@@ -1075,7 +1070,7 @@ fun TotalInflowBreakdownCard(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.5.sp
                             ),
-                            color = if (isAhead) PrimaryGreen else MaterialTheme.colorScheme.error
+                            color = Color(0xFF121660)
                         )
                         Text(
                             text = "vs. 3-Mo Rolling Avg (${CurrencyFormatter.formatLkr(rollingAvg)})",
@@ -1083,7 +1078,7 @@ fun TotalInflowBreakdownCard(
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color(0xFF121660)
                         )
                     }
                 }
@@ -1097,14 +1092,14 @@ fun TotalInflowBreakdownCard(
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(if (totalInflowLkr > 0) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .background(Color(0xFF121660).copy(alpha = 0.2f))
             ) {
                 if (totalInflowLkr > 0 && animatedSalary > 0f) {
                     Box(
                         modifier = Modifier
                             .weight(animatedSalary.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(TangerineShade1)
+                            .background(Color(0xFF121660))
                     )
                 }
                 if (totalInflowLkr > 0 && animatedFreelance > 0f) {
@@ -1112,7 +1107,7 @@ fun TotalInflowBreakdownCard(
                         modifier = Modifier
                             .weight(animatedFreelance.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(TangerineShade2)
+                            .background(Color(0xFF0171DF))
                     )
                 }
                 if (totalInflowLkr > 0 && animatedAdsense > 0f) {
@@ -1120,7 +1115,7 @@ fun TotalInflowBreakdownCard(
                         modifier = Modifier
                             .weight(animatedAdsense.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(TangerineShade3)
+                            .background(Color(0xFF3CAE8C))
                     )
                 }
                 if (totalInflowLkr > 0 && animatedCrypto > 0f) {
@@ -1128,21 +1123,12 @@ fun TotalInflowBreakdownCard(
                         modifier = Modifier
                             .weight(animatedCrypto.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(TangerineShade4)
+                            .background(Color(0xFFFFD13E))
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // 4. Subtle Hairline Divider
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth(),
-                thickness = 0.8.dp,
-                color = hairlineColor
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
 
             // 5. Multi-Column Channel Legend Breakdown
             Column(
@@ -1154,16 +1140,16 @@ fun TotalInflowBreakdownCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    LegendNumberItem(color = TangerineShade1, label = "Salary", amount = salaryTotal, modifier = Modifier.weight(1f))
-                    LegendNumberItem(color = TangerineShade2, label = "Freelance", amount = freelanceTotal, modifier = Modifier.weight(1f))
+                    LegendNumberItem(color = Color(0xFF121660), label = "Salary", amount = salaryTotal, modifier = Modifier.weight(1f))
+                    LegendNumberItem(color = Color(0xFF0171DF), label = "Freelance", amount = freelanceTotal, modifier = Modifier.weight(1f))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    LegendNumberItem(color = TangerineShade3, label = "AdSense", amount = adsenseTotal, modifier = Modifier.weight(1f))
-                    LegendNumberItem(color = TangerineShade4, label = "Crypto", amount = cryptoTotal, modifier = Modifier.weight(1f))
+                    LegendNumberItem(color = Color(0xFF3CAE8C), label = "AdSense", amount = adsenseTotal, modifier = Modifier.weight(1f))
+                    LegendNumberItem(color = Color(0xFFFFD13E), label = "Crypto", amount = cryptoTotal, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -1197,7 +1183,7 @@ fun LegendNumberItem(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF121660),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1210,7 +1196,7 @@ fun LegendNumberItem(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp
             ),
-            color = MaterialTheme.colorScheme.onSurface,
+            color = Color(0xFF121660),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -1412,6 +1398,14 @@ fun InflowHistoryRow(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val channelIcon = when (income.channel.uppercase()) {
+        "SALARY" -> Icons.Rounded.Work
+        "FREELANCE" -> Icons.Rounded.Laptop
+        "ADSENSE" -> Icons.Rounded.AttachMoney
+        "CRYPTO" -> Icons.Rounded.CurrencyBitcoin
+        else -> Icons.AutoMirrored.Filled.TrendingUp
+    }
+
     val channelLabel = when (income.channel.uppercase()) {
         "SALARY" -> "Salary"
         "FREELANCE" -> if (!income.clientName.isNullOrEmpty()) "Client: ${income.clientName}" else "Freelance"
@@ -1420,76 +1414,92 @@ fun InflowHistoryRow(
         else -> income.channel.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
     }
 
+    val (chanBg, chanText) = when (income.channel.uppercase()) {
+        "SALARY" -> Pair(Color(0xFFE5F6F1), Color(0xFF3CAE8C))
+        "FREELANCE" -> Pair(Color(0xFFE5F1FD), Color(0xFF0171DF))
+        "ADSENSE" -> Pair(Color(0xFFFFF7DB), Color(0xFF121660))
+        "CRYPTO" -> Pair(BrandSoftSlate, Color(0xFF121660))
+        else -> Pair(BrandSoftSlate, Color(0xFF121660))
+    }
+
     val formattedDate = DateUtils.formatDate(income.dateReceivedMillis)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 7.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Title & Channel/Time Subtitle
-        Column(
+        Row(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = income.title,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(3.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(BrandSoftSlate),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 6.dp, vertical = 1.dp)
-                ) {
-                    Text(
-                        text = channelLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Icon(
+                    imageVector = channelIcon,
+                    contentDescription = income.channel,
+                    tint = Color(0xFF121660),
+                    modifier = Modifier.size(19.dp)
+                )
+            }
 
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column {
                 Text(
-                    text = formattedDate,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Normal
+                    text = income.title,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.5.sp,
+                        lineHeight = 17.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF121660),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(chanBg)
+                            .padding(horizontal = 6.dp, vertical = 1.5.dp)
+                    ) {
+                        Text(
+                            text = channelLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                            color = chanText
+                        )
+                    }
+                    Text(
+                        text = "•",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = formattedDate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Right: Amount in Green
         Text(
             text = "+${CurrencyFormatter.formatLkr(income.realizedAmountLkr)}",
             style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 14.5.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.3).sp
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
             ),
             color = PrimaryGreen,
             maxLines = 1,
@@ -2067,8 +2077,8 @@ fun CryptoYtdNetPositionCard(
     OutlinedCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        colors = CardDefaults.outlinedCardColors(containerColor = BrandSoftSlate),
+        border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -2090,13 +2100,13 @@ fun CryptoYtdNetPositionCard(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
-                            .background(BrandTangerine.copy(alpha = 0.14f)),
+                            .background(Color(0xFF121660).copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.CurrencyBitcoin,
                             contentDescription = null,
-                            tint = BrandTangerine,
+                            tint = Color(0xFF121660),
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -2107,19 +2117,19 @@ fun CryptoYtdNetPositionCard(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             ),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color(0xFF121660)
                         )
                         Text(
                             text = "Binance Realized P&L Ledger",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color(0xFF121660).copy(alpha = 0.8f)
                         )
                     }
                 }
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = netColor.copy(alpha = 0.12f),
+                    color = Color(0xFF121660),
                     modifier = Modifier.clickable { onLogCryptoClick() }
                 ) {
                     Row(
@@ -2130,7 +2140,7 @@ fun CryptoYtdNetPositionCard(
                         Icon(
                             imageVector = Icons.Rounded.Add,
                             contentDescription = null,
-                            tint = netColor,
+                            tint = Color.White,
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
@@ -2139,7 +2149,7 @@ fun CryptoYtdNetPositionCard(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp
                             ),
-                            color = netColor
+                            color = Color.White
                         )
                     }
                 }

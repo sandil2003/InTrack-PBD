@@ -1,6 +1,7 @@
 package com.example.intrack.ui.screens.expenses
 
 import com.example.intrack.viewmodel.ExpenseViewModel
+import com.example.intrack.ui.theme.*
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -154,11 +155,26 @@ private val FigmaPrimary: Color
     @Composable
     @ReadOnlyComposable
     get() = MaterialTheme.colorScheme.primary
-private val FigmaSettledBg = Color(0xFFEAF7EE)
-private val FigmaSettledBorder = Color(0xFFC6EACB)
-private val FigmaSettledGreen = Color(0xFF219653)
-private val FigmaActiveGreen = Color(0xFF27AE60)
-private val FigmaDestructive = Color(0xFFE74C3C)
+private val FigmaSettledBg: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.financial.incomeContainer
+private val FigmaSettledBorder: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.financial.income.copy(alpha = 0.4f)
+private val FigmaSettledGreen: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.financial.income
+private val FigmaActiveGreen: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.financial.income
+private val FigmaDestructive: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = MaterialTheme.colorScheme.financial.expense
 
 /**
  * Modal Bottom Sheet implementation of the Figma "Edit expense" screen (Node 2015:802).

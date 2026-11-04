@@ -43,7 +43,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.intrack.data.model.GoalEntity
-import com.example.intrack.ui.theme.PrimaryGreen
 import com.example.intrack.util.DateUtils
 import java.util.Locale
 
@@ -60,9 +59,8 @@ fun GoalSquareCard(
     val isCompleted = goal.isCompleted || progress >= 1f
     val daysLeft = DateUtils.daysBetween(System.currentTimeMillis(), goal.targetDateMillis).coerceAtLeast(0L)
     val percentageInt = (progress * 100).toInt()
-    val timeFormatted = formatTimeRemaining(daysLeft, isCompleted)
 
-    val (icon, iconTint) = getGoalIcon(goal.title)
+    val (icon, _) = getGoalIcon(goal.title)
 
     OutlinedCard(
         modifier = modifier
@@ -70,7 +68,7 @@ fun GoalSquareCard(
             .height(152.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.outlinedCardColors(containerColor = Color(0xFF3CAE8C)),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -80,11 +78,11 @@ fun GoalSquareCard(
                 .padding(14.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Header Row: Bare larger icon (no bg box)
+            // Header Row: Bare larger icon
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = iconTint,
+                tint = Color.White,
                 modifier = Modifier.size(32.dp)
             )
 
@@ -96,7 +94,7 @@ fun GoalSquareCard(
                     lineHeight = 16.5.sp
                 ),
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color.White,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -113,7 +111,7 @@ fun GoalSquareCard(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.ExtraBold
                     ),
-                    color = PrimaryGreen
+                    color = Color.White
                 )
             }
         }
@@ -132,7 +130,7 @@ fun AddGoalSquareCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+            containerColor = Color(0xFF3CAE8C)
         ),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -147,7 +145,7 @@ fun AddGoalSquareCard(
             Icon(
                 imageVector = Icons.Rounded.Add,
                 contentDescription = "Add Goal",
-                tint = PrimaryGreen,
+                tint = Color.White,
                 modifier = Modifier.size(32.dp)
             )
 
@@ -157,7 +155,7 @@ fun AddGoalSquareCard(
                 text = "New Goal",
                 style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.White
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -165,33 +163,9 @@ fun AddGoalSquareCard(
             Text(
                 text = "Set a target",
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.White.copy(alpha = 0.85f)
             )
         }
-    }
-}
-
-/**
- * Formats days remaining into months and days if longer than 30 days.
- * Examples:
- * - 365 days -> "12mo 5d"
- * - 60 days  -> "2mo"
- * - 45 days  -> "1mo 15d"
- * - 24 days  -> "24d"
- * - isCompleted -> "Done"
- */
-private fun formatTimeRemaining(daysLeft: Long, isCompleted: Boolean): String {
-    if (isCompleted) return "Done"
-    if (daysLeft <= 0) return "Due"
-    if (daysLeft <= 30) return "${daysLeft}d"
-
-    val months = daysLeft / 30
-    val days = daysLeft % 30
-
-    return if (days > 0) {
-        "${months}mo ${days}d"
-    } else {
-        "${months}mo"
     }
 }
 
@@ -215,5 +189,5 @@ private fun getGoalIcon(title: String): Pair<ImageVector, Color> {
         else ->
             Icons.Rounded.Flag
     }
-    return Pair(icon, PrimaryGreen)
+    return Pair(icon, Color.White)
 }

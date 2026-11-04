@@ -17,6 +17,7 @@ import com.example.intrack.data.repository.SubscriptionRepository
 import com.example.intrack.data.repository.SubscriptionRepositoryImpl
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.util.DateUtils
+import com.example.intrack.util.KavinduScenarioSeeder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
@@ -97,6 +98,21 @@ class DashboardViewModel @Inject constructor(
                 _selectedCategoryFilter,
                 _selectedAccountFilter
             ) { incomes, expenses, goals, categoryFilter, accountFilter ->
+                if (userId.isNotBlank() &&
+                    incomes.none { DateUtils.isCurrentMonth(it.dateReceivedMillis) } &&
+                    expenses.none { DateUtils.isCurrentMonth(it.dateSpentMillis) }
+                ) {
+                    viewModelScope.launch {
+                        KavinduScenarioSeeder.seedCompleteScenario(
+                            userId = userId,
+                            incomeRepository = incomeRepository,
+                            expenseRepository = expenseRepository,
+                            goalRepository = goalRepository,
+                            subscriptionRepository = subscriptionRepository
+                        )
+                    }
+                }
+
                 // 1. Current Month Inflow: strictly PAID income received in the current month (excludes unpaid/invoiced/overdue & past months)
                 val currentMonthPaidIncomes = incomes.filter {
                     it.status.equals("PAID", ignoreCase = true) && DateUtils.isCurrentMonth(it.dateReceivedMillis)

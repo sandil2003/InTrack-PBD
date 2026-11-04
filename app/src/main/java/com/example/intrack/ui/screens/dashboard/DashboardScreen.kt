@@ -103,9 +103,7 @@ import com.example.intrack.ui.components.ProfileSettingsBottomSheet
 import com.example.intrack.ui.components.QuickExpenseBottomSheet
 import com.example.intrack.ui.screens.expenses.AddExpenseBottomSheet
 import com.example.intrack.ui.screens.expenses.AddExpenseDialog
-import com.example.intrack.ui.theme.PrimaryGreen
-import com.example.intrack.ui.theme.TangerineShade2
-import com.example.intrack.ui.theme.TangerineShade3
+import com.example.intrack.ui.theme.*
 import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.ui.theme.AppThemeMode
 import com.example.intrack.util.DateUtils
@@ -214,12 +212,12 @@ fun DashboardScreen(
                 },
                 windowInsets = TopAppBarDefaults.windowInsets,
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = Color.White
                 )
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.White,
         modifier = modifier
     ) { innerPadding ->
         when (uiState) {
@@ -252,7 +250,7 @@ fun DashboardScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(22.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
                         Spacer(modifier = Modifier.height(2.dp))
@@ -262,22 +260,7 @@ fun DashboardScreen(
                         )
                     }
 
-                    if (data.shockInsightMessage.isNotBlank()) {
-                        item {
-                            ShockInsightBanner(
-                                shockInsightMessage = data.shockInsightMessage,
-                                onNavigateToExpenses = onNavigateToExpenses
-                            )
-                        }
-                    }
 
-                    // Forgiving Return / Catch-Up banner for missed logging days
-                    item {
-                        CatchUpBanner(
-                            daysMissed = data.daysSinceLastExpense,
-                            onOpenCatchUp = { showCatchUpSheet = true }
-                        )
-                    }
 
                     item {
                         QuickActionButtons(
@@ -304,9 +287,11 @@ fun DashboardScreen(
                             ) {
                                 Text(
                                     text = "Savings Goals",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = Color(0xFF121660)
                                 )
                                 Row(
                                     modifier = Modifier.clickable { onNavigateToGoal(null) },
@@ -314,16 +299,18 @@ fun DashboardScreen(
                                 ) {
                                     Text(
                                         text = "See All",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = PrimaryGreen,
-                                        fontWeight = FontWeight.Bold
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = PrimaryGreen
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                         contentDescription = null,
                                         tint = PrimaryGreen,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(15.dp)
                                     )
                                 }
                             }
@@ -353,7 +340,7 @@ fun DashboardScreen(
                         }
                     }
 
-                    // Section Header with Filter Toggle & "See All"
+                    // Section Header with Filter Toggle, Filters & Transactions List Feed
                     item {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
@@ -364,13 +351,12 @@ fun DashboardScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "RECENT TRANSACTIONS",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.6.sp
+                                    text = "Recent Transactions",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = Color(0xFF121660)
                                 )
 
                                 Row(
@@ -401,238 +387,236 @@ fun DashboardScreen(
                                     ) {
                                         Text(
                                             text = "See All",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = PrimaryGreen,
-                                            fontWeight = FontWeight.Bold
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = PrimaryGreen
                                         )
                                         Spacer(modifier = Modifier.width(2.dp))
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                             contentDescription = null,
                                             tint = PrimaryGreen,
-                                            modifier = Modifier.size(14.dp)
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
                                 }
                             }
-                        }
-                    }
 
-                    // Toggleable Filters
-                    if (showActivityFilters) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                // 1. Account Dropdown
-                                val accountOptions = listOf(
-                                    "ALL" to "All Accounts",
-                                    "CASH" to "Cash Wallet",
-                                    "CARD_PRIMARY" to "Card Primary",
-                                    "ACCOUNT_SECONDARY" to "Bank Primary"
-                                )
-                                val selectedAccLabel = accountOptions.find { it.first == selectedAccountFilter }?.second ?: "All Accounts"
+                            if (showActivityFilters) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    // 1. Account Dropdown
+                                    val accountOptions = listOf(
+                                        "ALL" to "All Accounts",
+                                        "CASH" to "Cash Wallet",
+                                        "CARD_PRIMARY" to "Card Primary",
+                                        "ACCOUNT_SECONDARY" to "Bank Primary"
+                                    )
+                                    val selectedAccLabel = accountOptions.find { it.first == selectedAccountFilter }?.second ?: "All Accounts"
 
-                                Box(modifier = Modifier.weight(1f)) {
-                                    ExposedDropdownMenuBox(
-                                        expanded = accountFilterExpanded,
-                                        onExpandedChange = { accountFilterExpanded = !accountFilterExpanded },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(MaterialTheme.colorScheme.surface)
-                                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                                                .padding(horizontal = 12.dp, vertical = 10.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(
-                                                    text = selectedAccLabel,
-                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                        fontSize = 12.5.sp,
-                                                        fontWeight = FontWeight.SemiBold
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-
-                                                Icon(
-                                                    imageVector = Icons.Rounded.ArrowDropDown,
-                                                    contentDescription = "Dropdown",
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                        }
-
-                                        ExposedDropdownMenu(
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        ExposedDropdownMenuBox(
                                             expanded = accountFilterExpanded,
-                                            onDismissRequest = { accountFilterExpanded = false },
-                                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                            onExpandedChange = { accountFilterExpanded = !accountFilterExpanded },
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            accountOptions.forEach { (key, label) ->
-                                                val isSelected = selectedAccountFilter == key
-                                                DropdownMenuItem(
-                                                    text = {
-                                                        Text(
-                                                            text = label,
-                                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                                fontSize = 13.sp,
-                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                                            ),
-                                                            color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
-                                                        )
-                                                    },
-                                                    onClick = {
-                                                        viewModel.setAccountFilter(key)
-                                                        accountFilterExpanded = false
-                                                    },
-                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                                                )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.surface)
+                                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = selectedAccLabel,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontSize = 12.5.sp,
+                                                            fontWeight = FontWeight.SemiBold
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.ArrowDropDown,
+                                                        contentDescription = "Dropdown",
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            ExposedDropdownMenu(
+                                                expanded = accountFilterExpanded,
+                                                onDismissRequest = { accountFilterExpanded = false },
+                                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                            ) {
+                                                accountOptions.forEach { (key, label) ->
+                                                    val isSelected = selectedAccountFilter == key
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Text(
+                                                                text = label,
+                                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                                    fontSize = 13.sp,
+                                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                                ),
+                                                                color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            viewModel.setAccountFilter(key)
+                                                            accountFilterExpanded = false
+                                                        },
+                                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                // 2. Category Dropdown
-                                val categoryOptions = listOf(
-                                    "ALL" to "All Categories",
-                                    "MISC" to "Groceries",
-                                    "DINING_OUT" to "Dining",
-                                    "TRANSPORT" to "Transport",
-                                    "RENT" to "Housing",
-                                    "SUBSCRIPTION" to "Subscriptions",
-                                    "UTILITIES" to "Utilities"
-                                )
-                                val selectedCatLabel = categoryOptions.find { it.first == selectedCategoryFilter }?.second ?: "All Categories"
+                                    // 2. Category Dropdown
+                                    val categoryOptions = listOf(
+                                        "ALL" to "All Categories",
+                                        "MISC" to "Groceries",
+                                        "DINING_OUT" to "Dining",
+                                        "TRANSPORT" to "Transport",
+                                        "RENT" to "Housing",
+                                        "SUBSCRIPTION" to "Subscriptions",
+                                        "UTILITIES" to "Utilities"
+                                    )
+                                    val selectedCatLabel = categoryOptions.find { it.first == selectedCategoryFilter }?.second ?: "All Categories"
 
-                                Box(modifier = Modifier.weight(1f)) {
-                                    ExposedDropdownMenuBox(
-                                        expanded = categoryFilterExpanded,
-                                        onExpandedChange = { categoryFilterExpanded = !categoryFilterExpanded },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(MaterialTheme.colorScheme.surface)
-                                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                                                .padding(horizontal = 12.dp, vertical = 10.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(
-                                                    text = selectedCatLabel,
-                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                        fontSize = 12.5.sp,
-                                                        fontWeight = FontWeight.SemiBold
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-
-                                                Icon(
-                                                    imageVector = Icons.Rounded.ArrowDropDown,
-                                                    contentDescription = "Dropdown",
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                        }
-
-                                        ExposedDropdownMenu(
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        ExposedDropdownMenuBox(
                                             expanded = categoryFilterExpanded,
-                                            onDismissRequest = { categoryFilterExpanded = false },
-                                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                            onExpandedChange = { categoryFilterExpanded = !categoryFilterExpanded },
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            categoryOptions.forEach { (key, label) ->
-                                                val isSelected = selectedCategoryFilter == key
-                                                DropdownMenuItem(
-                                                    text = {
-                                                        Text(
-                                                            text = label,
-                                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                                fontSize = 13.sp,
-                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                                            ),
-                                                            color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
-                                                        )
-                                                    },
-                                                    onClick = {
-                                                        viewModel.setCategoryFilter(key)
-                                                        categoryFilterExpanded = false
-                                                    },
-                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                                                )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.surface)
+                                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = selectedCatLabel,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontSize = 12.5.sp,
+                                                            fontWeight = FontWeight.SemiBold
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.ArrowDropDown,
+                                                        contentDescription = "Dropdown",
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            ExposedDropdownMenu(
+                                                expanded = categoryFilterExpanded,
+                                                onDismissRequest = { categoryFilterExpanded = false },
+                                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                            ) {
+                                                categoryOptions.forEach { (key, label) ->
+                                                    val isSelected = selectedCategoryFilter == key
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Text(
+                                                                text = label,
+                                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                                    fontSize = 13.sp,
+                                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                                ),
+                                                                color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            viewModel.setCategoryFilter(key)
+                                                            categoryFilterExpanded = false
+                                                        },
+                                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
 
-                    // Transactions List Feed with Weekly Headers
-                    if (filteredRecent.isEmpty()) {
-                        item {
-                            EmptyStateView(
-                                title = "No recent transactions",
-                                message = "Logged expenses matching active filters will appear here.",
-                                actionLabel = "Add Expense",
-                                onActionClick = { showExpenseSheet = true }
-                            )
-                        }
-                    } else {
-                        groupedRecent.forEach { (weekTier, expensesInGroup) ->
-                            item(key = "dashboard_section_$weekTier") {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    // Highlighted Weekly Section Header Row
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 2.dp, vertical = 6.dp),
-                                        horizontalArrangement = Arrangement.Start,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
+                            Spacer(modifier = Modifier.height(2.dp))
+
+                            if (filteredRecent.isEmpty()) {
+                                EmptyStateView(
+                                    title = "No recent transactions",
+                                    message = "Logged expenses matching active filters will appear here.",
+                                    actionLabel = "Add Expense",
+                                    onActionClick = { showExpenseSheet = true }
+                                )
+                            } else {
+                                groupedRecent.forEach { (weekTier, expensesInGroup) ->
+                                    val showGroupHeader = !(groupedRecent.size == 1 && weekTier == "This Week")
+                                    if (showGroupHeader) {
+                                        Row(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(BrandTangerine.copy(alpha = 0.12f))
-                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 2.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.Start,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                text = weekTier,
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    letterSpacing = 0.3.sp
-                                                ),
-                                                color = BrandTangerine
-                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(Color(0xFF0171DF))
+                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = weekTier,
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 11.5.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        letterSpacing = 0.3.sp
+                                                    ),
+                                                    color = Color.White
+                                                )
+                                            }
                                         }
                                     }
 
-                                    // Always visible Flat Transaction Rows
                                     expensesInGroup.forEachIndexed { index, expense ->
                                         RecentExpenseRow(expense = expense)
                                         if (index < expensesInGroup.lastIndex) {
                                             HorizontalDivider(
-                                                modifier = Modifier.fillMaxWidth(),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp),
                                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                                 thickness = 0.8.dp
                                             )
@@ -739,7 +723,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
 
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth()
@@ -761,7 +745,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.5.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color(0xFF121660),
                     textAlign = TextAlign.Center
                 )
             }
@@ -783,7 +767,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = heroColor,
+                    color = Color(0xFF121660),
                     modifier = Modifier.alignByBaseline()
                 )
                 Text(
@@ -793,7 +777,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.5).sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = Color(0xFF121660),
                     maxLines = 1,
                     modifier = Modifier.alignByBaseline()
                 )
@@ -814,23 +798,14 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         modifier = Modifier
                             .weight(animatedInflowFraction.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(PrimaryGreen)
+                            .background(Color(0xFF121660))
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Subtle Hairline Divider
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth(),
-                thickness = 0.8.dp,
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 5. Inflow vs Outflow Legend Breakdown
+            // 4. Inflow vs Outflow Legend Breakdown
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -845,7 +820,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                             contentDescription = "Inflow",
-                            tint = PrimaryGreen,
+                            tint = Color(0xFF121660),
                             modifier = Modifier.size(15.dp)
                         )
                         Text(
@@ -854,7 +829,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color(0xFF121660)
                         )
                     }
                     Spacer(modifier = Modifier.height(3.dp))
@@ -864,7 +839,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color(0xFF121660)
                     )
                 }
 
@@ -877,7 +852,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                             contentDescription = "Outflow",
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = Color(0xFF121660),
                             modifier = Modifier.size(15.dp)
                         )
                         Text(
@@ -886,7 +861,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color(0xFF121660)
                         )
                     }
                     Spacer(modifier = Modifier.height(3.dp))
@@ -896,7 +871,7 @@ fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color(0xFF121660)
                     )
                 }
             }
@@ -959,19 +934,19 @@ fun QuickActionButtons(
                 .height(48.dp),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
+                containerColor = BrandSoftSlate,
+                contentColor = Color(0xFF121660)
             ),
             border = BorderStroke(0.dp, Color.Transparent)
         ) {
             Icon(
                 imageVector = Icons.Default.Payments,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = Color(0xFF121660),
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Log Income", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text("Log Income", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFF121660))
         }
     }
 }
@@ -987,22 +962,21 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
         expense.category.uppercase() == "MISC" -> Icons.Default.ShoppingCart
         else -> Icons.Default.LocalCafe
     }
-    val iconBg = if (expense.paymentAccount.uppercase() == "CASH") {
-        TangerineShade3.copy(alpha = 0.2f)
-    } else {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-    }
-    val iconTint = if (expense.paymentAccount.uppercase() == "CASH") {
-        TangerineShade2
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
+    val iconBg = BrandSoftSlate
+    val iconTint = Color(0xFF121660)
 
     val accountLabel = when (expense.paymentAccount.uppercase()) {
         "CARD_PRIMARY" -> "Card Primary"
         "ACCOUNT_SECONDARY" -> "Secondary"
         "CASH" -> "Cash"
         else -> expense.paymentAccount.replace("_", " ")
+    }
+
+    val (accBg, accText) = when (expense.paymentAccount.uppercase()) {
+        "CASH" -> Pair(Color(0xFFFFF7DB), Color(0xFF121660))
+        "CARD_PRIMARY" -> Pair(Color(0xFFE5F1FD), Color(0xFF0171DF))
+        "ACCOUNT_SECONDARY" -> Pair(Color(0xFFE8EEFC), Color(0xFF121660))
+        else -> Pair(BrandSoftSlate, Color(0xFF121660))
     }
 
     Row(
@@ -1018,7 +992,7 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
                     .background(iconBg),
                 contentAlignment = Alignment.Center
@@ -1027,7 +1001,7 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
                     imageVector = categoryIcon,
                     contentDescription = expense.category,
                     tint = iconTint,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(19.dp)
                 )
             }
 
@@ -1036,30 +1010,27 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
             Column {
                 Text(
                     text = expense.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.5.sp,
+                        lineHeight = 17.sp
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (expense.paymentAccount.uppercase() == "CASH") {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(TangerineShade3.copy(alpha = 0.25f))
-                                .padding(horizontal = 5.dp, vertical = 1.dp)
-                        ) {
-                            Text(
-                                text = "Cash",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
-                                color = TangerineShade2
-                            )
-                        }
-                    } else {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(accBg)
+                            .padding(horizontal = 6.dp, vertical = 1.5.dp)
+                    ) {
                         Text(
                             text = accountLabel,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                            color = accText
                         )
                     }
                     Text(
@@ -1080,8 +1051,10 @@ fun RecentExpenseRow(expense: ExpenseEntity) {
 
         Text(
             text = "- ${CurrencyFormatter.formatLkr(expense.amountLkr)}",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            ),
             color = MaterialTheme.colorScheme.onSurface
         )
     }

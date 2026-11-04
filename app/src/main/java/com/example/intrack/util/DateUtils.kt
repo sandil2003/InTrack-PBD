@@ -6,7 +6,7 @@ import java.util.Locale
 
 object DateUtils {
     fun formatDate(timeMillis: Long): String {
-        val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.US)
+        val sdf = SimpleDateFormat("MMM dd", Locale.US)
         return sdf.format(Date(timeMillis))
     }
 

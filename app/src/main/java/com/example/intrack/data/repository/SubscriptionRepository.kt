@@ -59,9 +59,13 @@ class SubscriptionRepositoryImpl @Inject constructor(
                 doc.toObject(SubscriptionEntity::class.java)?.copy(id = doc.id, userId = userId)
             } ?: emptyList()
 
-            trySend(list)
-            launch {
-                subscriptionDao?.replaceAllForUser(userId, list)
+            if (list.isNotEmpty()) {
+                trySend(list)
+                launch {
+                    subscriptionDao?.replaceAllForUser(userId, list)
+                }
+            } else if (subscriptionDao == null) {
+                trySend(emptyList())
             }
         }
         awaitClose {

@@ -47,6 +47,8 @@ import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,7 +89,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.theme.AppThemeMode
+import com.example.intrack.ui.theme.BrandSoftSlate
 import com.example.intrack.ui.theme.BrandTangerine
+import com.example.intrack.ui.theme.BrandWarmYellow
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
 import com.example.intrack.viewmodel.AuthViewModel
 import com.example.intrack.viewmodel.IncomeViewModel
@@ -197,10 +201,10 @@ fun SettingsScreen(
 
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
-            containerColor = FigmaBg,
+            containerColor = Color.White,
             topBar = {
                 Surface(
-                    color = FigmaBg,
+                    color = Color.White,
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
@@ -222,12 +226,12 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surface)
+                                    .background(BrandSoftSlate)
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                     contentDescription = "Back",
-                                    tint = FigmaDark
+                                    tint = Color(0xFF121660)
                                 )
                             }
 
@@ -236,7 +240,7 @@ fun SettingsScreen(
                                 fontFamily = PlusJakartaSansFontFamily,
                                 fontSize = if (isCompactWidth) 16.sp else 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = FigmaDark
+                                color = Color(0xFF121660)
                             )
 
                             IconButton(
@@ -244,12 +248,12 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surface)
+                                    .background(BrandSoftSlate)
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
                                     contentDescription = "Help & Info",
-                                    tint = FigmaDark
+                                    tint = Color(0xFF121660)
                                 )
                             }
                         }
@@ -1053,11 +1057,13 @@ private fun SettingsProfileCard(
 ) {
     val avatarSize = if (isCompactWidth) 48.dp else 54.dp
     val avatarFontSize = if (isCompactWidth) 17.sp else 19.sp
+    val navyText = Color(0xFF121660)
 
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, FigmaBorder),
+        colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
+        border = BorderStroke(0.dp, Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -1074,7 +1080,7 @@ private fun SettingsProfileCard(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(CircleShape)
-                        .background(FigmaPeachTint),
+                        .background(navyText),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -1082,7 +1088,7 @@ private fun SettingsProfileCard(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = avatarFontSize,
-                        color = FigmaRust
+                        color = Color.White
                     )
                 }
 
@@ -1091,7 +1097,7 @@ private fun SettingsProfileCard(
                     modifier = Modifier
                         .size(14.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(Color.White)
                         .align(Alignment.BottomEnd)
                         .padding(2.dp)
                 ) {
@@ -1116,7 +1122,7 @@ private fun SettingsProfileCard(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = if (isCompactWidth) 15.sp else 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = FigmaDark,
+                        color = navyText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
@@ -1125,14 +1131,14 @@ private fun SettingsProfileCard(
                     // Premium Plan Badge
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = FigmaPeachTint
+                        color = navyText
                     ) {
                         Text(
                             text = "PREMIUM PLAN",
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
-                            color = FigmaRust,
+                            color = Color.White,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -1144,7 +1150,7 @@ private fun SettingsProfileCard(
                     text = userEmail,
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = if (isCompactWidth) 12.sp else 13.sp,
-                    color = FigmaMuted,
+                    color = navyText.copy(alpha = 0.85f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1159,14 +1165,14 @@ private fun SettingsProfileCard(
                         modifier = Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(FigmaActiveGreen)
+                            .background(navyText)
                     )
                     Text(
                         text = syncStatusText,
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 11.5.sp,
-                        color = FigmaSubtle,
-                        fontWeight = FontWeight.Medium,
+                        color = navyText,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1176,7 +1182,7 @@ private fun SettingsProfileCard(
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = "View Profile",
-                tint = FigmaSubtle,
+                tint = navyText,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -1355,6 +1361,7 @@ private fun AppearanceGroupCard(
     onThemeModeChange: (AppThemeMode) -> Unit,
     isCompactWidth: Boolean
 ) {
+    val navyText = Color(0xFF121660)
     SettingsGroupCard {
         Column(
             modifier = Modifier
@@ -1365,15 +1372,15 @@ private fun AppearanceGroupCard(
                 text = "App Theme Mode",
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = if (isCompactWidth) 13.5.sp else 14.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = FigmaDark
+                fontWeight = FontWeight.Bold,
+                color = navyText
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Choose your preferred interface theme",
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = if (isCompactWidth) 11.5.sp else 12.5.sp,
-                color = FigmaMuted
+                color = navyText.copy(alpha = 0.7f)
             )
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -1405,22 +1412,22 @@ private fun AppearanceGroupCard(
                                     imageVector = Icons.Rounded.Check,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
-                                    tint = BrandTangerine
+                                    tint = Color.White
                                 )
                             }
                         } else null,
                         shape = RoundedCornerShape(12.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = FigmaPeachTint,
-                            selectedLabelColor = FigmaRust,
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            labelColor = FigmaDark
+                            selectedContainerColor = navyText,
+                            selectedLabelColor = Color.White,
+                            containerColor = Color.White,
+                            labelColor = navyText
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
-                            borderColor = if (isSelected) FigmaRust else FigmaBorder,
-                            selectedBorderColor = FigmaRust
+                            borderColor = Color.Transparent,
+                            selectedBorderColor = Color.Transparent
                         ),
                         modifier = Modifier.weight(1f)
                     )
@@ -1435,13 +1442,13 @@ private fun LogOutButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedButton(
+    Button(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.2.dp, FigmaDestructive.copy(alpha = 0.35f)),
-        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF121660)
         ),
+        elevation = androidx.compose.material3.ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         modifier = modifier
             .fillMaxWidth()
             .height(52.dp)
@@ -1453,7 +1460,7 @@ private fun LogOutButton(
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.Logout,
                 contentDescription = "Log Out",
-                tint = FigmaDestructive,
+                tint = Color.White,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -1462,7 +1469,7 @@ private fun LogOutButton(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = FigmaDestructive
+                color = Color.White
             )
         }
     }
@@ -1471,11 +1478,11 @@ private fun LogOutButton(
 @Composable
 private fun FooterVersionText(modifier: Modifier = Modifier) {
     Text(
-        text = "FinanceFlow v2.4.0 (Build 382)",
+        text = "InTrack v2.4.0 (Build 382)",
         fontFamily = PlusJakartaSansFontFamily,
         fontSize = 12.sp,
         fontWeight = FontWeight.Medium,
-        color = FigmaSubtle,
+        color = Color(0xFF121660).copy(alpha = 0.6f),
         modifier = modifier
     )
 }
@@ -1485,10 +1492,10 @@ private fun SettingsSectionHeader(title: String) {
     Text(
         text = title,
         fontFamily = PlusJakartaSansFontFamily,
-        fontSize = 11.sp,
+        fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 0.8.sp,
-        color = FigmaSubtle,
+        color = Color(0xFF121660),
         modifier = Modifier.padding(start = 4.dp, top = 2.dp)
     )
 }
@@ -1497,8 +1504,9 @@ private fun SettingsSectionHeader(title: String) {
 private fun SettingsGroupCard(content: @Composable () -> Unit) {
     Card(
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, FigmaBorder),
+        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+        border = BorderStroke(0.dp, Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -1517,6 +1525,7 @@ private fun SettingsActionRow(
     isCompact: Boolean = false,
     onClick: () -> Unit
 ) {
+    val navyText = Color(0xFF121660)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1531,13 +1540,13 @@ private fun SettingsActionRow(
             modifier = Modifier
                 .size(if (isCompact) 34.dp else 38.dp)
                 .clip(CircleShape)
-                .background(FigmaIconBg),
+                .background(Color.White),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                tint = BrandTangerine,
+                tint = navyText,
                 modifier = iconModifier.size(if (isCompact) 17.dp else 19.dp)
             )
         }
@@ -1549,8 +1558,8 @@ private fun SettingsActionRow(
                 text = title,
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = if (isCompact) 13.5.sp else 14.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = FigmaDark,
+                fontWeight = FontWeight.Bold,
+                color = navyText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1559,7 +1568,7 @@ private fun SettingsActionRow(
                 text = subtitle,
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = if (isCompact) 11.5.sp else 12.sp,
-                color = FigmaMuted,
+                color = navyText.copy(alpha = 0.7f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1569,14 +1578,14 @@ private fun SettingsActionRow(
             Spacer(modifier = Modifier.width(6.dp))
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = FigmaSuccessBadgeBg
+                color = navyText
             ) {
                 Text(
                     text = badge,
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = FigmaSuccessBadgeText,
+                    color = Color.White,
                     modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
                 )
             }
@@ -1586,7 +1595,7 @@ private fun SettingsActionRow(
         Icon(
             imageVector = Icons.Rounded.ChevronRight,
             contentDescription = null,
-            tint = FigmaSubtle.copy(alpha = 0.6f),
+            tint = navyText.copy(alpha = 0.5f),
             modifier = Modifier.size(20.dp)
         )
     }
@@ -1601,6 +1610,7 @@ private fun SettingsToggleRow(
     isCompact: Boolean = false,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val navyText = Color(0xFF121660)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1615,13 +1625,13 @@ private fun SettingsToggleRow(
             modifier = Modifier
                 .size(if (isCompact) 34.dp else 38.dp)
                 .clip(CircleShape)
-                .background(FigmaIconBg),
+                .background(Color.White),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                tint = BrandTangerine,
+                tint = navyText,
                 modifier = Modifier.size(if (isCompact) 17.dp else 19.dp)
             )
         }
@@ -1633,8 +1643,8 @@ private fun SettingsToggleRow(
                 text = title,
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = if (isCompact) 13.5.sp else 14.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = FigmaDark,
+                fontWeight = FontWeight.Bold,
+                color = navyText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1643,22 +1653,22 @@ private fun SettingsToggleRow(
                 text = subtitle,
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = if (isCompact) 11.5.sp else 12.sp,
-                color = FigmaMuted,
+                color = navyText.copy(alpha = 0.7f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         }
 
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.surface,
-                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                checkedThumbColor = Color.White,
+                checkedTrackColor = navyText,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = navyText.copy(alpha = 0.2f)
             )
         )
     }

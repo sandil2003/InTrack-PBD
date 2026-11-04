@@ -82,7 +82,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.SubscriptionEntity
-import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
+import com.example.intrack.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -257,18 +257,18 @@ fun AddSubscriptionContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Peach circular badge with sync/recurring icon (32x32dp, fill #F5DED4)
+                // Peach circular badge with sync/recurring icon (32x32dp)
                 Box(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFF5DED4)),
+                        .background(FigmaSoftPeach),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Sync,
                         contentDescription = "New Recurring Charge",
-                        tint = Color(0xFFB52705),
+                        tint = FigmaTerracotta,
                         modifier = Modifier.size(16.dp)
                     )
                 }

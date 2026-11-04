@@ -5,12 +5,17 @@ import androidx.lifecycle.viewModelScope
 import com.example.intrack.data.model.IncomeEntity
 import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.data.repository.AuthRepositoryImpl
+import com.example.intrack.data.repository.ExpenseRepository
+import com.example.intrack.data.repository.ExpenseRepositoryImpl
 import com.example.intrack.data.repository.GoalRepository
 import com.example.intrack.data.repository.GoalRepositoryImpl
 import com.example.intrack.data.repository.IncomeRepository
 import com.example.intrack.data.repository.IncomeRepositoryImpl
+import com.example.intrack.data.repository.SubscriptionRepository
+import com.example.intrack.data.repository.SubscriptionRepositoryImpl
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.util.DateUtils
+import com.example.intrack.util.KavinduScenarioSeeder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Calendar
 import javax.inject.Inject
@@ -51,13 +56,17 @@ data class IncomeHubSummary(
 class IncomeViewModel @Inject constructor(
     private val incomeRepository: IncomeRepository,
     private val goalRepository: GoalRepository,
+    private val expenseRepository: ExpenseRepository,
+    private val subscriptionRepository: SubscriptionRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
     constructor(
         incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
-        goalRepository: GoalRepository = GoalRepositoryImpl()
-    ) : this(incomeRepository, goalRepository, AuthRepositoryImpl())
+        goalRepository: GoalRepository = GoalRepositoryImpl(),
+        expenseRepository: ExpenseRepository = ExpenseRepositoryImpl(),
+        subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl()
+    ) : this(incomeRepository, goalRepository, expenseRepository, subscriptionRepository, AuthRepositoryImpl())
 
     private val _incomesState = MutableStateFlow<UiState<List<IncomeEntity>>>(UiState.Loading)
     val incomesState: StateFlow<UiState<List<IncomeEntity>>> = _incomesState
@@ -221,6 +230,17 @@ class IncomeViewModel @Inject constructor(
             incomeRepository.getIncomes(userId).collect { list ->
                 if (list.isEmpty()) {
                     _incomesState.value = UiState.Empty
+                    if (userId.isNotBlank()) {
+                        viewModelScope.launch {
+                            KavinduScenarioSeeder.seedCompleteScenario(
+                                userId = userId,
+                                incomeRepository = incomeRepository,
+                                expenseRepository = expenseRepository,
+                                goalRepository = goalRepository,
+                                subscriptionRepository = subscriptionRepository
+                            )
+                        }
+                    }
                 } else {
                     _incomesState.value = UiState.Success(list)
                 }

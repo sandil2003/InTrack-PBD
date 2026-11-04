@@ -8,12 +8,17 @@ import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.data.repository.AuthRepositoryImpl
 import com.example.intrack.data.repository.ExpenseRepository
 import com.example.intrack.data.repository.ExpenseRepositoryImpl
+import com.example.intrack.data.repository.GoalRepository
+import com.example.intrack.data.repository.GoalRepositoryImpl
+import com.example.intrack.data.repository.IncomeRepository
+import com.example.intrack.data.repository.IncomeRepositoryImpl
 import com.example.intrack.data.repository.SubscriptionRepository
 import com.example.intrack.data.repository.SubscriptionRepositoryImpl
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.ui.screens.expenses.CategorySpendingItem
 import com.example.intrack.ui.screens.expenses.calculateCategoryBreakdown
 import com.example.intrack.util.DateUtils
+import com.example.intrack.util.KavinduScenarioSeeder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
@@ -43,13 +48,17 @@ data class ExpenseAnalyticsSummary(
 class ExpenseViewModel @Inject constructor(
     private val expenseRepository: ExpenseRepository,
     private val subscriptionRepository: SubscriptionRepository,
+    private val incomeRepository: IncomeRepository,
+    private val goalRepository: GoalRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
     constructor(
         expenseRepository: ExpenseRepository = ExpenseRepositoryImpl(),
-        subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl()
-    ) : this(expenseRepository, subscriptionRepository, AuthRepositoryImpl())
+        subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl(),
+        incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
+        goalRepository: GoalRepository = GoalRepositoryImpl()
+    ) : this(expenseRepository, subscriptionRepository, incomeRepository, goalRepository, AuthRepositoryImpl())
 
     private val _expensesState = MutableStateFlow<UiState<List<ExpenseEntity>>>(UiState.Loading)
     val expensesState: StateFlow<UiState<List<ExpenseEntity>>> = _expensesState
@@ -169,6 +178,17 @@ class ExpenseViewModel @Inject constructor(
             expenseRepository.getExpenses(userId).collect { list ->
                 if (list.isEmpty()) {
                     _expensesState.value = UiState.Empty
+                    if (userId.isNotBlank()) {
+                        viewModelScope.launch {
+                            KavinduScenarioSeeder.seedCompleteScenario(
+                                userId = userId,
+                                incomeRepository = incomeRepository,
+                                expenseRepository = expenseRepository,
+                                goalRepository = goalRepository,
+                                subscriptionRepository = subscriptionRepository
+                            )
+                        }
+                    }
                 } else {
                     _expensesState.value = UiState.Success(list)
                 }

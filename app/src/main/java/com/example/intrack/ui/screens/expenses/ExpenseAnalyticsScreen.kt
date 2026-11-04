@@ -267,7 +267,7 @@ fun ExpenseAnalyticsScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = FigmaCanvasBg,
+        containerColor = Color.White,
         topBar = {
             InTrackTopBar(
                 title = "Expense Analytics",
@@ -616,261 +616,256 @@ fun ExpenseAnalyticsScreen(
                                     )
                                 }
 
-                                // Item 2: DYNAMIC MONTH ACTIVITIES Section Header
+                                // Item 2: ACTIVITIES SECTION HEADER & FEED
                                 item {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 2.dp, vertical = 2.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "${selectedMonth.uppercase()} ACTIVITIES",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                letterSpacing = 0.6.sp
-                                            ),
-                                            color = FigmaMutedBrown
-                                        )
-
-                                        val hasActiveFilters = selectedCategoryFilter != "ALL" || selectedTypeFilter != "ALL" || selectedAccountFilter != "ALL"
-
-                                        Box(
-                                            modifier = Modifier
-                                                .size(30.dp)
-                                                .clip(CircleShape)
-                                                .background(if (showActivityFilters || hasActiveFilters) FigmaSoftPillActive else Color.Transparent)
-                                                .clickable { showActivityFilters = !showActivityFilters },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Tune,
-                                                contentDescription = "Toggle Filters",
-                                                tint = if (showActivityFilters || hasActiveFilters) FigmaTerracotta else FigmaMutedSlate,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Item 3: Account & Category Option Select Filters (hidden by default)
-                                if (showActivityFilters) {
-                                    item {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
                                         Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 2.dp, vertical = 2.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            // 1. Account Option Select Dropdown
-                                            val accountOptions = listOf(
-                                                "ALL" to "All Accounts",
-                                                "CASH" to "Cash Wallet",
-                                                "CARD_PRIMARY" to "Card Primary",
-                                                "ACCOUNT_SECONDARY" to "Bank Primary"
+                                            Text(
+                                                text = "$selectedMonth Activities",
+                                                style = MaterialTheme.typography.titleMedium.copy(
+                                                    fontSize = 17.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                ),
+                                                color = Color(0xFF121660)
                                             )
-                                            val selectedAccLabel = accountOptions.find { it.first == selectedAccountFilter }?.second ?: "All Accounts"
 
-                                            Box(modifier = Modifier.weight(1f)) {
-                                                ExposedDropdownMenuBox(
-                                                    expanded = accountFilterExpanded,
-                                                    onExpandedChange = { accountFilterExpanded = !accountFilterExpanded },
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
-                                                            .clip(RoundedCornerShape(12.dp))
-                                                            .background(MaterialTheme.colorScheme.surface)
-                                                            .border(1.dp, FigmaBorder, RoundedCornerShape(12.dp))
-                                                            .padding(horizontal = 12.dp, vertical = 10.dp)
-                                                    ) {
-                                                        Row(
-                                                            modifier = Modifier.fillMaxWidth(),
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.SpaceBetween
-                                                        ) {
-                                                            Text(
-                                                                text = selectedAccLabel,
-                                                                style = MaterialTheme.typography.bodySmall.copy(
-                                                                    fontSize = 12.5.sp,
-                                                                    fontWeight = FontWeight.SemiBold
-                                                                ),
-                                                                color = FigmaDarkText,
-                                                                maxLines = 1,
-                                                                overflow = TextOverflow.Ellipsis,
-                                                                modifier = Modifier.weight(1f, fill = false)
-                                                            )
+                                            val hasActiveFilters = selectedCategoryFilter != "ALL" || selectedTypeFilter != "ALL" || selectedAccountFilter != "ALL"
 
-                                                            Icon(
-                                                                imageVector = Icons.Rounded.ArrowDropDown,
-                                                                contentDescription = "Dropdown",
-                                                                tint = FigmaMutedSlate,
-                                                                modifier = Modifier.size(18.dp)
-                                                            )
-                                                        }
-                                                    }
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(30.dp)
+                                                    .clip(CircleShape)
+                                                    .background(if (showActivityFilters || hasActiveFilters) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
+                                                    .clickable { showActivityFilters = !showActivityFilters },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Tune,
+                                                    contentDescription = "Toggle Filters",
+                                                    tint = if (showActivityFilters || hasActiveFilters) BrandTangerine else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
 
-                                                    ExposedDropdownMenu(
+                                        if (showActivityFilters) {
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                // 1. Account Option Select Dropdown
+                                                val accountOptions = listOf(
+                                                    "ALL" to "All Accounts",
+                                                    "CASH" to "Cash Wallet",
+                                                    "CARD_PRIMARY" to "Card Primary",
+                                                    "ACCOUNT_SECONDARY" to "Bank Primary"
+                                                )
+                                                val selectedAccLabel = accountOptions.find { it.first == selectedAccountFilter }?.second ?: "All Accounts"
+
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    ExposedDropdownMenuBox(
                                                         expanded = accountFilterExpanded,
-                                                        onDismissRequest = { accountFilterExpanded = false },
-                                                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                                        onExpandedChange = { accountFilterExpanded = !accountFilterExpanded },
+                                                        modifier = Modifier.fillMaxWidth()
                                                     ) {
-                                                        accountOptions.forEach { (key, label) ->
-                                                            val isSelected = selectedAccountFilter == key
-                                                            DropdownMenuItem(
-                                                                text = {
-                                                                    Text(
-                                                                        text = label,
-                                                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                                                            fontSize = 13.sp,
-                                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                                                        ),
-                                                                        color = if (isSelected) FigmaTerracotta else FigmaDarkText
-                                                                    )
-                                                                },
-                                                                onClick = {
-                                                                    viewModel.setAccountFilter(key)
-                                                                    accountFilterExpanded = false
-                                                                },
-                                                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                                                            )
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                                                .clip(RoundedCornerShape(12.dp))
+                                                                .background(MaterialTheme.colorScheme.surface)
+                                                                .border(1.dp, FigmaBorder, RoundedCornerShape(12.dp))
+                                                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                                                        ) {
+                                                            Row(
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.SpaceBetween
+                                                            ) {
+                                                                Text(
+                                                                    text = selectedAccLabel,
+                                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                                        fontSize = 12.5.sp,
+                                                                        fontWeight = FontWeight.SemiBold
+                                                                    ),
+                                                                    color = FigmaDarkText,
+                                                                    maxLines = 1,
+                                                                    overflow = TextOverflow.Ellipsis,
+                                                                    modifier = Modifier.weight(1f, fill = false)
+                                                                )
+
+                                                                Icon(
+                                                                    imageVector = Icons.Rounded.ArrowDropDown,
+                                                                    contentDescription = "Dropdown",
+                                                                    tint = FigmaMutedSlate,
+                                                                    modifier = Modifier.size(18.dp)
+                                                                )
+                                                            }
+                                                        }
+
+                                                        ExposedDropdownMenu(
+                                                            expanded = accountFilterExpanded,
+                                                            onDismissRequest = { accountFilterExpanded = false },
+                                                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                                        ) {
+                                                            accountOptions.forEach { (key, label) ->
+                                                                val isSelected = selectedAccountFilter == key
+                                                                DropdownMenuItem(
+                                                                    text = {
+                                                                        Text(
+                                                                            text = label,
+                                                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                                                fontSize = 13.sp,
+                                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                                            ),
+                                                                            color = if (isSelected) BrandTangerine else FigmaDarkText
+                                                                        )
+                                                                    },
+                                                                    onClick = {
+                                                                        viewModel.setAccountFilter(key)
+                                                                        accountFilterExpanded = false
+                                                                    },
+                                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
 
-                                            // 2. Category Option Select Dropdown
-                                            val categoryOptions = listOf(
-                                                ("ALL" to "ALL") to "All Categories",
-                                                ("COMMITTED" to "ALL") to "Essentials Only",
-                                                ("DISCRETIONARY" to "ALL") to "Lifestyle Only",
-                                                ("ALL" to "MISC") to "Groceries",
-                                                ("ALL" to "DINING_OUT") to "Dining",
-                                                ("ALL" to "TRANSPORT") to "Transport",
-                                                ("ALL" to "RENT") to "Housing",
-                                                ("ALL" to "SUBSCRIPTION") to "Subscriptions",
-                                                ("ALL" to "UTILITIES") to "Utilities",
-                                                ("ALL" to "ATM_WITHDRAWAL") to "ATM / Transfers"
-                                            )
+                                                // 2. Category Option Select Dropdown
+                                                val categoryOptions = listOf(
+                                                    ("ALL" to "ALL") to "All Categories",
+                                                    ("COMMITTED" to "ALL") to "Essentials Only",
+                                                    ("DISCRETIONARY" to "ALL") to "Lifestyle Only",
+                                                    ("ALL" to "MISC") to "Groceries",
+                                                    ("ALL" to "DINING_OUT") to "Dining",
+                                                    ("ALL" to "TRANSPORT") to "Transport",
+                                                    ("ALL" to "RENT") to "Housing",
+                                                    ("ALL" to "SUBSCRIPTION") to "Subscriptions",
+                                                    ("ALL" to "UTILITIES") to "Utilities",
+                                                    ("ALL" to "ATM_WITHDRAWAL") to "ATM / Transfers"
+                                                )
 
-                                            val currentCatKey = selectedTypeFilter to selectedCategoryFilter
-                                            val selectedCatLabel = categoryOptions.find { it.first == currentCatKey }?.second ?: "All Categories"
+                                                val currentCatKey = selectedTypeFilter to selectedCategoryFilter
+                                                val selectedCatLabel = categoryOptions.find { it.first == currentCatKey }?.second ?: "All Categories"
 
-                                            Box(modifier = Modifier.weight(1f)) {
-                                                ExposedDropdownMenuBox(
-                                                    expanded = categoryFilterExpanded,
-                                                    onExpandedChange = { categoryFilterExpanded = !categoryFilterExpanded },
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
-                                                            .clip(RoundedCornerShape(12.dp))
-                                                            .background(MaterialTheme.colorScheme.surface)
-                                                            .border(1.dp, FigmaBorder, RoundedCornerShape(12.dp))
-                                                            .padding(horizontal = 12.dp, vertical = 10.dp)
-                                                    ) {
-                                                        Row(
-                                                            modifier = Modifier.fillMaxWidth(),
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.SpaceBetween
-                                                        ) {
-                                                            Text(
-                                                                text = selectedCatLabel,
-                                                                style = MaterialTheme.typography.bodySmall.copy(
-                                                                    fontSize = 12.5.sp,
-                                                                    fontWeight = FontWeight.SemiBold
-                                                                ),
-                                                                color = FigmaDarkText,
-                                                                maxLines = 1,
-                                                                overflow = TextOverflow.Ellipsis,
-                                                                modifier = Modifier.weight(1f, fill = false)
-                                                            )
-
-                                                            Icon(
-                                                                imageVector = Icons.Rounded.ArrowDropDown,
-                                                                contentDescription = "Dropdown",
-                                                                tint = FigmaMutedSlate,
-                                                                modifier = Modifier.size(18.dp)
-                                                            )
-                                                        }
-                                                    }
-
-                                                    ExposedDropdownMenu(
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    ExposedDropdownMenuBox(
                                                         expanded = categoryFilterExpanded,
-                                                        onDismissRequest = { categoryFilterExpanded = false },
-                                                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                                        onExpandedChange = { categoryFilterExpanded = !categoryFilterExpanded },
+                                                        modifier = Modifier.fillMaxWidth()
                                                     ) {
-                                                        categoryOptions.forEach { (typeAndCat, label) ->
-                                                            val (tFilter, cFilter) = typeAndCat
-                                                            val isSelected = selectedTypeFilter == tFilter && selectedCategoryFilter == cFilter
-                                                            DropdownMenuItem(
-                                                                text = {
-                                                                    Text(
-                                                                        text = label,
-                                                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                                                            fontSize = 13.sp,
-                                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                                                        ),
-                                                                        color = if (isSelected) FigmaTerracotta else FigmaDarkText
-                                                                    )
-                                                                },
-                                                                onClick = {
-                                                                    viewModel.setTypeAndCategoryFilter(tFilter, cFilter)
-                                                                    categoryFilterExpanded = false
-                                                                },
-                                                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                                                            )
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                                                .clip(RoundedCornerShape(12.dp))
+                                                                .background(MaterialTheme.colorScheme.surface)
+                                                                .border(1.dp, FigmaBorder, RoundedCornerShape(12.dp))
+                                                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                                                        ) {
+                                                            Row(
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.SpaceBetween
+                                                            ) {
+                                                                Text(
+                                                                    text = selectedCatLabel,
+                                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                                        fontSize = 12.5.sp,
+                                                                        fontWeight = FontWeight.SemiBold
+                                                                    ),
+                                                                    color = FigmaDarkText,
+                                                                    maxLines = 1,
+                                                                    overflow = TextOverflow.Ellipsis,
+                                                                    modifier = Modifier.weight(1f, fill = false)
+                                                                )
+
+                                                                Icon(
+                                                                    imageVector = Icons.Rounded.ArrowDropDown,
+                                                                    contentDescription = "Dropdown",
+                                                                    tint = FigmaMutedSlate,
+                                                                    modifier = Modifier.size(18.dp)
+                                                                )
+                                                            }
+                                                        }
+
+                                                        ExposedDropdownMenu(
+                                                            expanded = categoryFilterExpanded,
+                                                            onDismissRequest = { categoryFilterExpanded = false },
+                                                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                                        ) {
+                                                            categoryOptions.forEach { (typeAndCat, label) ->
+                                                                val (tFilter, cFilter) = typeAndCat
+                                                                val isSelected = selectedTypeFilter == tFilter && selectedCategoryFilter == cFilter
+                                                                DropdownMenuItem(
+                                                                    text = {
+                                                                        Text(
+                                                                            text = label,
+                                                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                                                fontSize = 13.sp,
+                                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                                            ),
+                                                                            color = if (isSelected) BrandTangerine else FigmaDarkText
+                                                                        )
+                                                                    },
+                                                                    onClick = {
+                                                                        viewModel.setTypeAndCategoryFilter(tFilter, cFilter)
+                                                                        categoryFilterExpanded = false
+                                                                    },
+                                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
                                         }
-                                    }
-                                }
 
-                                // Item 4: Transactions Accordion Feed
-                                if (filteredExpenses.isEmpty()) {
-                                    item {
-                                        EmptyStateView(
-                                            title = "No Transactions",
-                                            message = "No matches for active filters in $selectedMonth."
-                                        )
-                                    }
-                                } else {
-                                    groupedExpenses.forEach { (weekTier, expensesInGroup) ->
-                                        item(key = "section_$weekTier") {
-                                            Column(modifier = Modifier.fillMaxWidth()) {
-                                                // Highlighted Weekly Section Header Row (without transaction count)
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(horizontal = 2.dp, vertical = 6.dp),
-                                                    horizontalArrangement = Arrangement.Start,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Box(
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        if (filteredExpenses.isEmpty()) {
+                                            EmptyStateView(
+                                                title = "No Transactions",
+                                                message = "No matches for active filters in $selectedMonth."
+                                            )
+                                        } else {
+                                            groupedExpenses.forEach { (weekTier, expensesInGroup) ->
+                                                val showGroupHeader = !(groupedExpenses.size == 1 && weekTier == "This Week")
+                                                if (showGroupHeader) {
+                                                    Row(
                                                         modifier = Modifier
-                                                            .clip(RoundedCornerShape(8.dp))
-                                                            .background(BrandTangerine.copy(alpha = 0.12f))
-                                                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                            .fillMaxWidth()
+                                                            .padding(horizontal = 2.dp, vertical = 6.dp),
+                                                        horizontalArrangement = Arrangement.Start,
+                                                        verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Text(
-                                                            text = weekTier,
-                                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                                fontSize = 12.sp,
-                                                                fontWeight = FontWeight.Bold,
-                                                                letterSpacing = 0.3.sp
-                                                            ),
-                                                            color = BrandTangerine
-                                                        )
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .clip(RoundedCornerShape(8.dp))
+                                                                .background(Color(0xFF0171DF))
+                                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = weekTier,
+                                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                                    fontSize = 11.5.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    letterSpacing = 0.3.sp
+                                                                ),
+                                                                color = Color.White
+                                                            )
+                                                        }
                                                     }
                                                 }
 
-                                                // Always visible Flat Transaction Rows
                                                 expensesInGroup.forEachIndexed { index, expense ->
                                                     FlatTransactionRow(
                                                         expense = expense,
@@ -881,7 +876,9 @@ fun ExpenseAnalyticsScreen(
                                                     )
                                                     if (index < expensesInGroup.lastIndex) {
                                                         HorizontalDivider(
-                                                            modifier = Modifier.fillMaxWidth(),
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(vertical = 4.dp),
                                                             color = FigmaBorder.copy(alpha = 0.6f),
                                                             thickness = 0.8.dp
                                                         )
@@ -1150,15 +1147,11 @@ fun FigmaHeroOutflowCard(
         label = "discretionaryRatio"
     )
 
-    val heroTerracotta = Color(0xFFB52705)
-    val heroPeachBar = Color(0xFFE3BEB6)
-    val darkTextColor = MaterialTheme.colorScheme.onSurface
-    val mutedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val hairlineColor = MaterialTheme.colorScheme.outlineVariant
+    val navyText = Color(0xFF121660)
 
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = modifier.fillMaxWidth()
@@ -1181,7 +1174,7 @@ fun FigmaHeroOutflowCard(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.5.sp
                     ),
-                    color = mutedLabelColor
+                    color = navyText
                 )
 
                 // View charts button (symbol only)
@@ -1189,14 +1182,14 @@ fun FigmaHeroOutflowCard(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFF7EBE6))
+                        .background(navyText.copy(alpha = 0.12f))
                         .clickable { onOpenCharts() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.BarChart,
                         contentDescription = "View charts",
-                        tint = heroTerracotta,
+                        tint = navyText,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -1207,26 +1200,26 @@ fun FigmaHeroOutflowCard(
             // 2. Hero Outflow Amount Row: "LKR XX,XXX.XX" (Centered)
             InTrackHeroAmount(
                 amountLkr = totalExpenseLkr,
-                prefixColor = heroTerracotta,
-                textColor = darkTextColor
+                prefixColor = navyText,
+                textColor = navyText
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3. Multi-segment progress bar (8dp height capsule pill matching hero section image)
+            // 3. Multi-segment progress bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(if (totalExpenseLkr > 0) heroPeachBar else Color(0xFFF2ECE6))
+                    .background(navyText.copy(alpha = 0.2f))
             ) {
                 if (totalExpenseLkr > 0 && animatedCommittedRatio > 0f) {
                     Box(
                         modifier = Modifier
                             .weight(animatedCommittedRatio.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(heroTerracotta)
+                            .background(navyText)
                     )
                 }
                 if (totalExpenseLkr > 0 && animatedDiscretionaryRatio > 0f) {
@@ -1234,21 +1227,12 @@ fun FigmaHeroOutflowCard(
                         modifier = Modifier
                             .weight(animatedDiscretionaryRatio.coerceAtLeast(0.01f))
                             .fillMaxHeight()
-                            .background(heroPeachBar)
+                            .background(navyText.copy(alpha = 0.5f))
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // 4. Subtle Hairline Divider
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth(),
-                thickness = 0.8.dp,
-                color = hairlineColor
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
 
             // 5. 2-Column Breakdown Legend (Centered and Aligned)
             Row(
@@ -1269,7 +1253,7 @@ fun FigmaHeroOutflowCard(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(heroTerracotta)
+                                .background(navyText)
                         )
                         Text(
                             text = "Essentials",
@@ -1277,7 +1261,7 @@ fun FigmaHeroOutflowCard(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = mutedLabelColor,
+                            color = navyText,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1290,7 +1274,7 @@ fun FigmaHeroOutflowCard(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.3).sp
                         ),
-                        color = darkTextColor,
+                        color = navyText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center
@@ -1312,7 +1296,7 @@ fun FigmaHeroOutflowCard(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(heroPeachBar)
+                                .background(navyText.copy(alpha = 0.5f))
                         )
                         Text(
                             text = "Lifestyle",
@@ -1320,7 +1304,7 @@ fun FigmaHeroOutflowCard(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = mutedLabelColor,
+                            color = navyText,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1333,7 +1317,7 @@ fun FigmaHeroOutflowCard(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.3).sp
                         ),
-                        color = darkTextColor,
+                        color = navyText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center
@@ -1359,130 +1343,115 @@ fun FlatTransactionRow(
 ) {
     val isInternalTransfer = expense.isInternalTransfer()
 
+    val categoryIcon = when {
+        isInternalTransfer || expense.title.contains("ATM", ignoreCase = true) -> Icons.Default.Payments
+        expense.category.uppercase() == "DINING_OUT" -> Icons.Default.LocalCafe
+        expense.category.uppercase() == "TRANSPORT" -> Icons.Default.DirectionsCar
+        expense.category.uppercase() == "RENT" -> Icons.Default.Home
+        expense.category.uppercase() == "MISC" && expense.paymentAccount.uppercase() == "CASH" -> Icons.Default.Payments
+        expense.category.uppercase() == "MISC" -> Icons.Default.ShoppingCart
+        else -> Icons.Default.Receipt
+    }
+
     val accountLabel = when {
-        isInternalTransfer -> "➔ Cash Wallet"
+        isInternalTransfer -> "Cash Wallet"
         expense.paymentAccount.uppercase() == "CARD_PRIMARY" -> "Card Primary"
-        expense.paymentAccount.uppercase() == "ACCOUNT_SECONDARY" -> "Bank Primary"
+        expense.paymentAccount.uppercase() == "ACCOUNT_SECONDARY" -> "Secondary"
         expense.paymentAccount.uppercase() == "CASH" -> "Cash"
         else -> expense.paymentAccount.replace("_", " ")
     }
 
-    val displayCategory = when {
-        isInternalTransfer -> "Internal Transfer"
-        expense.category.uppercase() == "DINING_OUT" -> "Dining"
-        expense.category.uppercase() == "TRANSPORT" -> "Transport"
-        expense.category.uppercase() == "RENT" -> "Housing"
-        expense.category.uppercase() == "SUBSCRIPTION" -> "Subscription"
-        expense.category.uppercase() == "UTILITIES" -> "Utilities"
-        expense.category.uppercase() == "MISC" -> "Groceries"
-        else -> expense.category
+    val (accBg, accText) = when {
+        isInternalTransfer -> Pair(Color(0xFFEFF6FF), Color(0xFF2563EB))
+        expense.paymentAccount.uppercase() == "CASH" -> Pair(Color(0xFFFFF7DB), Color(0xFF121660))
+        expense.paymentAccount.uppercase() == "CARD_PRIMARY" -> Pair(Color(0xFFE5F1FD), Color(0xFF0171DF))
+        expense.paymentAccount.uppercase() == "ACCOUNT_SECONDARY" -> Pair(Color(0xFFE8EEFC), Color(0xFF121660))
+        else -> Pair(BrandSoftSlate, Color(0xFF121660))
     }
+
+    val formattedDate = DateUtils.formatDate(expense.dateSpentMillis)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 7.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Title & Account/Time Subtitle
-        Column(
+        Row(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = expense.title,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = FigmaDarkText,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(3.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(BrandSoftSlate),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isInternalTransfer) Color(0xFFEFF6FF) else FigmaIconCircleBg)
-                        .padding(horizontal = 6.dp, vertical = 1.dp)
-                ) {
+                Icon(
+                    imageVector = categoryIcon,
+                    contentDescription = expense.category,
+                    tint = Color(0xFF121660),
+                    modifier = Modifier.size(19.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column {
+                Text(
+                    text = expense.title,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.5.sp,
+                        lineHeight = 17.sp
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF121660),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(accBg)
+                            .padding(horizontal = 6.dp, vertical = 1.5.dp)
+                    ) {
+                        Text(
+                            text = accountLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                            color = accText
+                        )
+                    }
                     Text(
-                        text = accountLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = if (isInternalTransfer) Color(0xFF1E40AF) else FigmaMutedBrown
+                        text = "•",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = formattedDate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
-                Text(
-                    text = formatTimeOrDate(expense.dateSpentMillis),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = FigmaMutedSlate
-                )
             }
         }
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Right: Amount + Category
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.Center
-        ) {
-            if (isInternalTransfer) {
-                Text(
-                    text = "⇄ LKR ${CurrencyFormatter.formatLkr(expense.amountLkr).replace("LKR ", "")}",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color(0xFF2563EB),
-                    maxLines = 1,
-                    softWrap = false
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Transfer to Cash",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color(0xFF2563EB),
-                    maxLines = 1,
-                    softWrap = false
-                )
-            } else {
-                Text(
-                    text = "- LKR ${CurrencyFormatter.formatLkr(expense.amountLkr).replace("LKR ", "")}",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = FigmaDarkText,
-                    maxLines = 1,
-                    softWrap = false
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = displayCategory,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = FigmaTerracotta,
-                    maxLines = 1,
-                    softWrap = false
-                )
-            }
-        }
+        Text(
+            text = if (isInternalTransfer) "⇄ LKR ${CurrencyFormatter.formatLkr(expense.amountLkr).replace("LKR ", "")}" else "- ${CurrencyFormatter.formatLkr(expense.amountLkr)}",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            ),
+            color = if (isInternalTransfer) Color(0xFF2563EB) else Color(0xFF121660),
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }
 
@@ -1574,7 +1543,6 @@ fun FigmaMonthlyCommitmentsCard(
     val total = if (totalRecurringLkr > 0) totalRecurringLkr else 1.0
     val secondaryRatio = (secondaryAccountTotal / total).toFloat().coerceIn(0f, 1f)
     val primaryRatio = (primaryCardTotal / total).toFloat().coerceIn(0f, 1f)
-
     val cashRatio = (cashTotal / total).toFloat().coerceIn(0f, 1f)
 
     val animatedSecondaryRatio by animateFloatAsState(
@@ -1593,16 +1561,11 @@ fun FigmaMonthlyCommitmentsCard(
         label = "cashRatio"
     )
 
-    val heroTerracotta = Color(0xFFB52705)
-    val heroPeachBar = Color(0xFFE3BEB6)
-    val heroCashBar = Color(0xFFD79583)
-    val darkTextColor = MaterialTheme.colorScheme.onSurface
-    val mutedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val hairlineColor = MaterialTheme.colorScheme.outlineVariant
+    val navyText = Color(0xFF121660)
 
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = modifier.fillMaxWidth()
@@ -1620,7 +1583,7 @@ fun FigmaMonthlyCommitmentsCard(
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 0.5.sp
                 ),
-                color = mutedLabelColor,
+                color = navyText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1639,7 +1602,7 @@ fun FigmaMonthlyCommitmentsCard(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = heroTerracotta,
+                    color = navyText,
                     modifier = Modifier.alignByBaseline()
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -1649,7 +1612,7 @@ fun FigmaMonthlyCommitmentsCard(
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = darkTextColor,
+                    color = navyText,
                     maxLines = 1,
                     softWrap = false,
                     modifier = Modifier.alignByBaseline()
@@ -1658,20 +1621,20 @@ fun FigmaMonthlyCommitmentsCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3. Multi-account progress bar (8dp height capsule pill matching hero section)
+            // 3. Multi-account progress bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(if (totalRecurringLkr > 0) heroPeachBar else Color(0xFFF2ECE6))
+                    .background(navyText.copy(alpha = 0.2f))
             ) {
                 if (totalRecurringLkr > 0 && animatedSecondaryRatio > 0f) {
                     Box(
                         modifier = Modifier
                             .weight(animatedSecondaryRatio.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(heroTerracotta)
+                            .background(navyText)
                     )
                 }
                 if (totalRecurringLkr > 0 && animatedPrimaryRatio > 0f) {
@@ -1679,7 +1642,7 @@ fun FigmaMonthlyCommitmentsCard(
                         modifier = Modifier
                             .weight(animatedPrimaryRatio.coerceAtLeast(0.01f))
                             .fillMaxHeight()
-                            .background(heroPeachBar)
+                            .background(Color(0xFF0171DF))
                     )
                 }
                 if (totalRecurringLkr > 0 && animatedCashRatio > 0f) {
@@ -1687,23 +1650,14 @@ fun FigmaMonthlyCommitmentsCard(
                         modifier = Modifier
                             .weight(animatedCashRatio.coerceAtLeast(0.01f))
                             .fillMaxHeight()
-                            .background(heroCashBar)
+                            .background(Color(0xFF3CAE8C))
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Subtle Hairline Divider
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth(),
-                thickness = 0.8.dp,
-                color = hairlineColor
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 5. Breakdown Legend (Centered and Aligned)
+            // 5. Breakdown Legend
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1722,7 +1676,7 @@ fun FigmaMonthlyCommitmentsCard(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(heroTerracotta)
+                                .background(navyText)
                         )
                         Text(
                             text = "Secondary",
@@ -1730,7 +1684,7 @@ fun FigmaMonthlyCommitmentsCard(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = mutedLabelColor,
+                            color = navyText,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1742,7 +1696,7 @@ fun FigmaMonthlyCommitmentsCard(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = darkTextColor,
+                        color = navyText,
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis,
@@ -1763,7 +1717,7 @@ fun FigmaMonthlyCommitmentsCard(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(heroPeachBar)
+                                .background(Color(0xFF0171DF))
                         )
                         Text(
                             text = "Card",
@@ -1771,7 +1725,7 @@ fun FigmaMonthlyCommitmentsCard(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = mutedLabelColor,
+                            color = navyText,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1783,7 +1737,7 @@ fun FigmaMonthlyCommitmentsCard(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = darkTextColor,
+                        color = navyText,
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis,
@@ -1805,7 +1759,7 @@ fun FigmaMonthlyCommitmentsCard(
                                 modifier = Modifier
                                     .size(7.dp)
                                     .clip(CircleShape)
-                                    .background(heroCashBar)
+                                    .background(Color(0xFF3CAE8C))
                             )
                             Text(
                                 text = "Cash",
@@ -1813,7 +1767,7 @@ fun FigmaMonthlyCommitmentsCard(
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium
                                 ),
-                                color = mutedLabelColor,
+                                color = navyText,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1825,7 +1779,7 @@ fun FigmaMonthlyCommitmentsCard(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = darkTextColor,
+                            color = navyText,
                             maxLines = 1,
                             softWrap = false,
                             overflow = TextOverflow.Ellipsis,
@@ -1862,7 +1816,7 @@ fun FigmaSubscriptionItemCard(
         onClick = onClick,
         interactionSource = interactionSource,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = modifier
@@ -1885,7 +1839,7 @@ fun FigmaSubscriptionItemCard(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = if (isCancelled) FigmaMutedSlate else FigmaDarkText,
+                color = if (isCancelled) Color(0xFF121660).copy(alpha = 0.5f) else Color(0xFF121660),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
@@ -1899,7 +1853,7 @@ fun FigmaSubscriptionItemCard(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 ),
-                color = if (isCancelled) FigmaMutedSlate else FigmaDarkText,
+                color = if (isCancelled) Color(0xFF121660).copy(alpha = 0.5f) else Color(0xFF121660),
                 maxLines = 1,
                 softWrap = false,
                 textAlign = TextAlign.End,

@@ -1,5 +1,7 @@
 package com.example.intrack.ui.screens.subscriptions
 
+import com.example.intrack.ui.theme.*
+
 import androidx.compose.material3.MaterialTheme
 
 import androidx.compose.foundation.background
@@ -236,13 +238,13 @@ fun ViewSubscriptionContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Category Chip Indicator (Pill, fill #F5DED4, border 1dp #E3BEB6)
+            // Category Chip Indicator (Pill, fill FigmaSoftPeach, border 1dp FigmaBorder)
             Row(
                 modifier = Modifier
                     .height(28.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFF5DED4))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                    .background(FigmaSoftPeach)
+                    .border(1.dp, FigmaBorder, CircleShape)
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -250,7 +252,7 @@ fun ViewSubscriptionContent(
                 Icon(
                     imageVector = categoryIcon,
                     contentDescription = null,
-                    tint = Color(0xFFB52705),
+                    tint = FigmaTerracotta,
                     modifier = Modifier.size(13.dp)
                 )
                 Text(
@@ -258,11 +260,11 @@ fun ViewSubscriptionContent(
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF5B0D00)
+                    color = FigmaDarkText
                 )
             }
 
-            // Close modal button (36x36dp circle, fill #F5F3EF)
+            // Close modal button (36x36dp circle, fill background)
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -277,7 +279,7 @@ fun ViewSubscriptionContent(
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close",
-                    tint = Color(0xFF585F6B),
+                    tint = FigmaMutedSlate,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -293,19 +295,19 @@ fun ViewSubscriptionContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Rounded square badge (56x56dp, fill #F5DED4, border 1dp #E3BEB6, cr 16dp)
+            // Rounded square badge (56x56dp, fill FigmaSoftPeach, border 1dp FigmaBorder, cr 16dp)
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFF5DED4).copy(alpha = 0.7f))
-                    .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(16.dp)),
+                    .background(FigmaSoftPeach)
+                    .border(1.dp, FigmaBorder, RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = categoryIcon,
                     contentDescription = subscription.name,
-                    tint = Color(0xFFB52705),
+                    tint = FigmaTerracotta,
                     modifier = Modifier.size(26.dp)
                 )
             }

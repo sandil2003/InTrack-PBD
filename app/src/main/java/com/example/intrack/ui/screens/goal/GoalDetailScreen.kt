@@ -159,7 +159,7 @@ fun GoalDetailScreen(
                 }
             )
         },
-        containerColor = FigmaBg,
+        containerColor = Color.White,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         modifier = modifier
     ) { innerPadding ->
@@ -232,8 +232,10 @@ fun GoalDetailScreen(
                         Spacer(modifier = Modifier.height(4.dp))
 
                         // --- 1. Main Goal Hero Card (Figma node 2026:1559) ---
+                        val navyText = Color(0xFF121660)
                         InTrackCard(
                             shape = InTrackCardShape,
+                            containerColor = BrandWarmYellow,
                             elevation = 0.5.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -252,7 +254,7 @@ fun GoalDetailScreen(
                                     Row(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(999.dp))
-                                            .background(FigmaSoftPeach)
+                                            .background(navyText.copy(alpha = 0.12f))
                                             .padding(horizontal = 10.dp, vertical = 5.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -260,7 +262,7 @@ fun GoalDetailScreen(
                                         Icon(
                                             imageVector = GoalCategoryHelper.getCategoryIcon(goal.category),
                                             contentDescription = null,
-                                            tint = FigmaTerracotta,
+                                            tint = navyText,
                                             modifier = Modifier.size(14.dp)
                                         )
                                         Text(
@@ -269,14 +271,14 @@ fun GoalDetailScreen(
                                                 fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Bold
                                             ),
-                                            color = FigmaTerracotta
+                                            color = navyText
                                         )
                                     }
 
                                     InTrackStatusBadge(
                                         text = if (isCompleted) "Completed 🎉" else "In Progress",
-                                        containerColor = if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFF4EEEA),
-                                        contentColor = if (isCompleted) Color(0xFF2E7D32) else FigmaMutedBrown,
+                                        containerColor = navyText.copy(alpha = 0.12f),
+                                        contentColor = navyText,
                                         fontSize = 11.5.sp
                                     )
                                 }
@@ -290,7 +292,7 @@ fun GoalDetailScreen(
                                         fontSize = 20.sp,
                                         fontWeight = FontWeight.Bold
                                     ),
-                                    color = FigmaDarkText,
+                                    color = navyText,
                                     maxLines = 1,
                                     softWrap = false,
                                     overflow = TextOverflow.Ellipsis
@@ -299,7 +301,11 @@ fun GoalDetailScreen(
                                 Spacer(modifier = Modifier.height(10.dp))
 
                                 // Centered Hero Outflow / Saved Amount (Figma node 2026:1567)
-                                InTrackHeroAmount(amountLkr = goal.currentSavedLkr)
+                                InTrackHeroAmount(
+                                    amountLkr = goal.currentSavedLkr,
+                                    prefixColor = navyText,
+                                    textColor = navyText
+                                )
 
                                 Spacer(modifier = Modifier.height(6.dp))
 
@@ -314,13 +320,13 @@ fun GoalDetailScreen(
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Normal
                                         ),
-                                        color = FigmaMutedSlate
+                                        color = navyText
                                     )
                                     Box(
                                         modifier = Modifier
                                             .size(3.5.dp)
                                             .clip(CircleShape)
-                                            .background(FigmaMutedSlate.copy(alpha = 0.5f))
+                                            .background(navyText.copy(alpha = 0.5f))
                                     )
                                     Text(
                                         text = if (isCompleted) "Target Reached" else "Remaining: ${CurrencyFormatter.formatLkr(remainingToSave)}",
@@ -328,7 +334,7 @@ fun GoalDetailScreen(
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold
                                         ),
-                                        color = if (isCompleted) Color(0xFF2E7D32) else FigmaTerracotta
+                                        color = navyText
                                     )
                                 }
 
@@ -342,15 +348,15 @@ fun GoalDetailScreen(
                                 ) {
                                     InTrackStatusBadge(
                                         text = "$percentageInt% Saved",
-                                        containerColor = FigmaSoftPeach,
-                                        contentColor = FigmaTerracotta,
+                                        containerColor = navyText.copy(alpha = 0.12f),
+                                        contentColor = navyText,
                                         fontSize = 11.5.sp
                                     )
 
                                     InTrackStatusBadge(
                                         text = if (isCompleted) "Done 🎉" else "${daysLeft}d left",
-                                        containerColor = Color(0xFFF4EEEA),
-                                        contentColor = if (isCompleted) FigmaTerracotta else FigmaMutedBrown,
+                                        containerColor = navyText.copy(alpha = 0.12f),
+                                        contentColor = navyText,
                                         fontSize = 11.5.sp
                                     )
                                 }
@@ -361,8 +367,8 @@ fun GoalDetailScreen(
                                 InTrackProgressBar(
                                     progress = progress,
                                     height = 8.dp,
-                                    fillColor = FigmaTerracotta,
-                                    trackColor = FigmaTrackBg
+                                    fillColor = navyText,
+                                    trackColor = navyText.copy(alpha = 0.2f)
                                 )
                             }
                         }
@@ -370,13 +376,19 @@ fun GoalDetailScreen(
 
                     // --- Primary Action CTA Button: "Deposit Funds" ---
                     item {
-                        InTrackPrimaryButton(
-                            onClick = { showDepositSheet = true }
+                        Button(
+                            onClick = { showDepositSheet = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF121660)),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Savings,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
+                                tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -386,7 +398,7 @@ fun GoalDetailScreen(
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = Color.White
                             )
                         }
                     }
@@ -500,7 +512,7 @@ fun GoalDetailScreen(
                                             trailing = {
                                                 InTrackStatusBadge(
                                                     text = if (goal.remindMonthlyPace) "Active" else "Off",
-                                                    containerColor = if (goal.remindMonthlyPace) FigmaSoftPeach else Color(0xFFF4EEEA),
+                                                    containerColor = if (goal.remindMonthlyPace) FigmaSoftPeach else MaterialTheme.colorScheme.surfaceVariant,
                                                     contentColor = if (goal.remindMonthlyPace) FigmaTerracotta else FigmaMutedSlate,
                                                     fontSize = 11.sp
                                                 )
@@ -596,11 +608,11 @@ fun GoalDetailScreen(
                                                 else -> "Pace Deficit"
                                             },
                                             containerColor = when {
-                                                isCompleted || isPaceOnTrack -> Color(0xFFE8F5E9)
+                                                isCompleted || isPaceOnTrack -> MaterialTheme.colorScheme.financial.incomeContainer
                                                 else -> FigmaSoftPeach
                                             },
                                             contentColor = when {
-                                                isCompleted || isPaceOnTrack -> Color(0xFF2E7D32)
+                                                isCompleted || isPaceOnTrack -> MaterialTheme.colorScheme.financial.income
                                                 else -> FigmaTerracotta
                                             },
                                             fontSize = 11.5.sp
@@ -703,7 +715,7 @@ fun GoalDetailScreen(
                                                         fontWeight = FontWeight.SemiBold,
                                                         letterSpacing = 0.5.sp
                                                     ),
-                                                    color = if (paceDeficit > 0) FigmaTerracotta else Color(0xFF2E7D32)
+                                                    color = if (paceDeficit > 0) FigmaTerracotta else MaterialTheme.colorScheme.financial.income
                                                 )
                                                 Spacer(modifier = Modifier.height(3.dp))
                                                 Text(
@@ -716,7 +728,7 @@ fun GoalDetailScreen(
                                                         fontSize = 13.sp,
                                                         fontWeight = FontWeight.Bold
                                                     ),
-                                                    color = if (paceDeficit > 0) FigmaTerracotta else Color(0xFF2E7D32),
+                                                    color = if (paceDeficit > 0) FigmaTerracotta else MaterialTheme.colorScheme.financial.income,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
@@ -736,7 +748,7 @@ fun GoalDetailScreen(
                                                 fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Normal
                                             ),
-                                            color = if (paceDeficit > 0) FigmaMutedBrown else Color(0xFF2E7D32)
+                                            color = if (paceDeficit > 0) FigmaMutedBrown else MaterialTheme.colorScheme.financial.income
                                         )
                                     }
                                 }
@@ -951,7 +963,7 @@ fun GoalDetailScreen(
 
                                     InTrackStatusBadge(
                                         text = "${contributions.size} Deposits",
-                                        containerColor = Color(0xFFF4EEEA),
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                         contentColor = FigmaMutedBrown,
                                         fontSize = 11.sp
                                     )
@@ -980,7 +992,7 @@ fun GoalDetailScreen(
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 4.dp),
+                                                .padding(vertical = 6.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
@@ -991,16 +1003,16 @@ fun GoalDetailScreen(
                                             ) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .size(32.dp)
+                                                        .size(36.dp)
                                                         .clip(CircleShape)
-                                                        .background(FigmaSoftPeach),
+                                                        .background(BrandSoftSlate),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Icon(
                                                         imageVector = icon,
                                                         contentDescription = null,
-                                                        tint = FigmaTerracotta,
-                                                        modifier = Modifier.size(16.dp)
+                                                        tint = Color(0xFF121660),
+                                                        modifier = Modifier.size(18.dp)
                                                     )
                                                 }
 
@@ -1008,10 +1020,10 @@ fun GoalDetailScreen(
                                                     Text(
                                                         text = contrib.sourceTitle,
                                                         style = MaterialTheme.typography.bodyMedium.copy(
-                                                            fontSize = 13.sp,
-                                                            fontWeight = FontWeight.SemiBold
+                                                            fontSize = 13.5.sp,
+                                                            fontWeight = FontWeight.Bold
                                                         ),
-                                                        color = FigmaDarkText,
+                                                        color = Color(0xFF121660),
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis
                                                     )
@@ -1020,7 +1032,7 @@ fun GoalDetailScreen(
                                                         style = MaterialTheme.typography.bodySmall.copy(
                                                             fontSize = 11.sp
                                                         ),
-                                                        color = FigmaMutedSlate,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis
                                                     )
@@ -1030,16 +1042,16 @@ fun GoalDetailScreen(
                                             Text(
                                                 text = "+ ${CurrencyFormatter.formatLkr(contrib.amountLkr)}",
                                                 style = MaterialTheme.typography.bodyMedium.copy(
-                                                    fontSize = 13.sp,
+                                                    fontSize = 13.5.sp,
                                                     fontWeight = FontWeight.Bold
                                                 ),
-                                                color = FigmaTerracottaOrange
+                                                color = PrimaryGreen
                                             )
                                         }
 
                                         if (index < contributions.size - 1) {
                                             HorizontalDivider(
-                                                modifier = Modifier.padding(vertical = 10.dp),
+                                                modifier = Modifier.padding(vertical = 4.dp),
                                                 color = FigmaDivider,
                                                 thickness = 0.8.dp
                                             )

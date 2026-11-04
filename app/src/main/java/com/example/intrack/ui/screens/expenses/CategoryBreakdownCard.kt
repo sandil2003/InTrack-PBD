@@ -1,5 +1,6 @@
 package com.example.intrack.ui.screens.expenses
 
+import com.example.intrack.ui.theme.*
 import java.util.Locale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -65,15 +66,15 @@ fun calculateCategoryBreakdown(expenses: List<ExpenseEntity>): List<CategorySpen
         val pct = ((catTotal / total) * 100).toFloat()
 
         val (displayName, color, icon) = when (catKey) {
-            "MISC" -> Triple("Groceries", Color(0xFFFF5C38), Icons.Default.ShoppingCart)
-            "DINING_OUT" -> Triple("Bistro & Dining", Color(0xFFFFB299), Icons.Default.LocalCafe)
-            "TRANSPORT" -> Triple("Commute & Transport", Color(0xFF2C3437), Icons.Default.DirectionsCar)
-            "UTILITIES" -> Triple("Utilities & Others", Color(0xFF585F6B), Icons.Default.Receipt)
-            "RENT" -> Triple("Housing & Rent", Color(0xFF475569), Icons.Default.Home)
-            "SUBSCRIPTION" -> Triple("Subscriptions", Color(0xFF8B5CF6), Icons.Default.Receipt)
+            "MISC" -> Triple("Groceries", BrandEmeraldGreen, Icons.Default.ShoppingCart)
+            "DINING_OUT" -> Triple("Bistro & Dining", BrandWarmYellow, Icons.Default.LocalCafe)
+            "TRANSPORT" -> Triple("Commute & Transport", BrandAzureBlue, Icons.Default.DirectionsCar)
+            "UTILITIES" -> Triple("Utilities & Others", BrandMidnightNavy, Icons.Default.Receipt)
+            "RENT" -> Triple("Housing & Rent", BrandMidnightNavy, Icons.Default.Home)
+            "SUBSCRIPTION" -> Triple("Subscriptions", BrandAzureBlue, Icons.Default.Receipt)
             else -> Triple(
                 catKey.replace("_", " ").lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
-                Color(0xFF64748B),
+                BrandAzureBlue,
                 Icons.Default.Receipt
             )
         }

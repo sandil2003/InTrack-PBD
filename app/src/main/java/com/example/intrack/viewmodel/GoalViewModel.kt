@@ -7,10 +7,17 @@ import com.example.intrack.data.model.GoalContributionEntity
 import com.example.intrack.data.model.GoalEntity
 import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.data.repository.AuthRepositoryImpl
+import com.example.intrack.data.repository.ExpenseRepository
+import com.example.intrack.data.repository.ExpenseRepositoryImpl
 import com.example.intrack.data.repository.GoalRepository
 import com.example.intrack.data.repository.GoalRepositoryImpl
+import com.example.intrack.data.repository.IncomeRepository
+import com.example.intrack.data.repository.IncomeRepositoryImpl
+import com.example.intrack.data.repository.SubscriptionRepository
+import com.example.intrack.data.repository.SubscriptionRepositoryImpl
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.util.DateUtils
+import com.example.intrack.util.KavinduScenarioSeeder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
@@ -48,12 +55,18 @@ data class GoalDetailMetrics(
 @HiltViewModel
 class GoalViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
+    private val incomeRepository: IncomeRepository,
+    private val expenseRepository: ExpenseRepository,
+    private val subscriptionRepository: SubscriptionRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
     constructor(
-        goalRepository: GoalRepository = GoalRepositoryImpl()
-    ) : this(goalRepository, AuthRepositoryImpl())
+        goalRepository: GoalRepository = GoalRepositoryImpl(),
+        incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
+        expenseRepository: ExpenseRepository = ExpenseRepositoryImpl(),
+        subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl()
+    ) : this(goalRepository, incomeRepository, expenseRepository, subscriptionRepository, AuthRepositoryImpl())
 
     private val _goalsState = MutableStateFlow<UiState<List<GoalEntity>>>(UiState.Loading)
     val goalsState: StateFlow<UiState<List<GoalEntity>>> = _goalsState
@@ -169,6 +182,17 @@ class GoalViewModel @Inject constructor(
                     .collect { goals ->
                         if (goals.isEmpty()) {
                             _goalsState.value = UiState.Empty
+                            if (userId.isNotBlank()) {
+                                viewModelScope.launch {
+                                    KavinduScenarioSeeder.seedCompleteScenario(
+                                        userId = userId,
+                                        incomeRepository = incomeRepository,
+                                        expenseRepository = expenseRepository,
+                                        goalRepository = goalRepository,
+                                        subscriptionRepository = subscriptionRepository
+                                    )
+                                }
+                            }
                         } else {
                             _goalsState.value = UiState.Success(goals)
                         }

@@ -57,9 +57,13 @@ class ExpenseRepositoryImpl @Inject constructor(
                 doc.toObject(ExpenseEntity::class.java)?.copy(id = doc.id, userId = userId)
             } ?: emptyList()
 
-            trySend(list)
-            launch {
-                expenseDao?.replaceAllForUser(userId, list)
+            if (list.isNotEmpty()) {
+                trySend(list)
+                launch {
+                    expenseDao?.replaceAllForUser(userId, list)
+                }
+            } else if (expenseDao == null) {
+                trySend(emptyList())
             }
         }
         awaitClose {

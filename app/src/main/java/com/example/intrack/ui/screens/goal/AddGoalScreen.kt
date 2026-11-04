@@ -80,7 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.GoalEntity
-import com.example.intrack.ui.theme.FigmaLightOrange
+import com.example.intrack.ui.theme.*
 import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
 import com.example.intrack.util.CurrencyFormatter
 import java.text.SimpleDateFormat
@@ -591,7 +591,7 @@ fun AddGoalContent(
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(Color(0xFFF5DED4))
+                            .background(FigmaSoftPeach)
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
@@ -599,7 +599,7 @@ fun AddGoalContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFB52705)
+                            color = FigmaTerracotta
                         )
                     }
                 }
@@ -613,7 +613,7 @@ fun AddGoalContent(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.background)
-                    .border(1.dp, Color(0xFFE3BEB6), RoundedCornerShape(12.dp))
+                    .border(1.dp, FigmaBorder, RoundedCornerShape(12.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -622,7 +622,7 @@ fun AddGoalContent(
                     cal.add(Calendar.MONTH, months)
                     val isSelected = Math.abs(selectedDateMillis - cal.timeInMillis) < (15L * 24 * 60 * 60 * 1000L)
                     val bg = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent
-                    val textColor = if (isSelected) Color(0xFFB52705) else Color(0xFF585F6B)
+                    val textColor = if (isSelected) FigmaTerracotta else FigmaMutedSlate
                     val fontWt = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
 
                     Box(
@@ -672,13 +672,13 @@ fun AddGoalContent(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFF5DED4)),
+                            .background(FigmaSoftPeach),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                             contentDescription = "Pace",
-                            tint = Color(0xFFB52705),
+                            tint = FigmaTerracotta,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -689,14 +689,14 @@ fun AddGoalContent(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Normal,
-                            color = Color(0xFF585F6B)
+                            color = FigmaMutedSlate
                         )
                         Text(
                             text = "${CurrencyFormatter.formatLkr(estimatedRunRate)} / month",
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFB52705)
+                            color = FigmaTerracotta
                         )
                     }
                 }
@@ -716,7 +716,7 @@ fun AddGoalContent(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF6B5B53)
+                color = FigmaMutedSlate
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -729,9 +729,9 @@ fun AddGoalContent(
             ) {
                 categories.forEach { cat ->
                     val isSelected = selectedCategoryKey == cat.key
-                    val chipBg = if (isSelected) Color(0xFFF5DED4) else Color(0xFFFBF9F5)
-                    val chipBorder = if (isSelected) Color(0xFFE3BEB6) else Color(0xFFE4E2DE)
-                    val contentColor = if (isSelected) Color(0xFFB52705) else Color(0xFF6B5B53)
+                    val chipBg = if (isSelected) FigmaSoftPeach else MaterialTheme.colorScheme.surface
+                    val chipBorder = if (isSelected) FigmaBorder else FigmaBorder
+                    val contentColor = if (isSelected) FigmaTerracotta else FigmaMutedSlate
 
                     Row(
                         modifier = Modifier

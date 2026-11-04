@@ -98,10 +98,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.UserProfile
-import com.example.intrack.ui.theme.BrandTangerine
-import com.example.intrack.ui.theme.BrandTangerineContainer
-import com.example.intrack.ui.theme.BrandTangerineOnContainer
-import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
+import com.example.intrack.ui.theme.*
+import com.example.intrack.ui.theme.financial
 import com.example.intrack.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -149,10 +147,10 @@ fun ProfileScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.White,
         topBar = {
             Surface(
-                color = MaterialTheme.colorScheme.background,
+                color = Color.White,
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
@@ -169,12 +167,12 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surface)
+                            .background(BrandSoftSlate)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface
+                            tint = Color(0xFF121660)
                         )
                     }
 
@@ -183,7 +181,7 @@ fun ProfileScreen(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color(0xFF121660)
                     )
 
                     IconButton(
@@ -191,12 +189,12 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surface)
+                            .background(BrandSoftSlate)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
                             contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onSurface
+                            tint = Color(0xFF121660)
                         )
                     }
                 }
@@ -968,10 +966,13 @@ private fun ProfileHeroCard(
     onEditClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val navyText = Color(0xFF121660)
+
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
+        border = BorderStroke(0.dp, Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
@@ -986,7 +987,7 @@ private fun ProfileHeroCard(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(CircleShape)
-                        .background(BrandTangerineContainer),
+                        .background(navyText),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -994,7 +995,7 @@ private fun ProfileHeroCard(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 26.sp,
-                        color = BrandTangerineOnContainer
+                        color = Color.White
                     )
                 }
 
@@ -1003,7 +1004,7 @@ private fun ProfileHeroCard(
                     modifier = Modifier
                         .size(18.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(Color.White)
                         .align(Alignment.BottomEnd)
                         .padding(2.5.dp)
                 ) {
@@ -1023,7 +1024,7 @@ private fun ProfileHeroCard(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 19.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = navyText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1034,7 +1035,7 @@ private fun ProfileHeroCard(
                 text = userEmail.ifBlank { "user@intrack.app" },
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = navyText.copy(alpha = 0.8f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1048,28 +1049,28 @@ private fun ProfileHeroCard(
             ) {
                 Surface(
                     shape = RoundedCornerShape(999.dp),
-                    color = BrandTangerineContainer
+                    color = navyText
                 ) {
                     Text(
                         text = "★ PREMIUM MEMBER",
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = BrandTangerineOnContainer,
+                        color = Color.White,
                         modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.5.dp)
                     )
                 }
 
                 Surface(
                     shape = RoundedCornerShape(999.dp),
-                    color = Color(0xFFE8F8F0)
+                    color = navyText.copy(alpha = 0.15f)
                 ) {
                     Text(
                         text = memberSince,
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1E8449),
+                        color = navyText,
                         modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.5.dp)
                     )
                 }
@@ -1078,28 +1079,29 @@ private fun ProfileHeroCard(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Edit Profile Action Button
-            OutlinedButton(
+            Button(
                 onClick = onEditClick,
                 shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurface
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = navyText,
+                    contentColor = Color.White
                 ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Edit,
                     contentDescription = "Edit Profile",
-                    tint = BrandTangerine,
+                    tint = Color.White,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Edit Profile Information",
                     fontFamily = PlusJakartaSansFontFamily,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color.White
                 )
             }
         }
@@ -1178,7 +1180,7 @@ private fun PersonalDetailsCard(
             trailingContent = {
                 Surface(
                     shape = RoundedCornerShape(999.dp),
-                    color = Color(0xFFE8F8F0)
+                    color = MaterialTheme.colorScheme.financial.incomeContainer
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1187,7 +1189,7 @@ private fun PersonalDetailsCard(
                         Icon(
                             imageVector = Icons.Rounded.Verified,
                             contentDescription = "Verified",
-                            tint = Color(0xFF1E8449),
+                            tint = MaterialTheme.colorScheme.financial.income,
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -1196,7 +1198,7 @@ private fun PersonalDetailsCard(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E8449)
+                            color = MaterialTheme.colorScheme.financial.income
                         )
                     }
                 }
@@ -1428,8 +1430,9 @@ private fun ProfileMetricTile(
 ) {
     Card(
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+        border = BorderStroke(0.dp, Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = modifier.then(
             if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
         )
@@ -1448,7 +1451,7 @@ private fun ProfileMetricTile(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = if (isCompact) 9.5.sp else 10.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF121660),
                 letterSpacing = 0.6.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -1459,7 +1462,7 @@ private fun ProfileMetricTile(
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = if (isCompact) 14.sp else 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = BrandTangerine,
+                color = Color(0xFF121660),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = iconModifier
@@ -1469,7 +1472,7 @@ private fun ProfileMetricTile(
                 text = subtitle,
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = if (isCompact) 9.5.sp else 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF121660).copy(alpha = 0.7f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1482,9 +1485,9 @@ private fun ProfileSectionHeader(title: String) {
     Text(
         text = title,
         fontFamily = PlusJakartaSansFontFamily,
-        fontSize = 11.5.sp,
+        fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = Color(0xFF121660),
         letterSpacing = 0.8.sp,
         modifier = Modifier.padding(start = 4.dp, top = 2.dp)
     )
@@ -1496,8 +1499,9 @@ private fun ProfileGroupCard(
 ) {
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+        border = BorderStroke(0.dp, Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -1512,8 +1516,8 @@ private fun ProfileDetailRow(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    iconColor: Color = BrandTangerine,
-    iconBg: Color = BrandTangerineContainer.copy(alpha = 0.35f),
+    iconColor: Color = Color(0xFF121660),
+    iconBg: Color = Color.White,
     showChevron: Boolean = false,
     trailingContent: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null
@@ -1555,31 +1559,32 @@ private fun ProfileDetailRow(
                 text = label,
                 fontFamily = PlusJakartaSansFontFamily,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF121660)
             )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = value,
-                fontFamily = PlusJakartaSansFontFamily,
-                fontSize = 12.5.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (value.isNotBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = value,
+                    fontFamily = PlusJakartaSansFontFamily,
+                    fontSize = 12.5.sp,
+                    color = Color(0xFF121660).copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
 
         if (trailingContent != null) {
             Spacer(modifier = Modifier.width(8.dp))
             trailingContent()
         } else if (showChevron) {
+            Spacer(modifier = Modifier.width(8.dp))
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = "Navigate",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.size(18.dp)
+                contentDescription = "Open",
+                tint = Color(0xFF121660).copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp)
             )
         }
     }

@@ -74,9 +74,13 @@ class GoalRepositoryImpl @Inject constructor(
                 doc.toObject(GoalEntity::class.java)?.copy(id = doc.id, userId = userId)
             } ?: emptyList()
 
-            trySend(list)
-            launch {
-                goalDao?.replaceAllForUser(userId, list)
+            if (list.isNotEmpty()) {
+                trySend(list)
+                launch {
+                    goalDao?.replaceAllForUser(userId, list)
+                }
+            } else if (goalDao == null) {
+                trySend(emptyList())
             }
         }
         awaitClose {

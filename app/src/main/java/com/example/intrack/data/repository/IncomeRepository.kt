@@ -57,9 +57,13 @@ class IncomeRepositoryImpl @Inject constructor(
                 doc.toObject(IncomeEntity::class.java)?.copy(id = doc.id, userId = userId)
             } ?: emptyList()
 
-            trySend(list)
-            launch {
-                incomeDao?.replaceAllForUser(userId, list)
+            if (list.isNotEmpty()) {
+                trySend(list)
+                launch {
+                    incomeDao?.replaceAllForUser(userId, list)
+                }
+            } else if (incomeDao == null) {
+                trySend(emptyList())
             }
         }
         awaitClose {
