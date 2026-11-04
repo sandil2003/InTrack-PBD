@@ -17,7 +17,6 @@ import com.example.intrack.data.repository.SubscriptionRepository
 import com.example.intrack.data.repository.SubscriptionRepositoryImpl
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.util.DateUtils
-import com.example.intrack.util.KavinduScenarioSeeder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
@@ -170,6 +169,48 @@ class GoalViewModel @Inject constructor(
         )
     }
 
+    fun computeGoalDetailMetrics(goal: GoalEntity, contributions: List<GoalContributionEntity>): GoalDetailMetrics {
+        val progress = if (goal.targetAmountLkr > 0.0) {
+            (goal.currentSavedLkr / goal.targetAmountLkr).toFloat().coerceIn(0f, 1f)
+        } else 0f
+
+        val isCompleted = goal.isCompleted || (goal.targetAmountLkr > 0.0 && goal.currentSavedLkr >= goal.targetAmountLkr)
+        val remainingToSave = (goal.targetAmountLkr - goal.currentSavedLkr).coerceAtLeast(0.0)
+        val percentageInt = (progress * 100).toInt()
+
+        val now = System.currentTimeMillis()
+        val daysLeft = if (goal.targetDateMillis > now) {
+            DateUtils.daysBetween(now, goal.targetDateMillis)
+        } else 0L
+
+        val monthsRemaining = (daysLeft / 30.0).coerceAtLeast(0.1)
+        val dynamicRequiredMonthlyPace = if (remainingToSave > 0.0) remainingToSave / monthsRemaining else 0.0
+
+        val thirtyDaysAgo = now - (30L * 24 * 60 * 60 * 1000L)
+        val actualMonthlySavingsRate = contributions
+            .filter { it.timestampMillis >= thirtyDaysAgo }
+            .sumOf { it.amountLkr }
+
+        val isPaceOnTrack = actualMonthlySavingsRate >= dynamicRequiredMonthlyPace || isCompleted
+        val paceDeficit = (dynamicRequiredMonthlyPace - actualMonthlySavingsRate).coerceAtLeast(0.0)
+        val paceSurplus = (actualMonthlySavingsRate - dynamicRequiredMonthlyPace).coerceAtLeast(0.0)
+
+        return GoalDetailMetrics(
+            goal = goal,
+            progress = progress,
+            isCompleted = isCompleted,
+            daysLeft = daysLeft,
+            percentageInt = percentageInt,
+            remainingToSave = remainingToSave,
+            monthsRemaining = monthsRemaining,
+            dynamicRequiredMonthlyPace = dynamicRequiredMonthlyPace,
+            actualMonthlySavingsRate = actualMonthlySavingsRate,
+            isPaceOnTrack = isPaceOnTrack,
+            paceDeficit = paceDeficit,
+            paceSurplus = paceSurplus
+        )
+    }
+
     fun loadGoals(userId: String = authRepository.getCurrentUserId()) {
         viewModelScope.launch {
             _goalsState.value = UiState.Loading
@@ -182,17 +223,6 @@ class GoalViewModel @Inject constructor(
                     .collect { goals ->
                         if (goals.isEmpty()) {
                             _goalsState.value = UiState.Empty
-                            if (userId.isNotBlank()) {
-                                viewModelScope.launch {
-                                    KavinduScenarioSeeder.seedCompleteScenario(
-                                        userId = userId,
-                                        incomeRepository = incomeRepository,
-                                        expenseRepository = expenseRepository,
-                                        goalRepository = goalRepository,
-                                        subscriptionRepository = subscriptionRepository
-                                    )
-                                }
-                            }
                         } else {
                             _goalsState.value = UiState.Success(goals)
                         }

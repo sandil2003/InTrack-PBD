@@ -20,6 +20,7 @@ hiltNavigationCompose = "1.4.0"
 room = "2.8.5"
 gson = "2.11.0"
 room3Common = "3.0.3"
+glance = "1.1.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -55,6 +56,9 @@ androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = 
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 androidx-room3-common = { group = "androidx.room3", name = "room3-common", version.ref = "room3Common" }
+androidx-glance = { group = "androidx.glance", name = "glance", version.ref = "glance" }
+androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
+androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
