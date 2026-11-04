@@ -270,13 +270,12 @@ fun ExpenseAnalyticsScreen(
         containerColor = Color.White,
         topBar = {
             InTrackTopBar(
-                title = "Expense Analytics",
+                title = "Expenses",
                 onNavigateToSettings = onNavigateToSettings,
                 onNavigateToProfile = onNavigateToProfile,
                 onSignOut = onSignOut,
                 showProfileMenu = true,
                 actions = {
-                    // Button - Select Date / Month (Figma: 36x36 circular button)
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -287,8 +286,8 @@ fun ExpenseAnalyticsScreen(
                         Icon(
                             imageVector = Icons.Default.DateRange,
                             contentDescription = "Select Date / Month",
-                            modifier = Modifier.size(18.dp),
-                            tint = FigmaDarkText
+                            modifier = Modifier.size(22.dp),
+                            tint = Color(0xFF121660)
                         )
                     }
 
@@ -1513,7 +1512,7 @@ fun FigmaExpenseViewsSwitch(
     modifier: Modifier = Modifier
 ) {
     InTrackSegmentedSwitch(
-        leftLabel = "Daily Transactions",
+        leftLabel = "Daily Expenses",
         rightLabel = "Subscriptions",
         isLeftSelected = currentTab == ExpenseViewTab.DAILY_TRANSACTIONS,
         onLeftSelect = { onTabSelected(ExpenseViewTab.DAILY_TRANSACTIONS) },

@@ -23,14 +23,14 @@ import androidx.compose.material.icons.rounded.FlashOn
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,8 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.intrack.ui.theme.BrandTangerine
-import com.example.intrack.ui.theme.PrimaryGreen
+import com.example.intrack.ui.theme.BrandSoftSlate
 import com.example.intrack.util.CurrencyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,24 +58,26 @@ fun CatchUpSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedMode by remember { mutableStateOf("ESTIMATE") } // "ESTIMATE" or "FRESH_START"
+    var selectedMode by remember { mutableStateOf("ESTIMATE") }
     var estimateAmountText by remember { mutableStateOf("15000") }
     var noteText by remember { mutableStateOf("Catch-up for crunch period") }
 
     val presetAmounts = listOf(5000.0, 10000.0, 15000.0, 25000.0)
+    val navyText = Color(0xFF121660)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.White,
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header with friendly, guilt-free tone
+            // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -85,13 +86,13 @@ fun CatchUpSheet(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .background(BrandTangerine.copy(alpha = 0.15f)),
+                        .background(navyText.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Favorite,
                         contentDescription = null,
-                        tint = BrandTangerine,
+                        tint = navyText,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -102,12 +103,12 @@ fun CatchUpSheet(
                             fontWeight = FontWeight.Bold,
                             fontSize = 17.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = navyText
                     )
                     Text(
                         text = "Crunch week? No stress — never let a missed week stop your progress.",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = navyText.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -117,15 +118,14 @@ fun CatchUpSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .background(BrandSoftSlate)
                     .padding(4.dp)
             ) {
-                // Option 1 Pill
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(if (selectedMode == "ESTIMATE") MaterialTheme.colorScheme.surface else Color.Transparent)
+                        .background(if (selectedMode == "ESTIMATE") navyText else Color.Transparent)
                         .clickable { selectedMode = "ESTIMATE" }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
@@ -137,23 +137,22 @@ fun CatchUpSheet(
                         Icon(
                             imageVector = Icons.Rounded.FlashOn,
                             contentDescription = null,
-                            tint = if (selectedMode == "ESTIMATE") BrandTangerine else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (selectedMode == "ESTIMATE") Color.White else navyText,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "Quick Estimate",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (selectedMode == "ESTIMATE") MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (selectedMode == "ESTIMATE") Color.White else navyText
                         )
                     }
                 }
 
-                // Option 2 Pill
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(if (selectedMode == "FRESH_START") MaterialTheme.colorScheme.surface else Color.Transparent)
+                        .background(if (selectedMode == "FRESH_START") navyText else Color.Transparent)
                         .clickable { selectedMode = "FRESH_START" }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
@@ -165,25 +164,24 @@ fun CatchUpSheet(
                         Icon(
                             imageVector = Icons.Rounded.RestartAlt,
                             contentDescription = null,
-                            tint = if (selectedMode == "FRESH_START") PrimaryGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (selectedMode == "FRESH_START") Color.White else navyText,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "Forgiving Reset",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (selectedMode == "FRESH_START") MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (selectedMode == "FRESH_START") Color.White else navyText
                         )
                     }
                 }
             }
 
             if (selectedMode == "ESTIMATE") {
-                // Mode 1: Quick Bulk Estimate
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = "Log an estimated bulk total for your missed days without hunting down individual receipts:",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = navyText.copy(alpha = 0.7f)
                     )
 
                     // Preset Chips
@@ -195,8 +193,7 @@ fun CatchUpSheet(
                             val isSelected = estimateAmountText == preset.toInt().toString()
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isSelected) BrandTangerine.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                border = BorderStroke(1.dp, if (isSelected) BrandTangerine else Color.Transparent),
+                                color = if (isSelected) navyText else BrandSoftSlate,
                                 modifier = Modifier
                                     .weight(1f)
                                     .clickable { estimateAmountText = preset.toInt().toString() }
@@ -205,7 +202,7 @@ fun CatchUpSheet(
                                     Text(
                                         text = CurrencyFormatter.formatLkr(preset).replace("LKR ", ""),
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = if (isSelected) BrandTangerine else MaterialTheme.colorScheme.onSurface
+                                        color = if (isSelected) Color.White else navyText
                                     )
                                 }
                             }
@@ -219,6 +216,7 @@ fun CatchUpSheet(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -228,6 +226,7 @@ fun CatchUpSheet(
                         label = { Text("Note / Crunch Context") },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = navyText, focusedLabelColor = navyText),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -238,20 +237,21 @@ fun CatchUpSheet(
                                 onConfirmBulkEstimate(amt, noteText)
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandTangerine),
+                        colors = ButtonDefaults.buttonColors(containerColor = navyText),
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
                     ) {
-                        Text("Log Bulk Catch-Up & Continue", fontWeight = FontWeight.Bold)
+                        Text("Log Bulk Catch-Up & Continue", fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             } else {
-                // Mode 2: Forgiving Fresh Start
-                OutlinedCard(
+                Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.outlinedCardColors(containerColor = PrimaryGreen.copy(alpha = 0.05f)),
-                    border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.4f))
+                    colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+                    border = BorderStroke(0.dp, Color.Transparent)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -264,29 +264,31 @@ fun CatchUpSheet(
                             Icon(
                                 imageVector = Icons.Rounded.CheckCircle,
                                 contentDescription = null,
-                                tint = PrimaryGreen,
+                                tint = navyText,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
                                 text = "Zero-Guilt Fresh Start",
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = PrimaryGreen
+                                color = navyText
                             )
                         }
 
                         Text(
                             text = "We completely forgive the unlogged days. Your streak resets cleanly from today, and your MacBook Pro M4 daily savings run-rate is recalibrated based on your actual bank balance.",
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = navyText.copy(alpha = 0.7f)
                         )
 
                         Button(
                             onClick = onConfirmFreshStart,
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                            colors = ButtonDefaults.buttonColors(containerColor = navyText),
                             shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
                         ) {
-                            Text("Forgive Gap & Start Fresh", fontWeight = FontWeight.Bold)
+                            Text("Forgive Gap & Start Fresh", fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }

@@ -29,9 +29,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.draw.rotate
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -265,14 +270,8 @@ fun DashboardScreen(
                     item {
                         QuickActionButtons(
                             onLogExpenseClick = { showExpenseSheet = true },
-                            onLogIncomeClick = onNavigateToIncome
-                        )
-                    }
-
-                    item {
-                        CommitmentRatioBar(
-                            committedLkr = data.committedExpenseLkr,
-                            discretionaryLkr = data.discretionaryExpenseLkr
+                            onLogIncomeClick = onNavigateToIncome,
+                            onNavigateToGoal = { onNavigateToGoal(null) }
                         )
                     }
 
@@ -907,46 +906,206 @@ private fun formatWeeklyDashboardTimeTier(timeMillis: Long): String {
 @Composable
 fun QuickActionButtons(
     onLogExpenseClick: () -> Unit,
-    onLogIncomeClick: () -> Unit
+    onLogIncomeClick: () -> Unit,
+    onNavigateToGoal: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Button(
-            onClick = onLogExpenseClick,
+        // 1. Top Wide Card: "Income" Card (Azure Blue Background)
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0171DF)),
+            border = BorderStroke(0.dp, Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             modifier = Modifier
-                .weight(1f)
-                .height(48.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                .fillMaxWidth()
+                .height(118.dp)
+                .clickable(onClick = onLogIncomeClick)
         ) {
-            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Log Expense", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(18.dp)
+            ) {
+                // Top-Left Icon: Up-Right Arrow Box
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFFE5F1FD)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                        contentDescription = "Income",
+                        tint = Color(0xFF0171DF),
+                        modifier = Modifier
+                            .size(22.dp)
+                            .rotate(-45f)
+                    )
+                }
+
+                // Bottom-Left Title: "Income"
+                Text(
+                    text = "Income",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.BottomStart)
+                )
+
+                // Bottom-Right Action Button: Dark Circle with Right Arrow
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF121660))
+                        .align(Alignment.BottomEnd),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                        contentDescription = "Open Income",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
         }
 
-        OutlinedButton(
-            onClick = onLogIncomeClick,
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = BrandSoftSlate,
-                contentColor = Color(0xFF121660)
-            ),
-            border = BorderStroke(0.dp, Color.Transparent)
+        // 2. Bottom Row: 2 Square Cards ("Expense" and "Goals")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Payments,
-                contentDescription = null,
-                tint = Color(0xFF121660),
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Log Income", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFF121660))
+            // Bottom-Left Square Card: "Expense" Card (Deep Navy Background)
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0D124B)),
+                border = BorderStroke(0.dp, Color.Transparent),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(118.dp)
+                    .clickable(onClick = onLogExpenseClick)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(18.dp)
+                ) {
+                    // Top-Left Icon: Down Arrow Box
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.ArrowDownward,
+                            contentDescription = "Expense",
+                            tint = Color(0xFF90A4AE),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Bottom-Left Title: "Expense"
+                    Text(
+                        text = "Expense",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White,
+                        modifier = Modifier.align(Alignment.BottomStart)
+                    )
+
+                    // Bottom-Right Action Button
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.18f))
+                            .align(Alignment.BottomEnd),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                            contentDescription = "Log Expense",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            // Bottom-Right Square Card: "Goals" Card (Dark Emerald Green Background)
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF052B20)),
+                border = BorderStroke(0.dp, Color.Transparent),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(118.dp)
+                    .clickable(onClick = onNavigateToGoal)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(18.dp)
+                ) {
+                    // Top-Left Icon: Credit Card / Vault Box
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF005A44)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CreditCard,
+                            contentDescription = "Goals",
+                            tint = Color(0xFF32E0B1),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Bottom-Left Title: "Goals"
+                    Text(
+                        text = "Goals",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White,
+                        modifier = Modifier.align(Alignment.BottomStart)
+                    )
+
+                    // Bottom-Right Action Button: Mint Circle with Plus Icon
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF32E0B1))
+                            .align(Alignment.BottomEnd),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = "View Goals",
+                            tint = Color(0xFF052B20),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

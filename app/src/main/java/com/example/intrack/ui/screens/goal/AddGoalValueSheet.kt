@@ -175,7 +175,7 @@ fun AddGoalValueSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.White,
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -655,7 +655,7 @@ fun AddGoalValueSheet(
             Spacer(modifier = Modifier.height(4.dp))
 
             // --- 5. Confirm Deposit CTA Button ---
-            InTrackPrimaryButton(
+            Button(
                 onClick = {
                     if (depositAmount > 0) {
                         val selectedChannel = incomeChannels.find { it.id == selectedSourceId }
@@ -663,7 +663,13 @@ fun AddGoalValueSheet(
                         onConfirmDeposit(depositAmount, selectedSourceId, sourceTitle, autoSweepEnabled)
                     }
                 },
-                enabled = depositAmount > 0
+                enabled = depositAmount > 0,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF121660)),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
             ) {
                 Text(
                     text = "Confirm Deposit • ${CurrencyFormatter.formatLkr(depositAmount)}",
@@ -671,7 +677,7 @@ fun AddGoalValueSheet(
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = Color.White
                 )
             }
         }

@@ -32,7 +32,7 @@ fun InTrackAddFab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     contentDescription: String = "Add",
-    containerColor: Color = FigmaLightOrange,
+    containerColor: Color = Color(0xFF121660),
     contentColor: Color = Color.White,
     shape: Shape = CircleShape,
     iconSize: Dp = 24.dp,
@@ -44,7 +44,7 @@ fun InTrackAddFab(
         contentColor = contentColor,
         shape = shape,
         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = elevation),
-        modifier = modifier.padding(bottom = 16.dp, end = 4.dp)
+        modifier = modifier.size(56.dp)
     ) {
         Icon(
             imageVector = Icons.Rounded.Add,

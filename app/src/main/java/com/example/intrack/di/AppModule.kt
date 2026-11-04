@@ -10,6 +10,8 @@ import com.example.intrack.data.local.SubscriptionDao
 import com.example.intrack.data.remote.FirestoreService
 import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.data.repository.AuthRepositoryImpl
+import com.example.intrack.data.repository.CryptoRateRepository
+import com.example.intrack.data.repository.CryptoRateRepositoryImpl
 import com.example.intrack.data.repository.ExpenseRepository
 import com.example.intrack.data.repository.ExpenseRepositoryImpl
 import com.example.intrack.data.repository.GoalRepository
@@ -103,4 +105,8 @@ object AppModule {
         db: FirebaseFirestore,
         subscriptionDao: SubscriptionDao
     ): SubscriptionRepository = SubscriptionRepositoryImpl(db, subscriptionDao)
+
+    @Provides
+    @Singleton
+    fun provideCryptoRateRepository(): CryptoRateRepository = CryptoRateRepositoryImpl()
 }

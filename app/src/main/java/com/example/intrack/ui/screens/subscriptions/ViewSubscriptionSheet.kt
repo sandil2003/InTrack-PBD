@@ -124,7 +124,7 @@ fun ViewSubscriptionBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.White,
         dragHandle = null,
         modifier = modifier.imePadding()
     ) {
@@ -748,13 +748,13 @@ fun ViewSubscriptionContent(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Primary Edit Subscription Button (Terracotta Pill, fill #FF5C38)
+            // Primary Edit Subscription Button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(Color(0xFF121660))
                     .clickable {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onEdit()
@@ -768,7 +768,7 @@ fun ViewSubscriptionContent(
                     Icon(
                         imageVector = Icons.Rounded.Edit,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint = Color.White,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
@@ -776,7 +776,7 @@ fun ViewSubscriptionContent(
                         fontFamily = PlusJakartaSansFontFamily,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = Color.White
                     )
                 }
             }
