@@ -109,6 +109,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideCryptoRateRepository(): CryptoRateRepository = CryptoRateRepositoryImpl()
+
+    @Provides
+    @Singleton
     fun provideSecurityPreferences(
         @ApplicationContext context: Context
     ): com.example.intrack.data.local.SecurityPreferences = com.example.intrack.data.local.SecurityPreferences(context)

@@ -19,6 +19,7 @@ import com.example.intrack.data.repository.SubscriptionRepositoryImpl
 import com.example.intrack.ui.common.UiState
 import com.example.intrack.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Calendar
 import javax.inject.Inject
 import kotlin.math.abs
@@ -61,18 +62,9 @@ class IncomeViewModel @Inject constructor(
     private val expenseRepository: ExpenseRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val authRepository: AuthRepository,
-    private val cryptoRateRepository: CryptoRateRepository = CryptoRateRepositoryImpl()
-    @param:dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context? = null
+    private val cryptoRateRepository: CryptoRateRepository = CryptoRateRepositoryImpl(),
+    @param:ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
-
-    constructor(
-        incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
-        goalRepository: GoalRepository = GoalRepositoryImpl(),
-        expenseRepository: ExpenseRepository = ExpenseRepositoryImpl(),
-        subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl(),
-        cryptoRateRepository: CryptoRateRepository = CryptoRateRepositoryImpl()
-    ) : this(incomeRepository, goalRepository, expenseRepository, subscriptionRepository, AuthRepositoryImpl(), cryptoRateRepository)
-
 
     private fun triggerWidgetRefresh() {
         context?.let { ctx ->

@@ -39,7 +39,6 @@ android {
 dependencies {
     implementation(libs.androidx.biometric)
     implementation(platform(libs.firebase.bom))
-    implementation(libs.androidx.room3.common)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)

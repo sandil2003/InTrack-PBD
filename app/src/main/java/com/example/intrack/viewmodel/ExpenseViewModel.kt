@@ -19,6 +19,7 @@ import com.example.intrack.ui.screens.expenses.CategorySpendingItem
 import com.example.intrack.ui.screens.expenses.calculateCategoryBreakdown
 import com.example.intrack.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,15 +51,8 @@ class ExpenseViewModel @Inject constructor(
     private val incomeRepository: IncomeRepository,
     private val goalRepository: GoalRepository,
     private val authRepository: AuthRepository,
-    @param:dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context? = null
+    @param:ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
-
-    constructor(
-        expenseRepository: ExpenseRepository = ExpenseRepositoryImpl(),
-        subscriptionRepository: SubscriptionRepository = SubscriptionRepositoryImpl(),
-        incomeRepository: IncomeRepository = IncomeRepositoryImpl(),
-        goalRepository: GoalRepository = GoalRepositoryImpl()
-    ) : this(expenseRepository, subscriptionRepository, incomeRepository, goalRepository, AuthRepositoryImpl(), null)
 
     private fun triggerWidgetRefresh() {
         context?.let { ctx ->
