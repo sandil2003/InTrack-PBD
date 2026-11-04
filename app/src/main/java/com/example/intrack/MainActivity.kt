@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -83,6 +84,11 @@ class MainActivity : FragmentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     if (isAppLocked) {
+                        LaunchedEffect(isAppLocked) {
+                            if (!isPromptShowing) {
+                                triggerBiometricPrompt()
+                            }
+                        }
                         BiometricLockScreen(
                             onUnlockClick = { triggerBiometricPrompt() },
                             onSignOutClick = {
@@ -124,7 +130,7 @@ class MainActivity : FragmentActivity() {
         Log.d("InTrackBiometric", "MainActivity.onWindowFocusChanged: hasFocus=$hasFocus, isAppLocked=$isAppLocked, isPromptShowing=$isPromptShowing")
         if (hasFocus && isAppLocked && !isPromptShowing) {
             window.decorView.post {
-                if (isAppLocked && !isPromptShowing && hasWindowFocus()) {
+                if (isAppLocked && !isPromptShowing) {
                     triggerBiometricPrompt()
                 }
             }
@@ -135,11 +141,11 @@ class MainActivity : FragmentActivity() {
         super.onResume()
         Log.d("InTrackBiometric", "MainActivity.onResume: isAppLocked=$isAppLocked, isPromptShowing=$isPromptShowing")
         if (isAppLocked && !isPromptShowing) {
-            window.decorView.postDelayed({
-                if (isAppLocked && !isPromptShowing && hasWindowFocus()) {
+            window.decorView.post {
+                if (isAppLocked && !isPromptShowing) {
                     triggerBiometricPrompt()
                 }
-            }, 200)
+            }
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
