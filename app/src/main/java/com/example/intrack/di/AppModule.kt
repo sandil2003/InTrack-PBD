@@ -103,4 +103,14 @@ object AppModule {
         db: FirebaseFirestore,
         subscriptionDao: SubscriptionDao
     ): SubscriptionRepository = SubscriptionRepositoryImpl(db, subscriptionDao)
+
+    @Provides
+    @Singleton
+    fun provideSecurityPreferences(
+        @ApplicationContext context: Context
+    ): com.example.intrack.data.local.SecurityPreferences = com.example.intrack.data.local.SecurityPreferences(context)
+
+    @Provides
+    @Singleton
+    fun provideBiometricAuthManager(): com.example.intrack.util.BiometricAuthManager = com.example.intrack.util.BiometricAuthManager()
 }

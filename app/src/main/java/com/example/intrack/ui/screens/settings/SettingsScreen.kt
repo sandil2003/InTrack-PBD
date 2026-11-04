@@ -1,6 +1,10 @@
 package com.example.intrack.ui.screens.settings
 
 import android.widget.Toast
+import androidx.fragment.app.FragmentActivity
+import com.example.intrack.data.local.SecurityPreferences
+import com.example.intrack.util.BiometricAuthManager
+import com.example.intrack.util.BiometricAvailability
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -164,7 +168,50 @@ fun SettingsScreen(
     var pushNotificationsEnabled by remember { mutableStateOf(true) }
     var renewalRemindersEnabled by remember { mutableStateOf(true) }
     var autoDebitMarginEnabled by remember { mutableStateOf(true) }
-    var biometricsEnabled by remember { mutableStateOf(true) }
+
+    // Persistent Security & Biometric Preferences
+    val securityPreferences = remember { SecurityPreferences(context) }
+    val biometricAuthManager = remember { BiometricAuthManager() }
+    val isBiometricEnabled by securityPreferences.isBiometricEnabledFlow.collectAsState()
+
+    val activity = context.findFragmentActivity()
+    val handleBiometricToggle: (Boolean) -> Unit = { enabled ->
+        if (enabled) {
+            when (biometricAuthManager.checkBiometricAvailability(context)) {
+                BiometricAvailability.AVAILABLE -> {
+                    if (activity != null) {
+                        biometricAuthManager.showBiometricPrompt(
+                            activity = activity,
+                            title = "Enable Biometric Lock",
+                            subtitle = "Verify fingerprint or screen lock to enable",
+                            onSuccess = {
+                                securityPreferences.isBiometricEnabled = true
+                                Toast.makeText(context, "Biometric app lock enabled", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { _, err ->
+                                Toast.makeText(context, "Verification cancelled: $err", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    } else {
+                        securityPreferences.isBiometricEnabled = true
+                        Toast.makeText(context, "Biometric app lock enabled", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                BiometricAvailability.NOT_ENROLLED -> {
+                    Toast.makeText(context, "Please enroll fingerprint or screen lock in device Settings first.", Toast.LENGTH_LONG).show()
+                }
+                BiometricAvailability.NO_HARDWARE -> {
+                    Toast.makeText(context, "Biometrics are not supported on this device.", Toast.LENGTH_SHORT).show()
+                }
+                BiometricAvailability.UNAVAILABLE -> {
+                    Toast.makeText(context, "Biometric sensor is currently unavailable.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            securityPreferences.isBiometricEnabled = false
+            Toast.makeText(context, "Biometric app lock disabled", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // Dialog & sheet visibility states
     var showCurrencyDialog by remember { mutableStateOf(false) }
@@ -306,8 +353,8 @@ fun SettingsScreen(
 
                             SettingsSectionHeader(title = "PRIVACY & SECURITY")
                             PrivacySecurityGroupCard(
-                                biometricsEnabled = biometricsEnabled,
-                                onBiometricsChange = { biometricsEnabled = it },
+                                biometricsEnabled = isBiometricEnabled,
+                                onBiometricsChange = handleBiometricToggle,
                                 isCompactWidth = isCompactWidth,
                                 onTwoFactorClick = { showTwoFactorDialog = true }
                             )
@@ -434,8 +481,8 @@ fun SettingsScreen(
 
                         SettingsSectionHeader(title = "PRIVACY & SECURITY")
                         PrivacySecurityGroupCard(
-                            biometricsEnabled = biometricsEnabled,
-                            onBiometricsChange = { biometricsEnabled = it },
+                            biometricsEnabled = isBiometricEnabled,
+                            onBiometricsChange = handleBiometricToggle,
                             isCompactWidth = isCompactWidth,
                             onTwoFactorClick = { showTwoFactorDialog = true }
                         )
@@ -1284,8 +1331,8 @@ private fun PrivacySecurityGroupCard(
     SettingsGroupCard {
         SettingsToggleRow(
             icon = Icons.Rounded.Fingerprint,
-            title = "Biometrics (Face ID)",
-            subtitle = "Quick access to vault",
+            title = "Biometric App Lock",
+            subtitle = "Require biometric to open app",
             checked = biometricsEnabled,
             isCompact = isCompactWidth,
             onCheckedChange = onBiometricsChange
@@ -1672,4 +1719,13 @@ private fun SettingsToggleRow(
             )
         )
     }
+}
+
+private fun android.content.Context.findFragmentActivity(): FragmentActivity? {
+    var ctx = this
+    while (ctx is android.content.ContextWrapper) {
+        if (ctx is FragmentActivity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }
