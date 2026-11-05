@@ -9,8 +9,10 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
@@ -41,6 +43,9 @@ import java.util.Date
 import java.util.Locale
 
 class InTrackGlanceWidget : GlanceAppWidget() {
+
+    // Exact size mode triggers recomposition and provides exact dimensions via LocalSize.current
+    override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         // Suspending query: fetch incomes and expenses for current and previous months
@@ -116,34 +121,17 @@ class InTrackGlanceWidget : GlanceAppWidget() {
         // Render Jetpack Compose Glance UI
         provideContent {
             GlanceTheme {
-                InTrackDualCardWidgetContent(context = context, data = widgetData)
+                InTrackResponsiveWidgetContent(context = context, data = widgetData)
             }
         }
     }
 
     @Composable
-    private fun InTrackDualCardWidgetContent(context: Context, data: MonthlyTotalsData) {
-        // Card 1: Warm Sun Yellow Palette
-        val yellowCardBg = ColorProvider(Color(0xFFFDC73A))
-        val yellowIconContainerBg = ColorProvider(Color(0xFFFFDF9A))
-        val yellowIconColor = ColorProvider(Color(0xFF131B2E))
-        val yellowPillBg = ColorProvider(Color(0xFFFED875))
-        val yellowPillTextColor = ColorProvider(Color(0xFF6F5400))
-        val yellowSubtitleColor = ColorProvider(Color(0xFF6F5709))
-        val yellowAmountColor = ColorProvider(Color(0xFF131B2E))
-        val yellowLabelColor = ColorProvider(Color(0xFF131B2E))
-        val yellowButtonBg = ColorProvider(Color(0xFF040620))
-
-        // Card 2: Deep Navy Blue Palette
-        val navyCardBg = ColorProvider(Color(0xFF0B1953))
-        val navyIconContainerBg = ColorProvider(Color(0xFF192560))
-        val navyIconColor = ColorProvider(Color(0xFFB9C3FF))
-        val navyPillBg = ColorProvider(Color(0xFF2A3668))
-        val navyPillTextColor = ColorProvider(Color(0xFFB9C3FF))
-        val navySubtitleColor = ColorProvider(Color(0xFF7881BF))
-        val navyAmountColor = ColorProvider(Color(0xFFFFFFFF))
-        val navyLabelColor = ColorProvider(Color(0xFFFFFFFF))
-        val navyButtonBg = ColorProvider(Color(0xFF3C4775))
+    private fun InTrackResponsiveWidgetContent(context: Context, data: MonthlyTotalsData) {
+        val size = LocalSize.current
+        val isNarrow = size.width < 220.dp
+        val isShort = size.height < 95.dp
+        val isUltraShort = size.height < 68.dp
 
         // Deep Link Intents
         val incomeIntent = Intent(context, MainActivity::class.java).apply {
@@ -158,23 +146,140 @@ class InTrackGlanceWidget : GlanceAppWidget() {
             putExtra("NAV_ROUTE", "expense_analytics?tab=daily&openAdd=true")
         }
 
-        val incomeFormatted = formatCurrencyAmount(data.incomeTotalLkr)
-        val expenseFormatted = formatCurrencyAmount(data.expenseTotalLkr)
-
-        // Dual Floating Cards Row
-        Row(
-            modifier = GlanceModifier.fillMaxSize(),
-            verticalAlignment = Alignment.Vertical.CenterVertically
-        ) {
-            // ================= CARD 1: MONTHLY INFLOW (YELLOW) =================
+        if (isNarrow) {
+            // Vertical Stack (e.g., 2x2, 2x3, narrow column)
             Column(
-                modifier = GlanceModifier
-                    .defaultWeight()
-                    .fillMaxHeight()
-                    .cornerRadius(22.dp)
-                    .background(yellowCardBg)
-                    .padding(14.dp)
-                    .clickable(actionStartActivity(incomeIntent))
+                modifier = GlanceModifier.fillMaxSize(),
+                verticalAlignment = Alignment.Vertical.CenterVertically
+            ) {
+                IncomeCard(
+                    modifier = GlanceModifier.defaultWeight().fillMaxWidth(),
+                    data = data,
+                    intent = incomeIntent,
+                    isShort = isShort,
+                    isUltraShort = isUltraShort
+                )
+
+                Spacer(modifier = GlanceModifier.height(8.dp))
+
+                ExpenseCard(
+                    modifier = GlanceModifier.defaultWeight().fillMaxWidth(),
+                    data = data,
+                    intent = expenseIntent,
+                    isShort = isShort,
+                    isUltraShort = isUltraShort
+                )
+            }
+        } else {
+            // Horizontal Dual Cards Row (e.g., 4x2, 4x1, 3x2)
+            Row(
+                modifier = GlanceModifier.fillMaxSize(),
+                verticalAlignment = Alignment.Vertical.CenterVertically
+            ) {
+                IncomeCard(
+                    modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
+                    data = data,
+                    intent = incomeIntent,
+                    isShort = isShort,
+                    isUltraShort = isUltraShort
+                )
+
+                Spacer(modifier = GlanceModifier.width(10.dp))
+
+                ExpenseCard(
+                    modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
+                    data = data,
+                    intent = expenseIntent,
+                    isShort = isShort,
+                    isUltraShort = isUltraShort
+                )
+            }
+        }
+    }
+
+    @Composable
+    private fun IncomeCard(
+        modifier: GlanceModifier,
+        data: MonthlyTotalsData,
+        intent: Intent,
+        isShort: Boolean,
+        isUltraShort: Boolean
+    ) {
+        val cardBg = ColorProvider(Color(0xFFF8BF2A))
+        val iconContainerBg = ColorProvider(Color(0xFFFDE69C))
+        val iconColor = ColorProvider(Color(0xFF131B2E))
+        val pillBg = ColorProvider(Color(0xFFF5D077))
+        val pillTextColor = ColorProvider(Color(0xFF6F5400))
+        val labelColor = ColorProvider(Color(0xFF131B2E))
+        val amountColor = ColorProvider(Color(0xFF131B2E))
+        val buttonBg = ColorProvider(Color(0xFF040620))
+        val buttonArrowColor = ColorProvider(Color(0xFFF5D077))
+
+        val formattedAmount = formatCurrencyAmount(data.incomeTotalLkr)
+
+        if (isUltraShort) {
+            // Ultra-compact single-row layout (< 68dp)
+            Row(
+                modifier = modifier
+                    .cornerRadius(16.dp)
+                    .background(cardBg)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .clickable(actionStartActivity(intent)),
+                verticalAlignment = Alignment.Vertical.CenterVertically
+            ) {
+                Column(modifier = GlanceModifier.defaultWeight()) {
+                    Text(
+                        text = "Income  ${data.incomeMom}",
+                        style = TextStyle(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = labelColor
+                        )
+                    )
+                    Text(
+                        text = formattedAmount,
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = amountColor
+                        ),
+                        maxLines = 1
+                    )
+                }
+
+                Box(
+                    modifier = GlanceModifier
+                        .size(24.dp)
+                        .cornerRadius(12.dp)
+                        .background(buttonBg)
+                        .clickable(actionStartActivity(intent)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "→",
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = buttonArrowColor
+                        )
+                    )
+                }
+            }
+        } else {
+            // Standard / Compact layout
+            val iconSize = if (isShort) 24.dp else 28.dp
+            val btnSize = if (isShort) 24.dp else 28.dp
+            val labelFontSize = if (isShort) 14.sp else 16.sp
+            val amountFontSize = if (isShort) 17.sp else 20.sp
+            val hPadding = if (isShort) 10.dp else 14.dp
+            val vPadding = if (isShort) 8.dp else 12.dp
+
+            Column(
+                modifier = modifier
+                    .cornerRadius(20.dp)
+                    .background(cardBg)
+                    .padding(horizontal = hPadding, vertical = vPadding)
+                    .clickable(actionStartActivity(intent))
             ) {
                 // Top Row: [Icon ↗] ... [MoM Pill]
                 Row(
@@ -183,17 +288,17 @@ class InTrackGlanceWidget : GlanceAppWidget() {
                 ) {
                     Box(
                         modifier = GlanceModifier
-                            .size(30.dp)
-                            .cornerRadius(10.dp)
-                            .background(yellowIconContainerBg),
+                            .size(iconSize)
+                            .cornerRadius(8.dp)
+                            .background(iconContainerBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "↗",
                             style = TextStyle(
-                                fontSize = 16.sp,
+                                fontSize = if (isShort) 13.sp else 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = yellowIconColor
+                                color = iconColor
                             )
                         )
                     }
@@ -203,16 +308,16 @@ class InTrackGlanceWidget : GlanceAppWidget() {
                     Box(
                         modifier = GlanceModifier
                             .cornerRadius(12.dp)
-                            .background(yellowPillBg)
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                            .background(pillBg)
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = data.incomeMom,
                             style = TextStyle(
-                                fontSize = 11.sp,
+                                fontSize = if (isShort) 10.sp else 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = yellowPillTextColor
+                                color = pillTextColor
                             )
                         )
                     }
@@ -220,78 +325,141 @@ class InTrackGlanceWidget : GlanceAppWidget() {
 
                 Spacer(modifier = GlanceModifier.defaultWeight())
 
-                // Subtitle
-                Text(
-                    text = "Monthly Inflow",
-                    style = TextStyle(
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = yellowSubtitleColor
-                    )
-                )
-
-                Spacer(modifier = GlanceModifier.height(2.dp))
-
-                // Amount
-                Text(
-                    text = incomeFormatted,
-                    style = TextStyle(
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = yellowAmountColor
-                    ),
-                    maxLines = 1
-                )
-
-                Spacer(modifier = GlanceModifier.height(2.dp))
-
-                // Bottom Row: "Income" ... [Circle Button →]
+                // Bottom Row: [Income + Amount] ... [Circle Button →]
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Vertical.CenterVertically
+                    verticalAlignment = Alignment.Vertical.Bottom
                 ) {
-                    Text(
-                        text = "Income",
-                        style = TextStyle(
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = yellowLabelColor
+                    Column(
+                        modifier = GlanceModifier.defaultWeight()
+                    ) {
+                        Text(
+                            text = "Income",
+                            style = TextStyle(
+                                fontSize = labelFontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = labelColor
+                            )
                         )
-                    )
 
-                    Spacer(modifier = GlanceModifier.defaultWeight())
+                        Spacer(modifier = GlanceModifier.height(2.dp))
+
+                        Text(
+                            text = formattedAmount,
+                            style = TextStyle(
+                                fontSize = amountFontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = amountColor
+                            ),
+                            maxLines = 1
+                        )
+                    }
 
                     Box(
                         modifier = GlanceModifier
-                            .size(32.dp)
-                            .cornerRadius(16.dp)
-                            .background(yellowButtonBg)
-                            .clickable(actionStartActivity(incomeIntent)),
+                            .size(btnSize)
+                            .cornerRadius(btnSize / 2)
+                            .background(buttonBg)
+                            .clickable(actionStartActivity(intent)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "→",
                             style = TextStyle(
-                                fontSize = 16.sp,
+                                fontSize = if (isShort) 13.sp else 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ColorProvider(Color.White)
+                                color = buttonArrowColor
                             )
                         )
                     }
                 }
             }
+        }
+    }
 
-            Spacer(modifier = GlanceModifier.width(10.dp))
+    @Composable
+    private fun ExpenseCard(
+        modifier: GlanceModifier,
+        data: MonthlyTotalsData,
+        intent: Intent,
+        isShort: Boolean,
+        isUltraShort: Boolean
+    ) {
+        val cardBg = ColorProvider(Color(0xFF0D1A51))
+        val iconContainerBg = ColorProvider(Color(0xFF1D2C66))
+        val iconColor = ColorProvider(Color(0xFFA8BCF9))
+        val pillBg = ColorProvider(Color(0xFF2A3668))
+        val pillTextColor = ColorProvider(Color(0xFFA8BCF9))
+        val labelColor = ColorProvider(Color(0xFFA8BCF9))
+        val amountColor = ColorProvider(Color(0xFFFFFFFF))
+        val buttonBg = ColorProvider(Color(0xFFA8BCF9))
+        val buttonArrowColor = ColorProvider(Color(0xFF0D1A51))
 
-            // ================= CARD 2: MONTHLY OUTFLOW (NAVY) =================
+        val formattedAmount = formatCurrencyAmount(data.expenseTotalLkr)
+
+        if (isUltraShort) {
+            // Ultra-compact single-row layout (< 68dp)
+            Row(
+                modifier = modifier
+                    .cornerRadius(16.dp)
+                    .background(cardBg)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .clickable(actionStartActivity(intent)),
+                verticalAlignment = Alignment.Vertical.CenterVertically
+            ) {
+                Column(modifier = GlanceModifier.defaultWeight()) {
+                    Text(
+                        text = "Expense  ${data.expenseMom}",
+                        style = TextStyle(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = labelColor
+                        )
+                    )
+                    Text(
+                        text = formattedAmount,
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = amountColor
+                        ),
+                        maxLines = 1
+                    )
+                }
+
+                Box(
+                    modifier = GlanceModifier
+                        .size(24.dp)
+                        .cornerRadius(12.dp)
+                        .background(buttonBg)
+                        .clickable(actionStartActivity(intent)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "→",
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = buttonArrowColor
+                        )
+                    )
+                }
+            }
+        } else {
+            // Standard / Compact layout
+            val iconSize = if (isShort) 24.dp else 28.dp
+            val btnSize = if (isShort) 24.dp else 28.dp
+            val labelFontSize = if (isShort) 14.sp else 16.sp
+            val amountFontSize = if (isShort) 17.sp else 20.sp
+            val hPadding = if (isShort) 10.dp else 14.dp
+            val vPadding = if (isShort) 8.dp else 12.dp
+
             Column(
-                modifier = GlanceModifier
-                    .defaultWeight()
-                    .fillMaxHeight()
-                    .cornerRadius(22.dp)
-                    .background(navyCardBg)
-                    .padding(14.dp)
-                    .clickable(actionStartActivity(expenseIntent))
+                modifier = modifier
+                    .cornerRadius(20.dp)
+                    .background(cardBg)
+                    .padding(horizontal = hPadding, vertical = vPadding)
+                    .clickable(actionStartActivity(intent))
             ) {
                 // Top Row: [Icon ↓] ... [MoM Pill]
                 Row(
@@ -300,17 +468,17 @@ class InTrackGlanceWidget : GlanceAppWidget() {
                 ) {
                     Box(
                         modifier = GlanceModifier
-                            .size(30.dp)
-                            .cornerRadius(10.dp)
-                            .background(navyIconContainerBg),
+                            .size(iconSize)
+                            .cornerRadius(8.dp)
+                            .background(iconContainerBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "↓",
                             style = TextStyle(
-                                fontSize = 16.sp,
+                                fontSize = if (isShort) 13.sp else 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = navyIconColor
+                                color = iconColor
                             )
                         )
                     }
@@ -320,16 +488,16 @@ class InTrackGlanceWidget : GlanceAppWidget() {
                     Box(
                         modifier = GlanceModifier
                             .cornerRadius(12.dp)
-                            .background(navyPillBg)
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                            .background(pillBg)
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = data.expenseMom,
                             style = TextStyle(
-                                fontSize = 11.sp,
+                                fontSize = if (isShort) 10.sp else 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = navyPillTextColor
+                                color = pillTextColor
                             )
                         )
                     }
@@ -337,61 +505,50 @@ class InTrackGlanceWidget : GlanceAppWidget() {
 
                 Spacer(modifier = GlanceModifier.defaultWeight())
 
-                // Subtitle
-                Text(
-                    text = "Monthly Outflow",
-                    style = TextStyle(
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = navySubtitleColor
-                    )
-                )
-
-                Spacer(modifier = GlanceModifier.height(2.dp))
-
-                // Amount
-                Text(
-                    text = expenseFormatted,
-                    style = TextStyle(
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = navyAmountColor
-                    ),
-                    maxLines = 1
-                )
-
-                Spacer(modifier = GlanceModifier.height(2.dp))
-
-                // Bottom Row: "Expense" ... [Circle Button →]
+                // Bottom Row: [Expense + Amount] ... [Circle Button →]
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Vertical.CenterVertically
+                    verticalAlignment = Alignment.Vertical.Bottom
                 ) {
-                    Text(
-                        text = "Expense",
-                        style = TextStyle(
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = navyLabelColor
+                    Column(
+                        modifier = GlanceModifier.defaultWeight()
+                    ) {
+                        Text(
+                            text = "Expense",
+                            style = TextStyle(
+                                fontSize = labelFontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = labelColor
+                            )
                         )
-                    )
 
-                    Spacer(modifier = GlanceModifier.defaultWeight())
+                        Spacer(modifier = GlanceModifier.height(2.dp))
+
+                        Text(
+                            text = formattedAmount,
+                            style = TextStyle(
+                                fontSize = amountFontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = amountColor
+                            ),
+                            maxLines = 1
+                        )
+                    }
 
                     Box(
                         modifier = GlanceModifier
-                            .size(32.dp)
-                            .cornerRadius(16.dp)
-                            .background(navyButtonBg)
-                            .clickable(actionStartActivity(expenseIntent)),
+                            .size(btnSize)
+                            .cornerRadius(btnSize / 2)
+                            .background(buttonBg)
+                            .clickable(actionStartActivity(intent)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "→",
                             style = TextStyle(
-                                fontSize = 16.sp,
+                                fontSize = if (isShort) 13.sp else 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ColorProvider(Color.White)
+                                color = buttonArrowColor
                             )
                         )
                     }
