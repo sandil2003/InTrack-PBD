@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,6 +38,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachMoney
@@ -157,6 +159,7 @@ fun IncomeHubScreen(
     var activeModalChannel by remember { mutableStateOf<String?>(null) }
     var showInvestModal by remember { mutableStateOf(false) }
     var showPayoutModal by remember { mutableStateOf(false) }
+    var showCryptoDetailSheet by remember { mutableStateOf(false) }
     var pendingWindfallAmount by remember { mutableDoubleStateOf(0.0) }
     var pendingWindfallIncome by remember { mutableStateOf<IncomeEntity?>(null) }
     var showWindfallModal by remember { mutableStateOf(false) }
@@ -328,7 +331,7 @@ fun IncomeHubScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         // Month Realized Inflow Hero Card & Distribution Bar
                         item {
@@ -367,21 +370,6 @@ fun IncomeHubScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(32.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color.White.copy(alpha = 0.2f)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Rounded.Description,
-                                                    contentDescription = null,
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-
                                             Column {
                                                 Text(
                                                     text = "Client Receivables",
@@ -440,6 +428,7 @@ fun IncomeHubScreen(
                                 holdings = cryptoHoldings,
                                 liveRates = cryptoRates,
                                 ytdNetLkr = hubSummary.cryptoYtdNetPositionLkr,
+                                onCardClick = { showCryptoDetailSheet = true },
                                 onInvestClick = { showInvestModal = true },
                                 onPayoutClick = { showPayoutModal = true }
                             )
@@ -855,6 +844,17 @@ fun IncomeHubScreen(
         )
     }
 
+    if (showCryptoDetailSheet) {
+        CryptoPortfolioDetailBottomSheet(
+            holdings = cryptoHoldings,
+            liveRates = cryptoRates,
+            ytdNetLkr = hubSummary.cryptoYtdNetPositionLkr,
+            onDismiss = { showCryptoDetailSheet = false },
+            onInvestClick = { showInvestModal = true },
+            onPayoutClick = { showPayoutModal = true }
+        )
+    }
+
     if (showWindfallModal && pendingWindfallAmount > 0) {
         WindfallAllocatorModal(
             windfallAmountLkr = pendingWindfallAmount,
@@ -951,51 +951,39 @@ fun IncomeSpeedDialItem(
 fun TotalInflowBreakdownCard(
     monthLabel: String,
     totalInflowLkr: Double,
+    totalOutflowLkr: Double = 89450.0,
     rollingAvgLkr: Double,
     salaryTotal: Double,
     freelanceTotal: Double,
     adsenseTotal: Double,
     cryptoTotal: Double
 ) {
-    val total = if (totalInflowLkr > 0) totalInflowLkr else 1.0
-    val salaryFraction = (salaryTotal / total).toFloat().coerceIn(0f, 1f)
-    val freelanceFraction = (freelanceTotal / total).toFloat().coerceIn(0f, 1f)
-    val adsenseFraction = (adsenseTotal / total).toFloat().coerceIn(0f, 1f)
-    val cryptoFraction = (cryptoTotal / total).toFloat().coerceIn(0f, 1f)
+    val totalFlow = (totalInflowLkr + totalOutflowLkr).coerceAtLeast(1.0)
+    val inflowFraction = (totalInflowLkr / totalFlow).toFloat().coerceIn(0f, 1f)
+    val outflowFraction = (totalOutflowLkr / totalFlow).toFloat().coerceIn(0f, 1f)
 
-    val animatedSalary by animateFloatAsState(
-        targetValue = salaryFraction,
+    val animatedInflow by animateFloatAsState(
+        targetValue = inflowFraction,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "animatedSalary"
+        label = "animatedInflow"
     )
-    val animatedFreelance by animateFloatAsState(
-        targetValue = freelanceFraction,
+    val animatedOutflow by animateFloatAsState(
+        targetValue = outflowFraction,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "animatedFreelance"
+        label = "animatedOutflow"
     )
-    val animatedAdsense by animateFloatAsState(
-        targetValue = adsenseFraction,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "animatedAdsense"
-    )
-    val animatedCrypto by animateFloatAsState(
-        targetValue = cryptoFraction,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "animatedCrypto"
-    )
-
-    val darkTextColor = MaterialTheme.colorScheme.onSurface
-    val mutedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val hairlineColor = MaterialTheme.colorScheme.outlineVariant
 
     val rollingAvg = if (rollingAvgLkr > 0) rollingAvgLkr else 120000.0
     val diff = totalInflowLkr - rollingAvg
     val diffPct = if (rollingAvg > 0) ((diff / rollingAvg) * 100).toInt() else 0
     val isAhead = diff >= 0
 
+    val navyText = Color(0xFF121660)
+    val azureBlue = Color(0xFF0171DF)
+
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF121660)),
+        colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.0.dp),
         modifier = Modifier.fillMaxWidth()
@@ -1005,7 +993,7 @@ fun TotalInflowBreakdownCard(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
-            // 1. Top Row: Title + Inflow Trending Icon Badge
+            // 1. Top Row: Title
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1015,28 +1003,13 @@ fun TotalInflowBreakdownCard(
                     text = "${monthLabel.uppercase()} REALIZED INFLOW",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 11.5.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp
                     ),
-                    color = Color.White,
+                    color = navyText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                        contentDescription = "Realized Inflow",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -1056,7 +1029,7 @@ fun TotalInflowBreakdownCard(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White,
+                    color = navyText,
                     modifier = Modifier.alignByBaseline()
                 )
                 Text(
@@ -1066,7 +1039,7 @@ fun TotalInflowBreakdownCard(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.5).sp
                     ),
-                    color = Color.White,
+                    color = navyText,
                     maxLines = 1,
                     modifier = Modifier.alignByBaseline()
                 )
@@ -1083,7 +1056,7 @@ fun TotalInflowBreakdownCard(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(Color.White.copy(alpha = 0.15f))
+                        .background(navyText.copy(alpha = 0.12f))
                         .padding(horizontal = 12.dp, vertical = 5.dp)
                 ) {
                     Row(
@@ -1096,7 +1069,7 @@ fun TotalInflowBreakdownCard(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.5.sp
                             ),
-                            color = Color.White
+                            color = navyText
                         )
                         Text(
                             text = "vs. 3-Mo Rolling Avg (${CurrencyFormatter.formatLkr(rollingAvg)})",
@@ -1104,7 +1077,7 @@ fun TotalInflowBreakdownCard(
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Color.White.copy(alpha = 0.9f)
+                            color = navyText
                         )
                     }
                 }
@@ -1112,70 +1085,122 @@ fun TotalInflowBreakdownCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3. Multi-segment Capsule Progress Bar
+            // 3. Dual-tone Progress Bar (Inflow vs Outflow Ratio)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(Color.White.copy(alpha = 0.2f))
+                    .background(navyText.copy(alpha = 0.15f))
             ) {
-                if (totalInflowLkr > 0 && animatedSalary > 0f) {
+                if (totalInflowLkr > 0 && animatedInflow > 0f) {
                     Box(
                         modifier = Modifier
-                            .weight(animatedSalary.coerceIn(0.01f, 0.99f))
+                            .weight(animatedInflow.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(Color.White)
+                            .background(navyText)
                     )
                 }
-                if (totalInflowLkr > 0 && animatedFreelance > 0f) {
+                if (totalOutflowLkr > 0 && animatedOutflow > 0f) {
                     Box(
                         modifier = Modifier
-                            .weight(animatedFreelance.coerceIn(0.01f, 0.99f))
+                            .weight(animatedOutflow.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(Color(0xFF0171DF))
-                    )
-                }
-                if (totalInflowLkr > 0 && animatedAdsense > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .weight(animatedAdsense.coerceIn(0.01f, 0.99f))
-                            .fillMaxHeight()
-                            .background(Color(0xFF3CAE8C))
-                    )
-                }
-                if (totalInflowLkr > 0 && animatedCrypto > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .weight(animatedCrypto.coerceIn(0.01f, 0.99f))
-                            .fillMaxHeight()
-                            .background(Color(0xFFFFD13E))
+                            .background(azureBlue)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 5. Multi-Column Channel Legend Breakdown
-            Column(
+            // 4. Inflow vs Outflow Legend Breakdown
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                // Column 1: Inflow
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    LegendNumberItem(color = Color.White, label = "Salary", amount = salaryTotal, modifier = Modifier.weight(1f))
-                    LegendNumberItem(color = Color(0xFF0171DF), label = "Freelance", amount = freelanceTotal, modifier = Modifier.weight(1f))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(navyText)
+                        )
+                        Text(
+                            text = "Inflow",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = navyText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(totalInflowLkr),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.3).sp
+                        ),
+                        color = navyText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Column 2: Outflow
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    LegendNumberItem(color = Color(0xFF3CAE8C), label = "AdSense", amount = adsenseTotal, modifier = Modifier.weight(1f))
-                    LegendNumberItem(color = Color(0xFFFFD13E), label = "Crypto", amount = cryptoTotal, modifier = Modifier.weight(1f))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(azureBlue)
+                        )
+                        Text(
+                            text = "Outflow",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = navyText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(totalOutflowLkr),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.3).sp
+                        ),
+                        color = navyText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
@@ -1435,7 +1460,7 @@ fun InflowHistoryRow(
 
     val channelLabel = when (income.channel.uppercase()) {
         "SALARY" -> "Salary"
-        "FREELANCE" -> if (!income.clientName.isNullOrEmpty()) "Client: ${income.clientName}" else "Freelance"
+        "FREELANCE" -> "Freelance"
         "ADSENSE" -> "AdSense"
         "CRYPTO" -> "Crypto P&L"
         else -> income.channel.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
@@ -2046,6 +2071,7 @@ fun CryptoYtdNetPositionCard(
     holdings: List<CryptoHoldingEntity>,
     liveRates: Map<String, Double>,
     ytdNetLkr: Double,
+    onCardClick: () -> Unit,
     onInvestClick: () -> Unit,
     onPayoutClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -2062,9 +2088,11 @@ fun CryptoYtdNetPositionCard(
     val isPnlPositive = totalUnrealizedPnlLkr >= 0
 
     OutlinedCard(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onCardClick() },
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.outlinedCardColors(containerColor = BrandSoftSlate),
+        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
         border = BorderStroke(0.dp, Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -2074,74 +2102,34 @@ fun CryptoYtdNetPositionCard(
                 .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Header Row: Title & Action CTAs
+            // Header Row: Title & Chevron
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(navyText.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.CurrencyBitcoin,
-                            contentDescription = null,
-                            tint = navyText,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "Crypto Portfolio & P&L",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            ),
-                            color = navyText
-                        )
-                        Text(
-                            text = "Binance & CoinGecko Live Market",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                            color = navyText.copy(alpha = 0.7f)
-                        )
-                    }
+                Column {
+                    Text(
+                        text = "Crypto Portfolio & P&L",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        ),
+                        color = navyText
+                    )
+                    Text(
+                        text = "Binance & CoinGecko Live Market",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        color = navyText.copy(alpha = 0.7f)
+                    )
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // + Invest Button
-                    Button(
-                        onClick = onInvestClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = navyText),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Icon(imageVector = Icons.Rounded.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Invest", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), color = Color.White)
-                    }
-
-                    // Payout Button
-                    Button(
-                        onClick = onPayoutClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0171DF)),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Payout", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), color = Color.White)
-                    }
-                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = "View Details",
+                    tint = navyText.copy(alpha = 0.6f),
+                    modifier = Modifier.size(22.dp)
+                )
             }
 
             // Portfolio Value Banner
@@ -2181,69 +2169,330 @@ fun CryptoYtdNetPositionCard(
                 }
             }
 
-            // Active Coin Holdings Horizontal Carousel
-            if (holdings.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
+            // Bottom 50/50 Buttons Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // + Invest Button (50%)
+                Button(
+                    onClick = onInvestClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = navyText),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                ) {
+                    Icon(imageVector = Icons.Rounded.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Invest", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.5.sp), color = Color.White)
+                }
+
+                // Payout Button (50%)
+                Button(
+                    onClick = onPayoutClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0171DF)),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                ) {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Payout", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.5.sp), color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CryptoPortfolioDetailBottomSheet(
+    holdings: List<CryptoHoldingEntity>,
+    liveRates: Map<String, Double>,
+    ytdNetLkr: Double,
+    onDismiss: () -> Unit,
+    onInvestClick: () -> Unit,
+    onPayoutClick: () -> Unit
+) {
+    val navyText = Color(0xFF121660)
+    val totalLiveValuationLkr = holdings.sumOf { h ->
+        val rate = liveRates[h.coinSymbol.uppercase()] ?: h.avgBuyPriceLkr
+        h.coinQuantity * rate
+    }
+    val totalInvestedLkr = holdings.sumOf { it.investedLkr }
+    val totalUnrealizedPnlLkr = totalLiveValuationLkr - totalInvestedLkr
+    val isPnlPositive = totalUnrealizedPnlLkr >= 0
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 36.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(holdings) { holding ->
-                        val currentRate = liveRates[holding.coinSymbol.uppercase()] ?: holding.avgBuyPriceLkr
-                        val currentValuation = holding.coinQuantity * currentRate
-                        val holdingPnl = currentValuation - holding.investedLkr
-                        val isPositive = holdingPnl >= 0
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(navyText.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CurrencyBitcoin,
+                            contentDescription = null,
+                            tint = navyText,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Text(
+                        text = "Crypto Portfolio Holdings",
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        color = navyText
+                    )
+                }
 
-                        Card(
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(0.dp, Color.Transparent),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                            modifier = Modifier.width(160.dp)
+                IconButton(onClick = onDismiss) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = navyText)
+                }
+            }
+
+            // Live Portfolio Valuation Card
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "TOTAL LIVE PORTFOLIO VALUE",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+                                color = navyText.copy(alpha = 0.65f)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = CurrencyFormatter.formatLkr(totalLiveValuationLkr),
+                                style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.ExtraBold),
+                                color = navyText
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isPnlPositive) Color(0xFFE5F6F1) else Color(0xFFFFEBEE))
+                                .padding(horizontal = 10.dp, vertical = 5.dp)
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp)
+                            Text(
+                                text = if (isPnlPositive) "+${CurrencyFormatter.formatLkr(totalUnrealizedPnlLkr)}" else "-${CurrencyFormatter.formatLkr(-totalUnrealizedPnlLkr)}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                                color = if (isPnlPositive) Color(0xFF3CAE8C) else Color(0xFFD32F2F)
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = navyText.copy(alpha = 0.12f), thickness = 0.8.dp)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "INVESTED BASIS",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp),
+                                color = navyText.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = CurrencyFormatter.formatLkr(totalInvestedLkr),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                                color = navyText
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "YTD REALIZED P&L",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp),
+                                color = navyText.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = CurrencyFormatter.formatLkr(ytdNetLkr),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                                color = navyText
+                            )
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = "INDIVIDUAL COIN HOLDINGS (${holdings.size})",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp),
+                color = navyText
+            )
+
+            // Individual Coin Holding Cards List
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                holdings.forEach { holding ->
+                    val currentRate = liveRates[holding.coinSymbol.uppercase()] ?: holding.avgBuyPriceLkr
+                    val currentValuation = holding.coinQuantity * currentRate
+                    val holdingPnl = currentValuation - holding.investedLkr
+                    val isPositive = holdingPnl >= 0
+
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = holding.coinSymbol.uppercase(),
-                                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                                        text = holding.coinSymbol.take(3).uppercase(),
+                                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
                                         color = navyText
-                                    )
-                                    Text(
-                                        text = if (isPositive) "▲" else "▼",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = if (isPositive) Color(0xFF3CAE8C) else Color(0xFFD32F2F)
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Column(modifier = Modifier.weight(1f, fill = false)) {
+                                    Text(
+                                        text = "${holding.coinName} (${holding.coinSymbol.uppercase()})",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                                        color = navyText,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "Qty: ${String.format(Locale.US, "%.4f", holding.coinQuantity)}",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Medium),
+                                        color = navyText.copy(alpha = 0.8f),
+                                        maxLines = 1
+                                    )
+                                    Spacer(modifier = Modifier.height(1.dp))
+                                    Text(
+                                        text = "Rate: ${CurrencyFormatter.formatLkr(currentRate)}",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                        color = navyText.copy(alpha = 0.65f),
+                                        maxLines = 1
+                                    )
+                                }
+                            }
 
-                                Text(
-                                    text = "${String.format(Locale.US, "%.4f", holding.coinQuantity)} ${holding.coinSymbol.uppercase()}",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Medium),
-                                    color = navyText.copy(alpha = 0.75f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                            Spacer(modifier = Modifier.width(8.dp))
 
-                                Spacer(modifier = Modifier.height(6.dp))
-
+                            Column(horizontalAlignment = Alignment.End) {
                                 Text(
                                     text = CurrencyFormatter.formatLkr(currentValuation),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.5.sp, fontWeight = FontWeight.Bold),
                                     color = navyText,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    softWrap = false
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = if (isPositive) "+${CurrencyFormatter.formatLkr(holdingPnl)}" else "-${CurrencyFormatter.formatLkr(-holdingPnl)}",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                                    color = if (isPositive) Color(0xFF3CAE8C) else Color(0xFFD32F2F),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Action CTAs inside drawer
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = {
+                        onDismiss()
+                        onInvestClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = navyText),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                ) {
+                    Text("+ Invest in Coin", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+
+                Button(
+                    onClick = {
+                        onDismiss()
+                        onPayoutClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0171DF)),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                ) {
+                    Text("Payout Gains", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }

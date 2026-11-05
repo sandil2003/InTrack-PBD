@@ -233,7 +233,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         ProfileHeroCard(
                             userInitials = userInitials,
@@ -282,7 +282,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .weight(1.2f)
                             .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         ProfileSectionHeader(title = "PERSONAL DETAILS")
 
@@ -357,7 +357,7 @@ fun ProfileScreen(
                             .padding(horizontal = horizontalPadding, vertical = 8.dp)
                             .padding(bottom = 36.dp)
                             .navigationBarsPadding(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         ProfileHeroCard(
                             userInitials = userInitials,

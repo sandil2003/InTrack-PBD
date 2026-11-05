@@ -333,7 +333,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(18.dp)
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
                             SettingsProfileCard(
                                 userInitials = userInitials,
@@ -370,7 +370,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .weight(1.15f)
                                 .fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(18.dp)
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
                             SettingsSectionHeader(title = "WALLET & CURRENCY")
                             WalletCurrencyGroupCard(
@@ -446,7 +446,7 @@ fun SettingsScreen(
                             .padding(horizontal = horizontalPadding, vertical = 8.dp)
                             .padding(bottom = 36.dp)
                             .navigationBarsPadding(),
-                        verticalArrangement = Arrangement.spacedBy(18.dp)
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         SettingsProfileCard(
                             userInitials = userInitials,

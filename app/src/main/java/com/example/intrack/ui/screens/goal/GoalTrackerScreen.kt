@@ -176,7 +176,7 @@ fun GoalTrackerScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         // --- 1. Total Savings Overview Card ---
                         item {
@@ -190,26 +190,17 @@ fun GoalTrackerScreen(
                             )
                         }
 
-                        // --- 2. Nav - Goal Status Filter Pills ---
+                        // --- 2. Active Goals Section Title ---
                         item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                listOf(
-                                    "ALL" to "All",
-                                    "ACTIVE" to "Active",
-                                    "DONE" to "Done"
-                                ).forEach { (key, label) ->
-                                    InTrackFilterPill(
-                                        label = label,
-                                        isSelected = selectedFilter == key,
-                                        onClick = { viewModel.setSelectedFilter(key) }
-                                    )
-                                }
-                            }
+                            Text(
+                                text = "Active Goals",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color(0xFF121660),
+                                modifier = Modifier.padding(start = 2.dp, top = 2.dp)
+                            )
                         }
 
                         // --- 3. Detailed Items List or Filter Empty State ---
@@ -306,58 +297,21 @@ fun FigmaGoalsOverviewCard(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 20.dp)
         ) {
-            // 1. Top Header Row: Track icon + "OVERALL PROGRESS" label, and Active / Done count chips
+            // 1. Top Header Row: "OVERALL PROGRESS" label
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(navyText.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.TrackChanges,
-                            contentDescription = null,
-                            tint = navyText,
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
-                    Text(
-                        text = "OVERALL PROGRESS",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = navyText
-                    )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    InTrackStatusBadge(
-                        text = "$activeCount Active",
-                        containerColor = navyText.copy(alpha = 0.12f),
-                        contentColor = navyText,
-                        fontSize = 11.sp
-                    )
-                    InTrackStatusBadge(
-                        text = "$completedCount Done",
-                        containerColor = navyText.copy(alpha = 0.2f),
-                        contentColor = navyText,
-                        fontSize = 11.sp
-                    )
-                }
+                Text(
+                    text = "OVERALL PROGRESS",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    ),
+                    color = navyText
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -408,21 +362,10 @@ fun FigmaGoalCard(
     val effectiveProgress = if (isCompleted) 1f else progress
     val percentageInt = (effectiveProgress * 100).toInt()
 
-    val now = System.currentTimeMillis()
-    val isOverdue = !isCompleted && goal.targetDateMillis < now
-    val daysLeft = DateUtils.daysBetween(now, goal.targetDateMillis).coerceAtLeast(0L)
-
     val categoryIcon = GoalCategoryHelper.getCategoryIcon(goal.category)
     val categoryLabel = GoalCategoryHelper.getCategoryLabel(goal.category)
 
     val navyText = Color(0xFF121660)
-
-    val (badgeText, badgeColor, badgeWeight) = when {
-        isCompleted -> Triple("• Done 🎉", Color(0xFF3CAE8C), FontWeight.SemiBold)
-        isOverdue -> Triple("• Overdue", navyText, FontWeight.Bold)
-        daysLeft == 0L -> Triple("• Due today", navyText, FontWeight.Bold)
-        else -> Triple("• ${daysLeft}d left", navyText.copy(alpha = 0.7f), FontWeight.Normal)
-    }
 
     InTrackCard(
         shape = InTrackMediumCardShape,
@@ -436,7 +379,7 @@ fun FigmaGoalCard(
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp, vertical = 16.dp)
         ) {
-            // Clean inline row: Category icon, Goal title, timeline badge & Chevron
+            // Clean top row: Category icon, Goal title & Chevron
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -471,20 +414,7 @@ fun FigmaGoalCard(
                         ),
                         color = navyText,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-
-                    // Timeline badge with guaranteed single-line layout
-                    Text(
-                        text = badgeText,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 11.5.sp,
-                            fontWeight = badgeWeight
-                        ),
-                        color = badgeColor,
-                        maxLines = 1,
-                        softWrap = false
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -511,7 +441,7 @@ fun FigmaGoalCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Bottom Row: Completion % on left, compact interactive + Deposit pill button on right
+            // Bottom Row: Completion % on left, Deposit button on right
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -519,9 +449,9 @@ fun FigmaGoalCard(
             ) {
                 Text(
                     text = if (isCompleted) "100%" else "$percentageInt%",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold
                     ),
                     color = navyText,
                     maxLines = 1,
@@ -531,14 +461,15 @@ fun FigmaGoalCard(
                 if (!isCompleted && onDepositClick != null) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
+                            .height(34.dp)
+                            .clip(RoundedCornerShape(10.dp))
                             .background(navyText)
                             .clickable(
                                 role = Role.Button,
                                 onClickLabel = "Deposit to ${goal.title}",
                                 onClick = onDepositClick
                             )
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(horizontal = 14.dp, vertical = 7.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
@@ -549,12 +480,12 @@ fun FigmaGoalCard(
                                 imageVector = Icons.Rounded.Add,
                                 contentDescription = null,
                                 tint = Color.White,
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = "Deposit",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.5.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
                                 color = Color.White,
@@ -567,7 +498,7 @@ fun FigmaGoalCard(
                     Text(
                         text = "Completed ✨",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.5.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         ),
                         color = Color(0xFF3CAE8C),

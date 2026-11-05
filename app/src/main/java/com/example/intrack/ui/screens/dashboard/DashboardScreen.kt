@@ -176,7 +176,7 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Hi, $userGreetingName 👋",
+                                text = "Hi, $userGreetingName",
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontSize = 19.sp,
                                     fontWeight = FontWeight.Bold,
@@ -255,7 +255,7 @@ fun DashboardScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     item {
                         Spacer(modifier = Modifier.height(2.dp))
@@ -706,172 +706,229 @@ fun DashboardScreen(
 }
 
 @Composable
-fun HighlightedHeroBalanceCard(totalIncome: Double, totalExpense: Double) {
+fun HighlightedHeroBalanceCard(
+    totalIncome: Double,
+    totalExpense: Double,
+    modifier: Modifier = Modifier
+) {
     val remainingBalance = totalIncome - totalExpense
-    val isPositive = remainingBalance >= 0
-    val heroColor = if (isPositive) PrimaryGreen else BrandTangerine
+    val navyText = Color(0xFF121660)
+    val azureBlue = Color(0xFF0171DF)
 
     val totalFlow = (totalIncome + totalExpense).coerceAtLeast(1.0)
     val inflowFraction = (totalIncome / totalFlow).toFloat().coerceIn(0f, 1f)
+    val outflowFraction = (totalExpense / totalFlow).toFloat().coerceIn(0f, 1f)
 
     val animatedInflowFraction by animateFloatAsState(
         targetValue = inflowFraction,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "animatedInflowFraction"
     )
+    val animatedOutflowFraction by animateFloatAsState(
+        targetValue = outflowFraction,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "animatedOutflowFraction"
+    )
 
     Card(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
-        border = BorderStroke(0.dp, Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier.fillMaxWidth()
+        border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.7f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFFE380),
+                        Color(0xFFFFD13E)
+                    )
+                ),
+                shape = RoundedCornerShape(26.dp)
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp)
+                .padding(horizontal = 20.dp, vertical = 20.dp)
         ) {
-            // 1. Top Row: Centered "NET CASH FLOW" Header Title
+            // 1. Inner 3D Recessed Amount Plate
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.45f))
+                    .border(1.dp, Color.White.copy(alpha = 0.85f), RoundedCornerShape(20.dp))
+                    .padding(vertical = 16.dp, horizontal = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "NET CASH FLOW",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.5.sp
-                    ),
-                    color = Color(0xFF121660),
-                    textAlign = TextAlign.Center
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "NET CASH FLOW",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp
+                        ),
+                        color = navyText,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(
+                            space = 6.dp,
+                            alignment = Alignment.CenterHorizontally
+                        ),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Text(
+                            text = "LKR",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = navyText,
+                            modifier = Modifier.alignByBaseline()
+                        )
+                        Text(
+                            text = CurrencyFormatter.formatLkr(remainingBalance).replace("LKR", "").trim(),
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontSize = 34.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.5).sp
+                            ),
+                            color = navyText,
+                            maxLines = 1,
+                            modifier = Modifier.alignByBaseline()
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Centered Hero Balance Amount Row: "LKR XX,XXX.XX"
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(
-                    space = 6.dp,
-                    alignment = Alignment.CenterHorizontally
-                ),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Text(
-                    text = "LKR",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color(0xFF121660),
-                    modifier = Modifier.alignByBaseline()
-                )
-                Text(
-                    text = CurrencyFormatter.formatLkr(remainingBalance).replace("LKR", "").trim(),
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-0.5).sp
-                    ),
-                    color = Color(0xFF121660),
-                    maxLines = 1,
-                    modifier = Modifier.alignByBaseline()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 3. Multi-segment Progress Bar (Inflow vs Outflow Ratio)
+            // 2. Multi-segment 3D Progress Bar (Inflow vs Outflow Ratio)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(8.dp)
+                    .height(10.dp)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .background(navyText.copy(alpha = 0.15f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(9999.dp))
             ) {
-                if (animatedInflowFraction > 0f) {
+                if (totalIncome > 0 && animatedInflowFraction > 0f) {
                     Box(
                         modifier = Modifier
                             .weight(animatedInflowFraction.coerceIn(0.01f, 0.99f))
                             .fillMaxHeight()
-                            .background(Color(0xFF121660))
+                            .background(navyText)
+                    )
+                }
+                if (totalExpense > 0 && animatedOutflowFraction > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .weight(animatedOutflowFraction.coerceIn(0.01f, 0.99f))
+                            .fillMaxHeight()
+                            .background(azureBlue)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Inflow vs Outflow Legend Breakdown
+            // 3. Tactile 3D Inflow vs Outflow Legend Breakdown
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Inflow
-                Column(horizontalAlignment = Alignment.Start) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                            contentDescription = "Inflow",
-                            tint = Color(0xFF121660),
-                            modifier = Modifier.size(15.dp)
-                        )
+                // Inflow Pill (50%)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color.White.copy(alpha = 0.45f))
+                        .border(1.dp, Color.White.copy(alpha = 0.75f), RoundedCornerShape(14.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                contentDescription = "Inflow",
+                                tint = navyText,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = "Inflow",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = navyText
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = "Inflow",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Medium
+                            text = CurrencyFormatter.formatLkr(totalIncome),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.ExtraBold
                             ),
-                            color = Color(0xFF121660)
+                            color = navyText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = CurrencyFormatter.formatLkr(totalIncome),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color(0xFF121660)
-                    )
                 }
 
-                // Outflow
-                Column(horizontalAlignment = Alignment.End) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.TrendingDown,
-                            contentDescription = "Outflow",
-                            tint = Color(0xFF121660),
-                            modifier = Modifier.size(15.dp)
-                        )
+                // Outflow Pill (50%)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color.White.copy(alpha = 0.45f))
+                        .border(1.dp, Color.White.copy(alpha = 0.75f), RoundedCornerShape(14.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.TrendingDown,
+                                contentDescription = "Outflow",
+                                tint = azureBlue,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = "Outflow",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = navyText
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = "Outflow",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Medium
+                            text = CurrencyFormatter.formatLkr(totalExpense),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.ExtraBold
                             ),
-                            color = Color(0xFF121660)
+                            color = navyText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = CurrencyFormatter.formatLkr(totalExpense),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color(0xFF121660)
-                    )
                 }
             }
         }
@@ -914,7 +971,7 @@ fun QuickActionButtons(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // 1. Top Wide Card: "Income" Card (Azure Blue Background)
+        // 1. Top Wide Card: "Income" Card (Vibrant Azure Blue)
         Card(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0171DF)),
@@ -959,7 +1016,7 @@ fun QuickActionButtons(
                     modifier = Modifier.align(Alignment.BottomStart)
                 )
 
-                // Bottom-Right Action Button: Dark Circle with Right Arrow
+                // Bottom-Right Action Button: Dark Navy Circle with Right Arrow
                 Box(
                     modifier = Modifier
                         .size(38.dp)
@@ -983,7 +1040,7 @@ fun QuickActionButtons(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Bottom-Left Square Card: "Expense" Card (Deep Navy Background)
+            // Bottom-Left Square Card: "Expense" Card (Deep Navy)
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF0D124B)),
@@ -1045,7 +1102,7 @@ fun QuickActionButtons(
                 }
             }
 
-            // Bottom-Right Square Card: "Goals" Card (Dark Emerald Green Background)
+            // Bottom-Right Square Card: "Goals" Card (Dark Emerald Green)
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF052B20)),
@@ -1061,7 +1118,7 @@ fun QuickActionButtons(
                         .fillMaxSize()
                         .padding(18.dp)
                 ) {
-                    // Top-Left Icon: Credit Card / Vault Box
+                    // Top-Left Icon: Credit Card Box
                     Box(
                         modifier = Modifier
                             .size(38.dp)
@@ -1233,32 +1290,35 @@ fun DashboardNotificationsBottomSheet(
     onNavigateToGoal: () -> Unit,
     onNavigateToExpenses: () -> Unit = {}
 ) {
+    val navyText = Color(0xFF121660)
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = Color.White
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(bottom = 24.dp)
         ) {
             Text(
                 text = "Alerts & Insights",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                fontWeight = FontWeight.Bold,
+                color = navyText
             )
             Spacer(modifier = Modifier.height(14.dp))
 
             if (shockInsightMessage.isNotBlank()) {
-                OutlinedCard(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onNavigateToExpenses() },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.outlinedCardColors(
-                        containerColor = BrandTangerine.copy(alpha = 0.08f)
-                    ),
-                    border = BorderStroke(1.dp, BrandTangerine.copy(alpha = 0.4f))
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+                    border = BorderStroke(0.dp, Color.Transparent),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Row(
                         modifier = Modifier.padding(14.dp),
@@ -1267,7 +1327,7 @@ fun DashboardNotificationsBottomSheet(
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
-                            tint = BrandTangerine,
+                            tint = navyText,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -1276,13 +1336,13 @@ fun DashboardNotificationsBottomSheet(
                                 text = "Lifestyle Leak Insight",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = BrandTangerine
+                                color = navyText
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = shockInsightMessage,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = navyText.copy(alpha = 0.8f)
                             )
                         }
                     }
@@ -1291,30 +1351,32 @@ fun DashboardNotificationsBottomSheet(
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
-            OutlinedCard(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onNavigateToSubscriptions() },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+                border = BorderStroke(0.dp, Color.Transparent),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = BrandTangerine, modifier = Modifier.size(20.dp))
+                    Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = navyText, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
                             text = "Unused SaaS Plan Flagged",
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold,
+                            color = navyText
                         )
                         Text(
                             text = "Review recurring auto-debit on Secondary Account.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = navyText.copy(alpha = 0.8f)
                         )
                     }
                 }
@@ -1322,49 +1384,36 @@ fun DashboardNotificationsBottomSheet(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            OutlinedCard(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onNavigateToGoal() },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+                border = BorderStroke(0.dp, Color.Transparent),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = navyText, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
                             text = "Goal Target Run-Rate Alert",
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold,
+                            color = navyText
                         )
                         Text(
                             text = "Maintain monthly savings pace to achieve targets on time.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = navyText.copy(alpha = 0.8f)
                         )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
-            ) {
-                Text("Dismiss", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

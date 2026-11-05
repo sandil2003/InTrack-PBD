@@ -603,7 +603,7 @@ fun ExpenseAnalyticsScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(horizontal = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                                verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 // Item 1: Modern Soft Hero Card (Figma node 2001:69)
                                 item {
@@ -963,7 +963,7 @@ fun ExpenseAnalyticsScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(horizontal = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                                verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 // 1. Hero Section: Monthly Commitments Card
                                 item {
@@ -974,41 +974,6 @@ fun ExpenseAnalyticsScreen(
                                         primaryCardTotal = primaryCardTotal,
                                         cashTotal = cashTotal
                                     )
-                                }
-
-                                // 2. Section - Quick Action / Filter Pills (Figma node 2006:96)
-                                item {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .horizontalScroll(rememberScrollState()),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        FigmaFilterPill(
-                                            label = "All Fixed ($allCount)",
-                                            isSelected = subscriptionFilter == "ALL",
-                                            onClick = {
-                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                subscriptionViewModel.setSubscriptionFilter("ALL")
-                                            }
-                                        )
-                                        FigmaFilterPill(
-                                            label = "Due this week ($dueWeekCount)",
-                                            isSelected = subscriptionFilter == "DUE_WEEK",
-                                            onClick = {
-                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                subscriptionViewModel.setSubscriptionFilter(if (subscriptionFilter == "DUE_WEEK") "ALL" else "DUE_WEEK")
-                                            }
-                                        )
-                                        FigmaFilterPill(
-                                            label = "Auto-debit only ($autoDebitCount)",
-                                            isSelected = subscriptionFilter == "AUTO_DEBIT",
-                                            onClick = {
-                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                subscriptionViewModel.setSubscriptionFilter(if (subscriptionFilter == "AUTO_DEBIT") "ALL" else "AUTO_DEBIT")
-                                            }
-                                        )
-                                    }
                                 }
 
                                 // 3. Recurring Charges Header
@@ -1081,24 +1046,6 @@ fun ExpenseAnalyticsScreen(
                                             modifier = Modifier.animateItem()
                                         )
                                     }
-                                }
-
-                                // 5. Calendar Schedule Banner / Mini Reminder Insight (Figma node 2006:168)
-                                item {
-                                    FigmaAutoDebitAlertBanner(
-                                        upcomingAmount = auditSummary.nextSub?.amountLkr ?: 4500.0,
-                                        upcomingName = auditSummary.nextSub?.name ?: "Upcoming commitments",
-                                        onManageClick = {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            val nextFilter = if (subscriptionFilter == "AUTO_DEBIT") "ALL" else "AUTO_DEBIT"
-                                            subscriptionViewModel.setSubscriptionFilter(nextFilter)
-                                            coroutineScope.launch {
-                                                snackbarHostState.showSnackbar(
-                                                    if (nextFilter == "AUTO_DEBIT") "Showing auto-debit obligations" else "Showing all fixed commitments"
-                                                )
-                                            }
-                                        }
-                                    )
                                 }
 
                                 item {
@@ -1228,7 +1175,7 @@ fun FigmaHeroOutflowCard(
                         modifier = Modifier
                             .weight(animatedDiscretionaryRatio.coerceAtLeast(0.01f))
                             .fillMaxHeight()
-                            .background(navyText.copy(alpha = 0.5f))
+                            .background(Color(0xFF0171DF))
                     )
                 }
             }
@@ -1297,7 +1244,7 @@ fun FigmaHeroOutflowCard(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(navyText.copy(alpha = 0.5f))
+                                .background(Color(0xFF0171DF))
                         )
                         Text(
                             text = "Lifestyle",
@@ -1915,7 +1862,7 @@ fun FigmaTransactionDetailSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.White,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
