@@ -274,6 +274,7 @@ fun SettingsScreen(
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showHelpDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var isSyncing by remember { mutableStateOf(false) }
     var syncStatusText by remember { mutableStateOf("Cloud Active • Synced 2m ago") }
 
@@ -1134,6 +1135,50 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancel", color = FigmaDark, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        )
+    }
+
+    // 9. Delete Account Dialog
+    if (showDeleteAccountDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAccountDialog = false },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.widthIn(max = 460.dp),
+            title = {
+                Text(
+                    text = "Delete Account?",
+                    fontFamily = PlusJakartaSansFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = FigmaDestructive
+                )
+            },
+            text = {
+                Text(
+                    text = "Permanently delete your account and all associated cloud financial records? This action cannot be undone.",
+                    fontFamily = PlusJakartaSansFontFamily,
+                    fontSize = 13.5.sp,
+                    color = FigmaMuted,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteAccountDialog = false
+                        authViewModel.signOut()
+                        onSignOut()
+                    }
+                ) {
+                    Text("Delete Permanently", color = FigmaDestructive, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAccountDialog = false }) {
                     Text("Cancel", color = FigmaDark, fontWeight = FontWeight.SemiBold)
                 }
             }
