@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -69,6 +70,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -175,50 +177,26 @@ fun AuthTopBar(
 }
 
 /**
- * Tactile Logo Badge with Wallet Icon and Trending Up Badge matching Figma
+ * Tactile Logo Badge rendering the new InTrack brand logo matching app icon
  */
 @Composable
 fun TactileLogoBadge(
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier.size(68.dp),
+        modifier = modifier
+            .size(76.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White)
+            .border(1.dp, AuthBorder.copy(alpha = 0.6f), RoundedCornerShape(22.dp)),
         contentAlignment = Alignment.Center
     ) {
-        // Rounded Square Peach Container (64x64)
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFFF7DDD4))
-                .border(1.dp, Color(0xFFEED0C5), RoundedCornerShape(20.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.AccountBalanceWallet,
-                contentDescription = "InTrack Logo",
-                tint = AuthTerracotta,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-
-        // Overlaid Bottom-Right Circular Badge with Trending Arrow
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(AuthPrimaryOrange)
-                .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(12.dp)
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.new_logo),
+            contentDescription = "InTrack Logo",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit
+        )
     }
 }
 
