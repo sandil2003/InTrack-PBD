@@ -31,6 +31,9 @@ class NotificationPreferences @Inject constructor(
     private val _catchUpRemindersEnabledFlow = MutableStateFlow(catchUpRemindersEnabled)
     val catchUpRemindersEnabledFlow: StateFlow<Boolean> = _catchUpRemindersEnabledFlow.asStateFlow()
 
+    private val _transactionReaderEnabledFlow = MutableStateFlow(transactionReaderEnabled)
+    val transactionReaderEnabledFlow: StateFlow<Boolean> = _transactionReaderEnabledFlow.asStateFlow()
+
     var pushNotificationsEnabled: Boolean
         get() = prefs.getBoolean(KEY_PUSH_NOTIFICATIONS_ENABLED, true)
         set(value) {
@@ -57,6 +60,13 @@ class NotificationPreferences @Inject constructor(
         set(value) {
             prefs.edit().putBoolean(KEY_CATCH_UP_REMINDERS_ENABLED, value).apply()
             _catchUpRemindersEnabledFlow.value = value
+        }
+
+    var transactionReaderEnabled: Boolean
+        get() = prefs.getBoolean(KEY_TRANSACTION_READER_ENABLED, true)
+        set(value) {
+            prefs.edit().putBoolean(KEY_TRANSACTION_READER_ENABLED, value).apply()
+            _transactionReaderEnabledFlow.value = value
         }
 
     var scheduledHour: Int
@@ -111,6 +121,7 @@ class NotificationPreferences @Inject constructor(
         private const val KEY_RENEWAL_REMINDERS_ENABLED = "pref_renewal_reminders_enabled"
         private const val KEY_AUTO_DEBIT_MARGIN_ENABLED = "pref_auto_debit_margin_enabled"
         private const val KEY_CATCH_UP_REMINDERS_ENABLED = "pref_catch_up_reminders_enabled"
+        private const val KEY_TRANSACTION_READER_ENABLED = "pref_transaction_reader_enabled"
         private const val KEY_SCHEDULED_HOUR = "pref_scheduled_hour"
         private const val KEY_SCHEDULED_MINUTE = "pref_scheduled_minute"
         private const val KEY_LAST_RENEWAL_NOTIFIED_DATE = "pref_last_renewal_notified_date"

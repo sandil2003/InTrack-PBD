@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
     
     <application
         android:name=".InTrackApplication"
@@ -29,7 +31,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-            <provider
+        <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
@@ -51,6 +53,32 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/intrack_widget_info" />
         </receiver>
+
+        <!-- Bank & Ride SMS Broadcast Receiver -->
+        <receiver
+            android:name=".notification.sms.SmsTransactionReceiver"
+            android:permission="android.permission.BROADCAST_SMS"
+            android:exported="true">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Single-Tap Quick Log Action Receiver from Heads-Up Notification -->
+        <receiver
+            android:name=".notification.sms.QuickLogExpenseReceiver"
+            android:exported="false" />
+
+        <!-- Notification Listener Service for PickMe, Uber, UberEats, and Banking Alerts -->
+        <service
+            android:name=".notification.listener.ExpenseNotificationListenerService"
+            android:label="InTrack Expense Ingestion"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

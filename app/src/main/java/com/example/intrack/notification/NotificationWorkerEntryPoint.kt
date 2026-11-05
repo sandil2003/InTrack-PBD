@@ -5,6 +5,7 @@ import com.example.intrack.data.local.GoalDao
 import com.example.intrack.data.local.InTrackDatabase
 import com.example.intrack.data.local.IncomeDao
 import com.example.intrack.data.local.SubscriptionDao
+import com.example.intrack.data.repository.ExpenseRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -16,6 +17,7 @@ interface NotificationWorkerEntryPoint {
     fun inTrackDatabase(): InTrackDatabase
     fun subscriptionDao(): SubscriptionDao
     fun expenseDao(): ExpenseDao
+    fun expenseRepository(): ExpenseRepository
     fun incomeDao(): IncomeDao
     fun goalDao(): GoalDao
     fun notificationPreferences(): NotificationPreferences
