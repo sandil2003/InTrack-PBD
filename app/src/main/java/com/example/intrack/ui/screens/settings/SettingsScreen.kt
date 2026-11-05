@@ -381,22 +381,13 @@ fun SettingsScreen(
                             .navigationBarsPadding(),
                         horizontalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        // Left Column (Profile, Appearance, Privacy & Security, Log Out, Version)
+                        // Left Column (Appearance, Wallet & Currency, Log Out)
                         Column(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
-                            SettingsProfileCard(
-                                userInitials = userInitials,
-                                userName = userName,
-                                userEmail = userEmail,
-                                syncStatusText = syncStatusText,
-                                isCompactWidth = isCompactWidth,
-                                onClick = onNavigateToProfile
-                            )
-
                             SettingsSectionHeader(title = "APPEARANCE")
                             AppearanceGroupCard(
                                 themeMode = themeMode,
@@ -404,12 +395,13 @@ fun SettingsScreen(
                                 isCompactWidth = isCompactWidth
                             )
 
-                            SettingsSectionHeader(title = "PRIVACY & SECURITY")
-                            PrivacySecurityGroupCard(
-                                biometricsEnabled = isBiometricEnabled,
-                                onBiometricsChange = handleBiometricToggle,
+                            SettingsSectionHeader(title = "WALLET & CURRENCY")
+                            WalletCurrencyGroupCard(
+                                baseCurrency = baseCurrency,
+                                weeklyStartDay = weeklyStartDay,
                                 isCompactWidth = isCompactWidth,
-                                onTwoFactorClick = { showTwoFactorDialog = true }
+                                onCurrencyClick = { showCurrencyDialog = true },
+                                onWeeklyStartClick = { showWeeklyStartDialog = true }
                             )
 
                             Spacer(modifier = Modifier.height(4.dp))
@@ -428,11 +420,9 @@ fun SettingsScreen(
                             SettingsSectionHeader(title = "WALLET & CURRENCY")
                             WalletCurrencyGroupCard(
                                 baseCurrency = baseCurrency,
-                                billingCycle = billingCycle,
                                 weeklyStartDay = weeklyStartDay,
                                 isCompactWidth = isCompactWidth,
                                 onCurrencyClick = { showCurrencyDialog = true },
-                                onBillingCycleClick = { showBillingCycleDialog = true },
                                 onWeeklyStartClick = { showWeeklyStartDialog = true }
                             )
 
@@ -453,24 +443,6 @@ fun SettingsScreen(
                                 syncRotation = syncRotation,
                                 isCompactWidth = isCompactWidth,
                                 onExportClick = { showExportSheet = true },
-                                onSeedScenarioClick = {
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("Seeding Kavindu's complete scenario...")
-                                        val uid = userProfile.uid.ifBlank { authViewModel.userProfile.value.uid }
-                                        val result = KavinduScenarioSeeder.seedCompleteScenario(
-                                            userId = uid,
-                                            incomeRepository = incomeRepository,
-                                            expenseRepository = expenseRepository,
-                                            goalRepository = goalRepository,
-                                            subscriptionRepository = subscriptionRepository
-                                        )
-                                        if (result.isSuccess) {
-                                            snackbarHostState.showSnackbar("Scenario successfully seeded! 2 Zombie Subs, MacBook Fund, Crypto Q1/Q3 loaded.")
-                                        } else {
-                                            snackbarHostState.showSnackbar("Seeding error: ${result.exceptionOrNull()?.message}")
-                                        }
-                                    }
-                                },
                                 onSyncClick = {
                                     if (!isSyncing) {
                                         coroutineScope.launch {
@@ -501,23 +473,12 @@ fun SettingsScreen(
                             .navigationBarsPadding(),
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        SettingsProfileCard(
-                            userInitials = userInitials,
-                            userName = userName,
-                            userEmail = userEmail,
-                            syncStatusText = syncStatusText,
-                            isCompactWidth = isCompactWidth,
-                            onClick = onNavigateToProfile
-                        )
-
                         SettingsSectionHeader(title = "WALLET & CURRENCY")
                         WalletCurrencyGroupCard(
                             baseCurrency = baseCurrency,
-                            billingCycle = billingCycle,
                             weeklyStartDay = weeklyStartDay,
                             isCompactWidth = isCompactWidth,
                             onCurrencyClick = { showCurrencyDialog = true },
-                            onBillingCycleClick = { showBillingCycleDialog = true },
                             onWeeklyStartClick = { showWeeklyStartDialog = true }
                         )
 
@@ -532,38 +493,12 @@ fun SettingsScreen(
                             isCompactWidth = isCompactWidth
                         )
 
-                        SettingsSectionHeader(title = "PRIVACY & SECURITY")
-                        PrivacySecurityGroupCard(
-                            biometricsEnabled = isBiometricEnabled,
-                            onBiometricsChange = handleBiometricToggle,
-                            isCompactWidth = isCompactWidth,
-                            onTwoFactorClick = { showTwoFactorDialog = true }
-                        )
-
                         SettingsSectionHeader(title = "DATA MANAGEMENT")
                         DataManagementGroupCard(
                             isSyncing = isSyncing,
                             syncRotation = syncRotation,
                             isCompactWidth = isCompactWidth,
                             onExportClick = { showExportSheet = true },
-                            onSeedScenarioClick = {
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Seeding Kavindu's complete scenario...")
-                                    val uid = userProfile.uid.ifBlank { authViewModel.userProfile.value.uid }
-                                    val result = KavinduScenarioSeeder.seedCompleteScenario(
-                                        userId = uid,
-                                        incomeRepository = incomeRepository,
-                                        expenseRepository = expenseRepository,
-                                        goalRepository = goalRepository,
-                                        subscriptionRepository = subscriptionRepository
-                                    )
-                                    if (result.isSuccess) {
-                                        snackbarHostState.showSnackbar("Scenario successfully seeded! 2 Zombie Subs, MacBook Fund, Crypto Q1/Q3 loaded.")
-                                    } else {
-                                        snackbarHostState.showSnackbar("Seeding error: ${result.exceptionOrNull()?.message}")
-                                    }
-                                }
-                            },
                             onSyncClick = {
                                 if (!isSyncing) {
                                     coroutineScope.launch {
@@ -1336,11 +1271,9 @@ private fun SettingsProfileCard(
 @Composable
 private fun WalletCurrencyGroupCard(
     baseCurrency: String,
-    billingCycle: String,
     weeklyStartDay: String,
     isCompactWidth: Boolean,
     onCurrencyClick: () -> Unit,
-    onBillingCycleClick: () -> Unit,
     onWeeklyStartClick: () -> Unit
 ) {
     SettingsGroupCard {
@@ -1350,16 +1283,6 @@ private fun WalletCurrencyGroupCard(
             subtitle = baseCurrency,
             isCompact = isCompactWidth,
             onClick = onCurrencyClick
-        )
-
-        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
-
-        SettingsActionRow(
-            icon = Icons.Rounded.CalendarMonth,
-            title = "Monthly Billing Cycle",
-            subtitle = billingCycle,
-            isCompact = isCompactWidth,
-            onClick = onBillingCycleClick
         )
 
         HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
@@ -1419,55 +1342,15 @@ private fun NotificationsGroupCard(
 }
 
 @Composable
-private fun PrivacySecurityGroupCard(
-    biometricsEnabled: Boolean,
-    onBiometricsChange: (Boolean) -> Unit,
-    isCompactWidth: Boolean,
-    onTwoFactorClick: () -> Unit
-) {
-    SettingsGroupCard {
-        SettingsToggleRow(
-            icon = Icons.Rounded.Fingerprint,
-            title = "Biometric App Lock",
-            subtitle = "Require biometric to open app",
-            checked = biometricsEnabled,
-            isCompact = isCompactWidth,
-            onCheckedChange = onBiometricsChange
-        )
-
-        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
-
-        SettingsActionRow(
-            icon = Icons.Rounded.Shield,
-            title = "Two-Factor Auth (2FA)",
-            subtitle = "Authenticator app enabled",
-            badge = "Active",
-            isCompact = isCompactWidth,
-            onClick = onTwoFactorClick
-        )
-    }
-}
-
-@Composable
 private fun DataManagementGroupCard(
     isSyncing: Boolean,
     syncRotation: Float,
     isCompactWidth: Boolean,
     onExportClick: () -> Unit,
     onSyncClick: () -> Unit,
-    onClearCacheClick: () -> Unit,
-    onSeedScenarioClick: () -> Unit = {}
+    onClearCacheClick: () -> Unit
 ) {
     SettingsGroupCard {
-        SettingsActionRow(
-            icon = Icons.Rounded.Dataset,
-            title = "Seed Kavindu Scenario Data",
-            subtitle = "Populates 2 zombie subs, MacBook fund & crypto",
-            isCompact = isCompactWidth,
-            onClick = onSeedScenarioClick
-        )
-
-        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
         SettingsActionRow(
             icon = Icons.Rounded.FileDownload,
             title = "Statement Export",
@@ -1519,14 +1402,7 @@ private fun AppearanceGroupCard(
                 fontWeight = FontWeight.Bold,
                 color = navyText
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Choose your preferred interface theme",
-                fontFamily = PlusJakartaSansFontFamily,
-                fontSize = if (isCompactWidth) 11.5.sp else 12.5.sp,
-                color = navyText.copy(alpha = 0.7f)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1550,30 +1426,18 @@ private fun AppearanceGroupCard(
                                 maxLines = 1
                             )
                         },
-                        leadingIcon = if (isSelected && !isCompactWidth) {
-                            {
-                                Icon(
-                                    imageVector = Icons.Rounded.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = Color.White
-                                )
-                            }
-                        } else null,
-                        shape = RoundedCornerShape(12.dp),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = navyText,
                             selectedLabelColor = Color.White,
-                            containerColor = Color.White,
+                            containerColor = BrandSoftSlate,
                             labelColor = navyText
                         ),
                         border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = isSelected,
                             borderColor = Color.Transparent,
-                            selectedBorderColor = Color.Transparent
-                        ),
-                        modifier = Modifier.weight(1f)
+                            selectedBorderColor = Color.Transparent,
+                            enabled = true,
+                            selected = isSelected
+                        )
                     )
                 }
             }

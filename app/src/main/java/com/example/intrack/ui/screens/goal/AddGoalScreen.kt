@@ -241,7 +241,7 @@ fun AddGoalContent(
             )
         }
 
-        // Header Bar: Peach Badge + "New Financial Goal" + Close Button
+        // Header Bar: "New Financial Goal" + Close Button
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -249,34 +249,13 @@ fun AddGoalContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Peach circular badge with target icon (32x32dp, fill #F5DED4)
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFF5DED4)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.TrackChanges,
-                        contentDescription = "New Financial Goal",
-                        tint = Color(0xFFB52705),
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-
-                Text(
-                    text = "New Financial Goal",
-                    fontFamily = PlusJakartaSansFontFamily,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+            Text(
+                text = "New Financial Goal",
+                fontFamily = PlusJakartaSansFontFamily,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF121660)
+            )
 
             // Close button (40x40dp circle, fill #EFEEEA)
             Box(
@@ -1052,13 +1031,13 @@ fun AddGoalContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // "+ Create Financial Goal" Primary Button (fill #FF5C38)
+            // "Create Financial Goal" Primary Button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
                     .clip(CircleShape)
-                    .background(FigmaLightOrange)
+                    .background(Color(0xFF121660))
                     .clickable {
                         val rawTarget = targetAmountInput.replace(",", "").trim()
                         val parsedTarget = rawTarget.toDoubleOrNull()
@@ -1095,11 +1074,11 @@ fun AddGoalContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "+ Create Financial Goal",
+                    text = "Create Financial Goal",
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = Color.White
                 )
             }
 

@@ -80,6 +80,7 @@ class AuthViewModel @Inject constructor(
         _userDisplayName.value = profile.displayName.ifBlank { profile.firstName }
         _userEmail.value = profile.email
         _userInitials.value = profile.initials
+        com.example.intrack.util.CurrencyFormatter.activeBaseCurrency = profile.baseCurrency
     }
 
     private fun refreshProfileInfo(explicitName: String? = null, explicitEmail: String? = null) {

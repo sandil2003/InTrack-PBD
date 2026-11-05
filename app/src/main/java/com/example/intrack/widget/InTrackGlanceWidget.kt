@@ -197,6 +197,7 @@ class InTrackGlanceWidget : GlanceAppWidget() {
         }
     }
 
+    @Suppress("RestrictedApi")
     @Composable
     private fun IncomeCard(
         modifier: GlanceModifier,
@@ -377,6 +378,7 @@ class InTrackGlanceWidget : GlanceAppWidget() {
         }
     }
 
+    @Suppress("RestrictedApi")
     @Composable
     private fun ExpenseCard(
         modifier: GlanceModifier,
