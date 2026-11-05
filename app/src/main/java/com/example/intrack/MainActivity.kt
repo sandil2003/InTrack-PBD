@@ -46,6 +46,12 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var auth: FirebaseAuth
 
+    @Inject
+    lateinit var expenseDao: com.example.intrack.data.local.ExpenseDao
+
+    @Inject
+    lateinit var expenseRepository: com.example.intrack.data.repository.ExpenseRepository
+
     private var pendingNavRoute by mutableStateOf<String?>(null)
     private var isAppLocked by mutableStateOf(false)
     private var lockErrorMessage by mutableStateOf<String?>(null)
@@ -213,19 +219,69 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun handleWidgetIntent(intent: Intent?) {
+        val autoLog = intent?.getBooleanExtra("EXTRA_AUTO_LOG_EXPENSE", false) ?: false
+        if (autoLog) {
+            val title = intent?.getStringExtra("EXTRA_EXPENSE_TITLE") ?: "Detected Expense"
+            val amount = intent?.getDoubleExtra("EXTRA_EXPENSE_AMOUNT", 0.0) ?: 0.0
+            val category = intent?.getStringExtra("EXTRA_EXPENSE_CATEGORY") ?: "TRANSPORT"
+            val commitment = intent?.getStringExtra("EXTRA_EXPENSE_COMMITMENT") ?: "DISCRETIONARY"
+            val account = intent?.getStringExtra("EXTRA_EXPENSE_ACCOUNT") ?: "CARD_PRIMARY"
+
+            if (amount > 0.0) {
+                val currentUserId = auth.currentUser?.uid?.ifBlank { "kavindu_demo" } ?: "kavindu_demo"
+                val newExpense = com.example.intrack.data.model.ExpenseEntity(
+                    id = java.util.UUID.randomUUID().toString(),
+                    userId = currentUserId,
+                    title = title,
+                    amountLkr = amount,
+                    category = category,
+                    paymentAccount = account,
+                    commitmentType = commitment,
+                    dateSpentMillis = System.currentTimeMillis(),
+                    isRecurring = false,
+                    notes = "Auto-ingested via zero-friction SMS / Notification reader"
+                )
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        expenseDao.upsert(newExpense)
+                        expenseRepository.addExpense(newExpense)
+                        InTrackGlanceWidget.updateWidget(applicationContext)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Error auto-logging expense from notification: ", e)
+                    }
+                }
+                val amountDisplay = if (amount % 1.0 == 0.0) amount.toInt().toString() else String.format(java.util.Locale.US, "%.2f", amount)
+                val commitmentLabel = commitment.lowercase().replaceFirstChar { it.uppercase() }
+                val categoryLabel = category.replace("_", " ").lowercase().split(" ").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+                android.widget.Toast.makeText(
+                    this,
+                    "✓ Logged LKR   as  ",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+                pendingNavRoute = com.example.intrack.ui.navigation.Screen.AllTransactions.route
+            }
+            intent?.removeExtra("EXTRA_AUTO_LOG_EXPENSE")
+            intent?.removeExtra("EXTRA_EXPENSE_TITLE")
+            intent?.removeExtra("EXTRA_EXPENSE_AMOUNT")
+            intent?.removeExtra("EXTRA_EXPENSE_CATEGORY")
+            intent?.removeExtra("EXTRA_EXPENSE_COMMITMENT")
+            intent?.removeExtra("EXTRA_EXPENSE_ACCOUNT")
+            intent?.removeExtra("NAV_ROUTE")
+            return
+        }
+
         val route = intent?.getStringExtra("NAV_ROUTE")
         val category = intent?.getStringExtra("PRESET_CATEGORY")
         if (route != null) {
             pendingNavRoute = if (!category.isNullOrEmpty()) {
-                "add_expense?category=$category"
+                "add_expense?category="
             } else {
                 route
             }
             intent.removeExtra("NAV_ROUTE")
             intent.removeExtra("PRESET_CATEGORY")
         }
-    }
-}
+    }}
 
 @Preview(showBackground = true)
 @Composable

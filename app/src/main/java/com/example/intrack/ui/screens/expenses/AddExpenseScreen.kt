@@ -127,6 +127,10 @@ fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
     onExpenseSaved: () -> Unit = onNavigateBack,
     initialCategoryKey: String = "DINING_OUT",
+    initialAmount: String = "",
+    initialTitle: String = "",
+    initialCommitmentType: String = "DISCRETIONARY",
+    initialPaymentAccount: String = "CARD_PRIMARY",
     expenseViewModel: ExpenseViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -146,6 +150,10 @@ fun AddExpenseScreen(
             AddExpenseContent(
                 onDismiss = onNavigateBack,
                 initialCategoryKey = initialCategoryKey,
+                initialAmount = initialAmount,
+                initialTitle = initialTitle,
+                initialCommitmentType = initialCommitmentType,
+                initialPaymentAccount = initialPaymentAccount,
                 onSubmit = { newExpense ->
                     expenseViewModel.addExpense(newExpense)
                     onExpenseSaved()
@@ -462,15 +470,19 @@ fun AddExpenseContent(
     onDismiss: () -> Unit,
     onSubmit: (ExpenseEntity) -> Unit,
     initialCategoryKey: String = "DINING_OUT",
+    initialAmount: String = "",
+    initialTitle: String = "",
+    initialCommitmentType: String = "DISCRETIONARY",
+    initialPaymentAccount: String = "CARD_PRIMARY",
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
 
     // State
-    var amountInput by remember { mutableStateOf("") }
-    var noteText by remember { mutableStateOf("") }
+    var amountInput by remember { mutableStateOf(initialAmount) }
+    var noteText by remember { mutableStateOf(initialTitle) }
     var isRecurring by remember { mutableStateOf(false) }
-    var commitmentType by remember { mutableStateOf("DISCRETIONARY") }
+    var commitmentType by remember { mutableStateOf(initialCommitmentType) }
     var selectedDateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showNewTagDialog by remember { mutableStateOf(false) }
@@ -499,7 +511,7 @@ fun AddExpenseContent(
             ExpenseAccountItem("ACCOUNT_SECONDARY", "Secondary", "Bank", Icons.Rounded.AccountBalance)
         )
     }
-    var selectedAccountKey by remember { mutableStateOf("CARD_PRIMARY") }
+    var selectedAccountKey by remember { mutableStateOf(initialPaymentAccount) }
 
     // Blinking cursor transition for hero amount display
     val infiniteTransition = rememberInfiniteTransition(label = "cursorTransition")

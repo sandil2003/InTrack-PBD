@@ -325,12 +325,41 @@ fun FinFlowNavGraph(
                     navArgument("category") {
                         type = NavType.StringType
                         defaultValue = "DINING_OUT"
+                    },
+                    navArgument("amount") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                    navArgument("title") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                    navArgument("commitmentType") {
+                        type = NavType.StringType
+                        defaultValue = "DISCRETIONARY"
+                    },
+                    navArgument("paymentAccount") {
+                        type = NavType.StringType
+                        defaultValue = "CARD_PRIMARY"
                     }
                 )
             ) { backStackEntry ->
                 val category = backStackEntry.arguments?.getString("category") ?: "DINING_OUT"
+                val amount = backStackEntry.arguments?.getString("amount") ?: ""
+                val rawTitle = backStackEntry.arguments?.getString("title") ?: ""
+                val title = try {
+                    java.net.URLDecoder.decode(rawTitle, "UTF-8")
+                } catch (_: Exception) {
+                    rawTitle
+                }
+                val commitmentType = backStackEntry.arguments?.getString("commitmentType") ?: "DISCRETIONARY"
+                val paymentAccount = backStackEntry.arguments?.getString("paymentAccount") ?: "CARD_PRIMARY"
                 AddExpenseScreen(
                     initialCategoryKey = category,
+                    initialAmount = amount,
+                    initialTitle = title,
+                    initialCommitmentType = commitmentType,
+                    initialPaymentAccount = paymentAccount,
                     onNavigateBack = { navController.popBackStack() },
                     onExpenseSaved = { navController.popBackStack() }
                 )

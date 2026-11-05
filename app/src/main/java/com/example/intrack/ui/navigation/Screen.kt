@@ -18,8 +18,21 @@ sealed class Screen(val route: String, val title: String) {
         fun createRoute(goalId: String): String = "goal_detail/$goalId"
     }
     object AddExpense : Screen("add_expense", "Add an expense") {
-        const val navRoute = "add_expense?category={category}"
-        fun createRoute(category: String = "DINING_OUT"): String = "add_expense?category=$category"
+        const val navRoute = "add_expense?category={category}&amount={amount}&title={title}&commitmentType={commitmentType}&paymentAccount={paymentAccount}"
+        fun createRoute(
+            category: String = "DINING_OUT",
+            amount: String = "",
+            title: String = "",
+            commitmentType: String = "DISCRETIONARY",
+            paymentAccount: String = "CARD_PRIMARY"
+        ): String {
+            val encodedTitle = try {
+                java.net.URLEncoder.encode(title, "UTF-8")
+            } catch (_: Exception) {
+                title
+            }
+            return "add_expense?category=$category&amount=$amount&title=$encodedTitle&commitmentType=$commitmentType&paymentAccount=$paymentAccount"
+        }
     }
     object AddSubscription : Screen("add_subscription", "Add Subscription")
     object AddGoal : Screen("add_goal", "New Financial Goal")

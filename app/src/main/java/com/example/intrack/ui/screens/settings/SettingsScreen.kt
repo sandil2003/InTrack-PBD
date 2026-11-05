@@ -1,5 +1,9 @@
 package com.example.intrack.ui.screens.settings
 
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.material3.TextButton
+
 import android.widget.Toast
 import android.Manifest
 import android.content.pm.PackageManager
@@ -178,6 +182,37 @@ fun SettingsScreen(
     val pushNotificationsEnabled by notificationPreferences.pushNotificationsEnabledFlow.collectAsState()
     val renewalRemindersEnabled by notificationPreferences.renewalRemindersEnabledFlow.collectAsState()
     val autoDebitMarginEnabled by notificationPreferences.autoDebitMarginEnabledFlow.collectAsState()
+    val transactionReaderEnabled by notificationPreferences.transactionReaderEnabledFlow.collectAsState()
+    var showPermissionsDialog by remember { mutableStateOf(false) }
+
+    val smsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            notificationPreferences.transactionReaderEnabled = true
+            Toast.makeText(context, "SMS transaction reading enabled", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "SMS permission denied for bank reading", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val handleTransactionReaderToggle: (Boolean) -> Unit = { enabled ->
+        if (enabled) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECEIVE_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!hasPermission) {
+                smsPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
+            } else {
+                notificationPreferences.transactionReaderEnabled = true
+                Toast.makeText(context, "Bank & Ride SMS reading enabled", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            notificationPreferences.transactionReaderEnabled = false
+            Toast.makeText(context, "Transaction reading paused", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -443,6 +478,9 @@ fun SettingsScreen(
                                 onRenewalRemindersChange = { notificationPreferences.renewalRemindersEnabled = it },
                                 autoDebitMarginEnabled = autoDebitMarginEnabled,
                                 onAutoDebitMarginChange = { notificationPreferences.autoDebitMarginEnabled = it },
+                                transactionReaderEnabled = transactionReaderEnabled,
+                                onTransactionReaderChange = handleTransactionReaderToggle,
+                                onManagePermissionsClick = { showPermissionsDialog = true },
                                 isCompactWidth = isCompactWidth
                             )
 
@@ -528,6 +566,9 @@ fun SettingsScreen(
                             onRenewalRemindersChange = { notificationPreferences.renewalRemindersEnabled = it },
                             autoDebitMarginEnabled = autoDebitMarginEnabled,
                             onAutoDebitMarginChange = { notificationPreferences.autoDebitMarginEnabled = it },
+                            transactionReaderEnabled = transactionReaderEnabled,
+                            onTransactionReaderChange = handleTransactionReaderToggle,
+                            onManagePermissionsClick = { showPermissionsDialog = true },
                             isCompactWidth = isCompactWidth
                         )
 
@@ -598,6 +639,81 @@ fun SettingsScreen(
     // =========================================================================
     // RESPONSIVE DIALOGS & BOTTOM SHEETS
     // =========================================================================
+
+    // Zero-Friction Permissions Dialog
+    if (showPermissionsDialog) {
+        val hasSms = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECEIVE_SMS
+        ) == PackageManager.PERMISSION_GRANTED
+
+        AlertDialog(
+            onDismissRequest = { showPermissionsDialog = false },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    text = "Transaction Ingestion Access",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = FigmaDark
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        text = "InTrack reads transaction SMS alerts from Commercial Bank, Sampath Bank, and HNB, as well as receipts from PickMe and Uber. All analysis occurs 100% locally on your device.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (hasSms) "✓ SMS Permission Granted" else "⚠ SMS Permission Required",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (hasSms) Color(0xFF10B981) else Color(0xFFF59E0B)
+                        )
+                        if (!hasSms) {
+                            TextButton(onClick = {
+                                smsPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
+                            }) {
+                                Text("Grant")
+                            }
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "App Notification Access",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        TextButton(onClick = {
+                            try {
+                                val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                Toast.makeText(context, "Open system settings to allow notification access", Toast.LENGTH_SHORT).show()
+                            }
+                        }) {
+                            Text("Settings")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPermissionsDialog = false }) {
+                    Text("Done")
+                }
+            }
+        )
+    }
 
     // 1. Currency Dialog
     if (showCurrencyDialog) {
@@ -1337,6 +1453,9 @@ private fun NotificationsGroupCard(
     onRenewalRemindersChange: (Boolean) -> Unit,
     autoDebitMarginEnabled: Boolean,
     onAutoDebitMarginChange: (Boolean) -> Unit,
+    transactionReaderEnabled: Boolean,
+    onTransactionReaderChange: (Boolean) -> Unit,
+    onManagePermissionsClick: () -> Unit,
     isCompactWidth: Boolean
 ) {
     SettingsGroupCard {
@@ -1370,6 +1489,28 @@ private fun NotificationsGroupCard(
             isCompact = isCompactWidth,
             onCheckedChange = onAutoDebitMarginChange
         )
+
+        HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+
+        SettingsToggleRow(
+            icon = Icons.Rounded.Sync,
+            title = "Bank & Ride Ingestion",
+            subtitle = "Detect PickMe, Uber, and Bank SMS",
+            checked = transactionReaderEnabled,
+            isCompact = isCompactWidth,
+            onCheckedChange = onTransactionReaderChange
+        )
+
+        if (transactionReaderEnabled) {
+            HorizontalDivider(color = FigmaBorder.copy(alpha = 0.6f), thickness = 0.8.dp)
+            SettingsActionRow(
+                icon = Icons.Rounded.Security,
+                title = "Reader Permissions",
+                subtitle = "SMS & Notification Access",
+                isCompact = isCompactWidth,
+                onClick = onManagePermissionsClick
+            )
+        }
     }
 }
 
