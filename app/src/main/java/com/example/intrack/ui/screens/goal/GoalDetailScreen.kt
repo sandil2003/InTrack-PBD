@@ -407,7 +407,8 @@ fun GoalDetailScreen(
                     item {
                         InTrackCard(
                             shape = InTrackMediumCardShape,
-                            elevation = 0.5.dp,
+                            containerColor = BrandSoftSlate,
+                            elevation = 0.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
@@ -574,7 +575,8 @@ fun GoalDetailScreen(
                     item {
                         InTrackCard(
                             shape = InTrackMediumCardShape,
-                            elevation = 0.5.dp,
+                            containerColor = BrandSoftSlate,
+                            elevation = 0.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
@@ -760,7 +762,8 @@ fun GoalDetailScreen(
                     item {
                         InTrackCard(
                             shape = InTrackMediumCardShape,
-                            elevation = 0.5.dp,
+                            containerColor = BrandSoftSlate,
+                            elevation = 0.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(18.dp)) {
@@ -913,15 +916,15 @@ fun GoalDetailScreen(
                                 .height(48.dp),
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = FigmaDarkText
+                                containerColor = BrandSoftSlate,
+                                contentColor = Color(0xFF121660)
                             ),
-                            border = BorderStroke(1.dp, FigmaBorder)
+                            border = BorderStroke(0.dp, Color.Transparent)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.AutoGraph,
                                 contentDescription = null,
-                                tint = FigmaLightOrange,
+                                tint = Color(0xFF121660),
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -929,8 +932,9 @@ fun GoalDetailScreen(
                                 text = "Simulate with What-If Calculator",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontSize = 13.5.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color(0xFF121660)
                             )
                         }
                     }
@@ -939,7 +943,8 @@ fun GoalDetailScreen(
                     item {
                         InTrackCard(
                             shape = InTrackMediumCardShape,
-                            elevation = 0.5.dp,
+                            containerColor = BrandSoftSlate,
+                            elevation = 0.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -1144,7 +1149,8 @@ private fun FigmaStatCard(
 ) {
     InTrackCard(
         shape = RoundedCornerShape(18.dp),
-        elevation = 0.5.dp,
+        containerColor = BrandSoftSlate,
+        elevation = 0.dp,
         modifier = modifier
     ) {
         Column(modifier = Modifier.padding(14.dp)) {

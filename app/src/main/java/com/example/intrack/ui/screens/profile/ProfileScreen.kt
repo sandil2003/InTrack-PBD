@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.LockReset
 import androidx.compose.material.icons.rounded.Mail
 import androidx.compose.material.icons.rounded.Phone
@@ -51,6 +52,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -63,19 +66,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.intrack.data.local.SecurityPreferences
 import com.example.intrack.data.model.UserProfile
 import com.example.intrack.ui.theme.*
 import com.example.intrack.ui.theme.financial
+import com.example.intrack.util.BiometricAuthManager
+import com.example.intrack.util.BiometricAvailability
 import com.example.intrack.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,6 +101,50 @@ fun ProfileScreen(
     val userName by authViewModel.userDisplayName.collectAsState()
     val userEmail by authViewModel.userEmail.collectAsState()
     val userInitials by authViewModel.userInitials.collectAsState()
+
+    // Persistent Security & Biometric Preferences
+    val securityPreferences = remember { SecurityPreferences(context) }
+    val biometricAuthManager = remember { BiometricAuthManager() }
+    val isBiometricEnabled by securityPreferences.isBiometricEnabledFlow.collectAsState()
+
+    val activity = context.findFragmentActivity()
+    val handleBiometricToggle: (Boolean) -> Unit = { enabled ->
+        if (enabled) {
+            when (biometricAuthManager.checkBiometricAvailability(context)) {
+                BiometricAvailability.AVAILABLE -> {
+                    if (activity != null) {
+                        biometricAuthManager.showBiometricPrompt(
+                            activity = activity,
+                            title = "Enable Biometric Lock",
+                            subtitle = "Verify fingerprint or screen lock to enable",
+                            onSuccess = {
+                                securityPreferences.isBiometricEnabled = true
+                                Toast.makeText(context, "Biometric app lock enabled", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { _, err ->
+                                Toast.makeText(context, "Verification cancelled: $err", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    } else {
+                        securityPreferences.isBiometricEnabled = true
+                        Toast.makeText(context, "Biometric app lock enabled", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                BiometricAvailability.NOT_ENROLLED -> {
+                    Toast.makeText(context, "Please enroll fingerprint or screen lock in device Settings first.", Toast.LENGTH_LONG).show()
+                }
+                BiometricAvailability.NO_HARDWARE -> {
+                    Toast.makeText(context, "Biometrics are not supported on this device.", Toast.LENGTH_SHORT).show()
+                }
+                BiometricAvailability.UNAVAILABLE -> {
+                    Toast.makeText(context, "Biometric sensor is currently unavailable.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            securityPreferences.isBiometricEnabled = false
+            Toast.makeText(context, "Biometric app lock disabled", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // Interactive states
     var showEditProfileSheet by remember { mutableStateOf(false) }
@@ -209,12 +259,14 @@ fun ProfileScreen(
                         }
                     )
 
-                    // 3. Password & Security Reset
-                    ProfileSectionHeader(title = "PASSWORD & SECURITY")
+                    // 3. Security & App Lock (Combined Biometrics + Password Reset)
+                    ProfileSectionHeader(title = "SECURITY & APP LOCK")
 
-                    PasswordResetCard(
+                    SecurityAppLockCard(
                         userEmail = userEmail,
-                        onResetPasswordClick = {
+                        biometricsEnabled = isBiometricEnabled,
+                        onBiometricsChange = handleBiometricToggle,
+                        onSendResetLink = {
                             if (userEmail.isNotBlank()) {
                                 authViewModel.sendPasswordReset(userEmail) {
                                     Toast.makeText(context, "Password reset link sent to $userEmail", Toast.LENGTH_LONG).show()
@@ -223,7 +275,7 @@ fun ProfileScreen(
                         }
                     )
 
-                    // 4. Quick Link to App Settings
+                    // 5. Quick Link to App Settings
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -259,7 +311,7 @@ fun ProfileScreen(
                                         color = Color(0xFF121660)
                                     )
                                     Text(
-                                        text = "Currency, billing cycle, notifications, biometrics",
+                                        text = "Currency, notifications, theme, export",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                         color = Color(0xFF121660).copy(alpha = 0.7f)
                                     )
@@ -539,27 +591,96 @@ private fun PersonalDetailsCard(
 }
 
 @Composable
-private fun PasswordResetCard(
+private fun SecurityAppLockCard(
     userEmail: String,
-    onResetPasswordClick: () -> Unit
+    biometricsEnabled: Boolean,
+    onBiometricsChange: (Boolean) -> Unit,
+    onSendResetLink: () -> Unit
 ) {
+    val navyText = Color(0xFF121660)
+
     ProfileGroupCard {
+        // Row 1: Biometric Fingerprint Lock
         ProfileDetailRow(
-            icon = Icons.Rounded.LockReset,
-            label = "Password & Security",
-            value = "••••••••",
+            icon = Icons.Rounded.Fingerprint,
+            label = "Biometric Fingerprint Lock",
+            value = if (biometricsEnabled) "App lock active" else "Disabled",
             trailingContent = {
-                TextButton(onClick = onResetPasswordClick) {
+                Switch(
+                    checked = biometricsEnabled,
+                    onCheckedChange = onBiometricsChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = navyText,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant
+                    )
+                )
+            }
+        )
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), thickness = 0.8.dp)
+
+        // Row 2: Account Password Change
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.LockReset,
+                        contentDescription = null,
+                        tint = navyText,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Column {
                     Text(
-                        text = "Reset Password",
+                        text = "Change Account Password",
                         fontFamily = PlusJakartaSansFontFamily,
-                        fontSize = 12.5.sp,
+                        fontSize = 13.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = BrandTangerine
+                        color = navyText
+                    )
+                    Text(
+                        text = "Send password reset link to $userEmail",
+                        fontFamily = PlusJakartaSansFontFamily,
+                        fontSize = 11.sp,
+                        color = navyText.copy(alpha = 0.7f)
                     )
                 }
             }
-        )
+
+            Button(
+                onClick = onSendResetLink,
+                colors = ButtonDefaults.buttonColors(containerColor = navyText),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+            ) {
+                Text(
+                    text = "Send Password Reset Email",
+                    fontFamily = PlusJakartaSansFontFamily,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        }
     }
 }
 
@@ -751,4 +872,13 @@ fun EditProfileBottomSheet(
             }
         }
     }
+}
+
+private fun android.content.Context.findFragmentActivity(): androidx.fragment.app.FragmentActivity? {
+    var ctx = this
+    while (ctx is android.content.ContextWrapper) {
+        if (ctx is androidx.fragment.app.FragmentActivity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }

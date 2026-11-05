@@ -21,20 +21,22 @@ import com.example.intrack.util.CurrencyFormatter
 /**
  * Standard centered hero currency display used across Expenses overview, Goals overview,
  * and Goal detail screens.
- * Aligns the currency prefix ("LKR") and the numeric figures along their baseline to avoid vertical misalignment.
+ * Aligns the currency prefix and numeric figures along their baseline.
  */
 @Composable
 fun InTrackHeroAmount(
     amountLkr: Double,
     modifier: Modifier = Modifier,
-    prefix: String = "LKR",
+    prefix: String = CurrencyFormatter.getCurrencySymbol(),
     amountFontSize: TextUnit = 30.sp,
     prefixFontSize: TextUnit = 18.sp,
     textColor: Color = MaterialTheme.colorScheme.onSurface,
     prefixColor: Color = FigmaTerracotta,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Center
 ) {
-    val formattedAmount = CurrencyFormatter.formatLkr(amountLkr).replace("LKR ", "")
+    val activeSymbol = CurrencyFormatter.getCurrencySymbol()
+    val fullFormatted = CurrencyFormatter.formatLkr(amountLkr)
+    val numericFormatted = fullFormatted.replace(activeSymbol, "").trim()
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -52,7 +54,7 @@ fun InTrackHeroAmount(
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
-            text = formattedAmount,
+            text = numericFormatted,
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontSize = amountFontSize,
                 fontWeight = FontWeight.Bold,

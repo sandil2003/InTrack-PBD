@@ -1015,6 +1015,9 @@ fun TotalInflowBreakdownCard(
             Spacer(modifier = Modifier.height(14.dp))
 
             // 2. Hero Amount Row
+            val currentSymbol = CurrencyFormatter.getCurrencySymbol()
+            val formattedInflowAmount = CurrencyFormatter.formatLkr(totalInflowLkr).replace(currentSymbol, "").trim()
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(
@@ -1024,7 +1027,7 @@ fun TotalInflowBreakdownCard(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = "LKR",
+                    text = currentSymbol,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -1033,7 +1036,7 @@ fun TotalInflowBreakdownCard(
                     modifier = Modifier.alignByBaseline()
                 )
                 Text(
-                    text = CurrencyFormatter.formatLkr(totalInflowLkr).replace("LKR", "").trim(),
+                    text = formattedInflowAmount,
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontSize = 32.sp,
                         fontWeight = FontWeight.ExtraBold,

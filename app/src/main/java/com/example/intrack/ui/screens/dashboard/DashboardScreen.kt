@@ -777,6 +777,9 @@ fun HighlightedHeroBalanceCard(
                         textAlign = TextAlign.Center
                     )
 
+                    val currentSymbol = CurrencyFormatter.getCurrencySymbol()
+                    val formattedHeroAmount = CurrencyFormatter.formatLkr(remainingBalance).replace(currentSymbol, "").trim()
+
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(
                             space = 6.dp,
@@ -785,7 +788,7 @@ fun HighlightedHeroBalanceCard(
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Text(
-                            text = "LKR",
+                            text = currentSymbol,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
@@ -794,7 +797,7 @@ fun HighlightedHeroBalanceCard(
                             modifier = Modifier.alignByBaseline()
                         )
                         Text(
-                            text = CurrencyFormatter.formatLkr(remainingBalance).replace("LKR", "").trim(),
+                            text = formattedHeroAmount,
                             style = MaterialTheme.typography.headlineLarge.copy(
                                 fontSize = 34.sp,
                                 fontWeight = FontWeight.ExtraBold,

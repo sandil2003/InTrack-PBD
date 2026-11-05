@@ -195,68 +195,47 @@ fun AddGoalValueSheet(
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // --- Sheet Header (Figma node 2026:1600) ---
+            // --- Sheet Header ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(FigmaSoftPeach),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Savings,
-                            contentDescription = null,
-                            tint = FigmaTerracotta,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = "Deposit to ${goal.title}",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = FigmaDarkText,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Allocate regular savings or sweep freelance windfalls",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Normal
-                            ),
-                            color = FigmaMutedSlate,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Deposit Funds",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color(0xFF121660),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Goal: ${goal.title}",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = Color(0xFF121660).copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
 
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(FigmaBg)
+                        .background(BrandSoftSlate)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = "Close",
-                        tint = FigmaMutedSlate,
-                        modifier = Modifier.size(16.dp)
+                        tint = Color(0xFF121660),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -362,41 +341,20 @@ fun AddGoalValueSheet(
                 }
             }
 
-            // --- 2. Source-Linked Income Channel Selector (Figma node 2026:1633) ---
+            // --- 2. Source-Linked Income Channel Selector ---
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "SELECT SOURCE / INCOME CHANNEL",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = FigmaMutedSlate
-                    )
-
-                    InTrackStatusBadge(
-                        text = "${incomeChannels.size} Sources",
-                        containerColor = FigmaSoftPeach,
-                        contentColor = FigmaTerracottaOrange,
-                        fontSize = 10.5.sp
-                    )
-                }
-
                 Text(
-                    text = "Tagging your side-hustles accelerates goal momentum and tracks revenue origins.",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                    text = "SELECT SOURCE / INCOME CHANNEL",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    ),
                     color = FigmaMutedSlate
                 )
-
-                Spacer(modifier = Modifier.height(2.dp))
 
                 // Source Options Stack
                 Column(
@@ -405,8 +363,8 @@ fun AddGoalValueSheet(
                 ) {
                     incomeChannels.forEach { channel ->
                         val isSelected = selectedSourceId == channel.id
-                        val cardBorder = if (isSelected) FigmaTerracotta else FigmaBorder
-                        val cardBg = if (isSelected) MaterialTheme.colorScheme.surface else FigmaBg
+                        val cardBorder = if (isSelected) Color(0xFF121660) else FigmaBorder
+                        val cardBg = if (isSelected) Color.White else FigmaBg
 
                         Row(
                             modifier = Modifier
@@ -414,8 +372,8 @@ fun AddGoalValueSheet(
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(cardBg)
                                 .border(if (isSelected) 1.5.dp else 1.dp, cardBorder, RoundedCornerShape(16.dp))
-                            .clickable { selectedSourceId = channel.id }
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                                .clickable { selectedSourceId = channel.id }
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -428,13 +386,13 @@ fun AddGoalValueSheet(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .background(if (isSelected) FigmaSoftPeach else Color(0xFFEFEEEA)),
+                                        .background(if (isSelected) BrandSoftSlate else Color(0xFFEFEEEA)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = channel.icon,
                                         contentDescription = null,
-                                        tint = if (isSelected) FigmaTerracotta else FigmaMutedSlate,
+                                        tint = Color(0xFF121660),
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -444,14 +402,14 @@ fun AddGoalValueSheet(
                                         text = channel.title,
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontSize = 14.sp,
-                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                         ),
-                                        color = FigmaDarkText,
+                                        color = Color(0xFF121660),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = "Available: ${CurrencyFormatter.formatLkr(channel.availableLkr)} • ${channel.note}",
+                                        text = "Available: ${CurrencyFormatter.formatLkr(channel.availableLkr)}",
                                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                                         color = FigmaMutedSlate,
                                         maxLines = 1,
@@ -465,13 +423,13 @@ fun AddGoalValueSheet(
                                     modifier = Modifier
                                         .size(22.dp)
                                         .clip(CircleShape)
-                                        .background(FigmaTerracotta),
+                                        .background(Color(0xFF121660)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Check,
                                         contentDescription = "Selected",
-                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        tint = Color.White,
                                         modifier = Modifier.size(14.dp)
                                     )
                                 }
@@ -487,174 +445,46 @@ fun AddGoalValueSheet(
                 }
             }
 
-            // --- 3. Smart Rule Toggle: Freelance Windfall Sweep (Figma node 2026:1690) ---
+            // --- 3. Smart Rule Toggle: Freelance Windfall Sweep ---
             Card(
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = FigmaSoftPeach),
-                border = BorderStroke(1.dp, FigmaPeachBar.copy(alpha = 0.5f)),
+                colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+                border = BorderStroke(0.dp, Color.Transparent),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surface),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AutoAwesome,
-                            contentDescription = null,
-                            tint = FigmaTerracotta,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Auto-Sweep Windfall Rule",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontSize = 13.5.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = FigmaDarkText
-                            )
-
-                            Switch(
-                                checked = autoSweepEnabled,
-                                onCheckedChange = { autoSweepEnabled = it },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = MaterialTheme.colorScheme.surface,
-                                    checkedTrackColor = FigmaLightOrange,
-                                    uncheckedThumbColor = FigmaMutedSlate,
-                                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                                ),
-                                modifier = Modifier.height(24.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Text(
-                            text = "Automatically route 30% of upcoming freelance milestone payments to ${goal.title}.",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.5.sp,
-                                lineHeight = 16.sp
-                            ),
-                            color = FigmaNoteBrown
-                        )
-                    }
-                }
-            }
-
-            // --- 4. Recent Contribution History Micro-Feed (Figma node 2026:1704) ---
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "RECENT CONTRIBUTIONS (${recentContributions.size})",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
+                        text = "Auto-Sweep Freelance Rule",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold
                         ),
-                        color = FigmaMutedSlate
+                        color = Color(0xFF121660)
                     )
 
-                    Text(
-                        text = "View All",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = FigmaTerracottaOrange,
-                        modifier = Modifier.clickable { /* View details */ }
-                    )
-                }
-
-                recentContributions.forEach { record ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(FigmaBg)
-                            .border(1.dp, FigmaBorder, RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surface),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = record.icon,
-                                    contentDescription = null,
-                                    tint = FigmaTerracotta,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = record.title,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    color = FigmaDarkText
-                                )
-                                if (record.subtitle.isNotBlank()) {
-                                    Text(
-                                        text = record.subtitle,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp
-                                        ),
-                                        color = FigmaMutedSlate
-                                    )
-                                }
-                            }
-                        }
-
-                        Text(
-                            text = "+ ${CurrencyFormatter.formatLkr(record.amountLkr)}",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = FigmaTerracottaOrange
+                    Switch(
+                        checked = autoSweepEnabled,
+                        onCheckedChange = { autoSweepEnabled = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFF121660),
+                            uncheckedThumbColor = Color.White,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant
                         )
-                    }
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // --- 5. Confirm Deposit CTA Button ---
+            // --- 4. Confirm Deposit CTA Button ---
             Button(
                 onClick = {
                     if (depositAmount > 0) {
