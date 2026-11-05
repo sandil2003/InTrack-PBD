@@ -119,4 +119,11 @@ object AppModule {
     @Provides
     @Singleton
     fun provideBiometricAuthManager(): com.example.intrack.util.BiometricAuthManager = com.example.intrack.util.BiometricAuthManager()
+
+    @Provides
+    @Singleton
+    fun provideNotificationPreferences(
+        @ApplicationContext context: Context
+    ): com.example.intrack.notification.NotificationPreferences =
+        com.example.intrack.notification.NotificationPreferences(context)
 }
