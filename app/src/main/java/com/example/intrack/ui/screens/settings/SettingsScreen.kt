@@ -1,6 +1,14 @@
 package com.example.intrack.ui.screens.settings
 
 import android.widget.Toast
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.example.intrack.notification.NotificationPreferences
+import com.example.intrack.notification.NotificationScheduler
 import androidx.fragment.app.FragmentActivity
 import com.example.intrack.data.local.SecurityPreferences
 import com.example.intrack.util.BiometricAuthManager
@@ -165,9 +173,53 @@ fun SettingsScreen(
     val weeklyStartDay = userProfile.weeklyStartDay
 
     // Toggle states
-    var pushNotificationsEnabled by remember { mutableStateOf(true) }
-    var renewalRemindersEnabled by remember { mutableStateOf(true) }
-    var autoDebitMarginEnabled by remember { mutableStateOf(true) }
+    // Persistent Notification Preferences
+    val notificationPreferences = remember { NotificationPreferences(context) }
+    val pushNotificationsEnabled by notificationPreferences.pushNotificationsEnabledFlow.collectAsState()
+    val renewalRemindersEnabled by notificationPreferences.renewalRemindersEnabledFlow.collectAsState()
+    val autoDebitMarginEnabled by notificationPreferences.autoDebitMarginEnabledFlow.collectAsState()
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            notificationPreferences.pushNotificationsEnabled = true
+            NotificationScheduler.schedulePeriodicWork(context)
+            Toast.makeText(context, "Background notifications enabled", Toast.LENGTH_SHORT).show()
+        } else {
+            notificationPreferences.pushNotificationsEnabled = false
+            Toast.makeText(context, "Notification permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val handlePushNotificationToggle: (Boolean) -> Unit = { enabled ->
+        if (enabled) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+
+                if (!hasPermission) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    notificationPreferences.pushNotificationsEnabled = true
+                    NotificationScheduler.schedulePeriodicWork(context)
+                    Toast.makeText(context, "Background notifications enabled", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                notificationPreferences.pushNotificationsEnabled = true
+                NotificationScheduler.schedulePeriodicWork(context)
+                Toast.makeText(context, "Background notifications enabled", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            notificationPreferences.pushNotificationsEnabled = false
+            NotificationScheduler.cancelPeriodicWork(context)
+            Toast.makeText(context, "Background notifications paused", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
 
     // Persistent Security & Biometric Preferences
     val securityPreferences = remember { SecurityPreferences(context) }
@@ -387,11 +439,11 @@ fun SettingsScreen(
                             SettingsSectionHeader(title = "SUBSCRIPTIONS & NOTIFICATIONS")
                             NotificationsGroupCard(
                                 pushNotificationsEnabled = pushNotificationsEnabled,
-                                onPushNotificationsChange = { pushNotificationsEnabled = it },
+                                onPushNotificationsChange = handlePushNotificationToggle,
                                 renewalRemindersEnabled = renewalRemindersEnabled,
-                                onRenewalRemindersChange = { renewalRemindersEnabled = it },
+                                onRenewalRemindersChange = { notificationPreferences.renewalRemindersEnabled = it },
                                 autoDebitMarginEnabled = autoDebitMarginEnabled,
-                                onAutoDebitMarginChange = { autoDebitMarginEnabled = it },
+                                onAutoDebitMarginChange = { notificationPreferences.autoDebitMarginEnabled = it },
                                 isCompactWidth = isCompactWidth
                             )
 
@@ -472,11 +524,11 @@ fun SettingsScreen(
                         SettingsSectionHeader(title = "SUBSCRIPTIONS & NOTIFICATIONS")
                         NotificationsGroupCard(
                             pushNotificationsEnabled = pushNotificationsEnabled,
-                            onPushNotificationsChange = { pushNotificationsEnabled = it },
+                            onPushNotificationsChange = handlePushNotificationToggle,
                             renewalRemindersEnabled = renewalRemindersEnabled,
-                            onRenewalRemindersChange = { renewalRemindersEnabled = it },
+                            onRenewalRemindersChange = { notificationPreferences.renewalRemindersEnabled = it },
                             autoDebitMarginEnabled = autoDebitMarginEnabled,
-                            onAutoDebitMarginChange = { autoDebitMarginEnabled = it },
+                            onAutoDebitMarginChange = { notificationPreferences.autoDebitMarginEnabled = it },
                             isCompactWidth = isCompactWidth
                         )
 

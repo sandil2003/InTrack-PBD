@@ -13,6 +13,12 @@ interface SubscriptionDao {
     @Query("SELECT * FROM subscriptions WHERE userId = :userId")
     fun getSubscriptions(userId: String): Flow<List<SubscriptionEntity>>
 
+    @Query("SELECT * FROM subscriptions WHERE userId = :userId")
+    suspend fun getSubscriptionsForUser(userId: String): List<SubscriptionEntity>
+
+    @Query("SELECT * FROM subscriptions")
+    suspend fun getAllSubscriptions(): List<SubscriptionEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(subscription: SubscriptionEntity)
 
