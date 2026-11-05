@@ -1,4 +1,4 @@
-package com.example.intrack.widget
+package com.example.intrack.ui.widget
 
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver

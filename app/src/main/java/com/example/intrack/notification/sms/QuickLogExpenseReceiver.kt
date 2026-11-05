@@ -10,7 +10,7 @@ import android.widget.Toast
 import androidx.core.app.NotificationManagerCompat
 import com.example.intrack.data.model.ExpenseEntity
 import com.example.intrack.notification.NotificationWorkerEntryPoint
-import com.example.intrack.widget.InTrackGlanceWidget
+import com.example.intrack.ui.widget.InTrackGlanceWidget
 import dagger.hilt.EntryPoints
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

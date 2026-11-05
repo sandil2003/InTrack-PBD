@@ -114,11 +114,7 @@ fun GoalTrackerScreen(
         floatingActionButton = {
             InTrackAddFab(
                 onClick = {
-                    if (onNavigateToAddGoal != null) {
-                        onNavigateToAddGoal()
-                    } else {
-                        showAddGoalDialog = true
-                    }
+                    showAddGoalDialog = true
                 },
                 contentDescription = "New Financial Goal"
             )
@@ -156,11 +152,7 @@ fun GoalTrackerScreen(
                         icon = Icons.Rounded.TrackChanges,
                         actionLabel = "Create First Goal",
                         onActionClick = {
-                            if (onNavigateToAddGoal != null) {
-                                onNavigateToAddGoal()
-                            } else {
-                                showAddGoalDialog = true
-                            }
+                            showAddGoalDialog = true
                         }
                     )
                 }
@@ -232,7 +224,7 @@ fun GoalTrackerScreen(
     }
 
     if (showAddGoalDialog) {
-        AddGoalBottomSheet(
+        AddGoalDialog(
             onDismiss = { showAddGoalDialog = false },
             onSubmit = { newGoal ->
                 viewModel.addGoal(newGoal)
@@ -600,7 +592,7 @@ fun FigmaCreateGoalDialog(
     onDismiss: () -> Unit,
     onSubmit: (GoalEntity) -> Unit
 ) {
-    AddGoalBottomSheet(
+    AddGoalDialog(
         onDismiss = onDismiss,
         onSubmit = onSubmit
     )

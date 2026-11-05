@@ -36,6 +36,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CreditCard
@@ -46,11 +47,18 @@ import androidx.compose.material.icons.rounded.LaptopMac
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.TrackChanges
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -95,6 +103,313 @@ data class GoalCategoryOption(
     val icon: ImageVector
 )
 
+data class GoalFundingAccountOption(
+    val key: String,
+    val title: String,
+    val balanceLabel: String,
+    val icon: ImageVector
+)
+
+/**
+ * Modal Card Dialog version of "Add Goal" matching the Expenses page's AddExpenseDialog design language.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddGoalDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (GoalEntity) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var titleText by remember { mutableStateOf("") }
+    var targetAmountInput by remember { mutableStateOf("") }
+    var initialDepositInput by remember { mutableStateOf("") }
+    var selectedCategoryKey by remember { mutableStateOf("TECH") }
+    var selectedAccountKey by remember { mutableStateOf("CARD_PRIMARY") }
+    var selectedMonths by remember { mutableStateOf(12) }
+
+    val categories = remember {
+        listOf(
+            GoalCategoryOption("TECH", "Tech & Gadgets", Icons.Rounded.LaptopMac),
+            GoalCategoryOption("TRAVEL", "Travel & Vacation", Icons.Rounded.Flight),
+            GoalCategoryOption("EMERGENCY", "Emergency Buffer", Icons.Rounded.Savings),
+            GoalCategoryOption("VEHICLE", "Vehicle", Icons.Rounded.DirectionsCar),
+            GoalCategoryOption("HOME", "Home & Living", Icons.Rounded.Home),
+            GoalCategoryOption("INVESTMENT", "Investment", Icons.AutoMirrored.Rounded.TrendingUp)
+        )
+    }
+
+    val accounts = remember {
+        listOf(
+            GoalFundingAccountOption("CARD_PRIMARY", "Card Primary", "Card", Icons.Rounded.CreditCard),
+            GoalFundingAccountOption("CASH", "Cash Wallet", "Cash", Icons.Rounded.AccountBalanceWallet),
+            GoalFundingAccountOption("ACCOUNT_SECONDARY", "Secondary", "Bank", Icons.Rounded.AccountBalance)
+        )
+    }
+
+    val timeframeOptions = remember {
+        listOf(
+            "3 Months" to 3,
+            "6 Months" to 6,
+            "1 Year" to 12,
+            "2 Years" to 24
+        )
+    }
+
+    val parsedTarget = targetAmountInput.replace(",", "").toDoubleOrNull() ?: 0.0
+    val parsedInitial = initialDepositInput.replace(",", "").toDoubleOrNull() ?: 0.0
+    val amountToSave = (parsedTarget - parsedInitial).coerceAtLeast(0.0)
+    val monthsCount = selectedMonths.toDouble().coerceAtLeast(1.0)
+    val estimatedMonthlyRate = if (parsedTarget > 0.0) amountToSave / monthsCount else 0.0
+
+    val navyText = Color(0xFF121660)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        title = {
+            Text(
+                text = "New Financial Goal",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = navyText
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = titleText,
+                    onValueChange = { titleText = it },
+                    label = { Text("Goal Title / Name") },
+                    placeholder = { Text("e.g. MacBook Pro M4, Japan Trip") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = navyText,
+                        focusedLabelColor = navyText
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = targetAmountInput,
+                    onValueChange = { newValue ->
+                        val filtered = newValue.filter { it.isDigit() || it == '.' }
+                        targetAmountInput = filtered
+                    },
+                    label = { Text("Target Amount (LKR)") },
+                    placeholder = { Text("0.00") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = navyText,
+                        focusedLabelColor = navyText
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = initialDepositInput,
+                    onValueChange = { newValue ->
+                        val filtered = newValue.filter { it.isDigit() || it == '.' }
+                        initialDepositInput = filtered
+                    },
+                    label = { Text("Initial Deposit (LKR) - Optional") },
+                    placeholder = { Text("0.00") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = navyText,
+                        focusedLabelColor = navyText
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "Category",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = navyText
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    categories.forEach { category ->
+                        val isSelected = selectedCategoryKey == category.key
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedCategoryKey = category.key },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = category.icon,
+                                    contentDescription = category.label,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) Color.White else navyText
+                                )
+                            },
+                            label = { Text(category.label, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = navyText,
+                                selectedLabelColor = Color.White,
+                                containerColor = BrandSoftSlate,
+                                labelColor = navyText
+                            )
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Primary Funding Source",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = navyText
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    accounts.forEach { account ->
+                        val isSelected = selectedAccountKey == account.key
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedAccountKey = account.key },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = account.icon,
+                                    contentDescription = account.title,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) Color.White else navyText
+                                )
+                            },
+                            label = { Text(account.title, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = navyText,
+                                selectedLabelColor = Color.White,
+                                containerColor = BrandSoftSlate,
+                                labelColor = navyText
+                            )
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Target Timeframe",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = navyText
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    timeframeOptions.forEach { (label, months) ->
+                        val isSelected = selectedMonths == months
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedMonths = months },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.CalendarToday,
+                                    contentDescription = label,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = if (isSelected) Color.White else navyText
+                                )
+                            },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = navyText,
+                                selectedLabelColor = Color.White,
+                                containerColor = BrandSoftSlate,
+                                labelColor = navyText
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(navyText.copy(alpha = 0.12f))
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Est. Monthly Target",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = navyText
+                    )
+                    Text(
+                        text = "${CurrencyFormatter.formatLkr(estimatedMonthlyRate)}/mo",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = navyText
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (parsedTarget > 0.0 && titleText.isNotBlank()) {
+                        val cal = Calendar.getInstance()
+                        cal.add(Calendar.MONTH, selectedMonths)
+                        val targetDate = cal.timeInMillis
+
+                        val newGoal = GoalEntity(
+                            id = UUID.randomUUID().toString(),
+                            userId = "",
+                            title = titleText.trim(),
+                            targetAmountLkr = parsedTarget,
+                            currentSavedLkr = parsedInitial,
+                            targetDateMillis = targetDate,
+                            monthlyTargetRunRateLkr = estimatedMonthlyRate,
+                            isCompleted = parsedInitial >= parsedTarget,
+                            category = selectedCategoryKey,
+                            initialDepositLkr = parsedInitial,
+                            primaryFundingSource = selectedAccountKey,
+                            remindMonthlyPace = true,
+                            createdAtMillis = System.currentTimeMillis()
+                        )
+                        onSubmit(newGoal)
+                    }
+                },
+                enabled = parsedTarget > 0.0 && titleText.isNotBlank(),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = navyText)
+            ) {
+                Text("Save Goal", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier
+    )
+}
+
 /**
  * Full-screen destination of "Add Goal" matching Figma Node 2028:1720.
  */
@@ -105,28 +420,14 @@ fun AddGoalScreen(
     goalViewModel: GoalViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    Box(
+    AddGoalDialog(
+        onDismiss = onNavigateBack,
+        onSubmit = { newGoal ->
+            goalViewModel.addGoal(newGoal)
+            onGoalSaved()
+        },
         modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 16.dp)
-                .clip(RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp))
-                .background(MaterialTheme.colorScheme.surface)
-        ) {
-            AddGoalContent(
-                onDismiss = onNavigateBack,
-                onSubmit = { newGoal ->
-                    goalViewModel.addGoal(newGoal)
-                    onGoalSaved()
-                }
-            )
-        }
-    }
+    )
 }
 
 /**
@@ -139,21 +440,11 @@ fun AddGoalBottomSheet(
     onSubmit: (GoalEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = null,
-        modifier = modifier.imePadding()
-    ) {
-        AddGoalContent(
-            onDismiss = onDismiss,
-            onSubmit = onSubmit
-        )
-    }
+    AddGoalDialog(
+        onDismiss = onDismiss,
+        onSubmit = onSubmit,
+        modifier = modifier
+    )
 }
 
 /**

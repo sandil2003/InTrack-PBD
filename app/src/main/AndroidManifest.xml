@@ -43,7 +43,7 @@
 
         <!-- 100% Jetpack Compose Home Screen Widget (Jetpack Glance) -->
         <receiver
-            android:name=".widget.InTrackGlanceWidgetReceiver"
+            android:name=".ui.widget.InTrackGlanceWidgetReceiver"
             android:exported="true"
             android:label="InTrack Goal &amp; Quick Log">
             <intent-filter>

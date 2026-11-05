@@ -1,4 +1,4 @@
-package com.example.intrack.widget
+package com.example.intrack.ui.widget
 
 import com.example.intrack.data.local.ExpenseDao
 import com.example.intrack.data.local.GoalDao

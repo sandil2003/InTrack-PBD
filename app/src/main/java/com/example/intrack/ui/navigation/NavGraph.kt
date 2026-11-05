@@ -287,9 +287,6 @@ fun FinFlowNavGraph(
                     onNavigateToGoalDetail = { goalId ->
                         navController.navigate(Screen.GoalDetail.createRoute(goalId))
                     },
-                    onNavigateToAddGoal = {
-                        navController.navigate(Screen.AddGoal.route)
-                    },
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                     onNavigateToProfile = { navController.navigate(Screen.Profile.route) },

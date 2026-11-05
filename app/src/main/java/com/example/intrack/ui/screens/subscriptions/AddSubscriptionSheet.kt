@@ -41,21 +41,33 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.AddCircle
+import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.CalendarToday
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.FitnessCenter
+import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LiveTv
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -82,7 +94,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.SubscriptionEntity
+import com.example.intrack.util.CurrencyFormatter
 import com.example.intrack.ui.theme.*
+import com.example.intrack.ui.theme.BrandSoftSlate
+import com.example.intrack.ui.theme.PlusJakartaSansFontFamily
+import com.example.intrack.ui.theme.FigmaSoftPeach
+import com.example.intrack.ui.theme.FigmaTerracotta
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -131,6 +148,437 @@ fun AddSubscriptionScreen(
                     onSubscriptionSaved(sub)
                 }
             )
+        }
+    }
+}
+
+/**
+ * Modal Card Dialog version of "Add / Edit Subscription" matching the Expenses page's AddExpenseDialog design language.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddSubscriptionDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (SubscriptionEntity) -> Unit,
+    initialSubscription: SubscriptionEntity? = null,
+    modifier: Modifier = Modifier
+) {
+    var nameText by remember { mutableStateOf(initialSubscription?.name ?: "") }
+    var amountInput by remember {
+        mutableStateOf(
+            if (initialSubscription != null && initialSubscription.amountLkr > 0) {
+                String.format(Locale.US, "%.2f", initialSubscription.amountLkr)
+            } else ""
+        )
+    }
+    var selectedCategoryKey by remember { mutableStateOf(initialSubscription?.category ?: "ENTERTAINMENT") }
+    var selectedBillingFrequency by remember { mutableStateOf(initialSubscription?.billingCycle ?: "MONTHLY") }
+    var selectedAccountKey by remember { mutableStateOf(initialSubscription?.paymentAccount ?: "CARD_PRIMARY") }
+    var isAutoPayment by remember { mutableStateOf(initialSubscription?.isAutoPayment ?: true) }
+    var isFlaggedForReview by remember { mutableStateOf(initialSubscription?.isFlaggedForReview ?: false) }
+    var selectedDateMillis by remember {
+        mutableLongStateOf(
+            initialSubscription?.nextBillingMillis ?: (System.currentTimeMillis() + 9L * 24 * 60 * 60 * 1000L)
+        )
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val categories = remember {
+        listOf(
+            SubCategoryOption("ENTERTAINMENT", "Entertainment", Icons.Rounded.LiveTv),
+            SubCategoryOption("HOUSING", "Housing & Rent", Icons.Rounded.Home),
+            SubCategoryOption("HEALTH", "Health & Fitness", Icons.Rounded.FitnessCenter),
+            SubCategoryOption("TECH", "Tech & SaaS", Icons.Rounded.Devices),
+            SubCategoryOption("UTILITIES", "Utilities", Icons.Rounded.Bolt),
+            SubCategoryOption("LIFESTYLE", "Lifestyle", Icons.Rounded.Spa)
+        )
+    }
+
+    val frequencies = remember {
+        listOf(
+            "MONTHLY" to "Monthly",
+            "ANNUAL" to "Annual",
+            "WEEKLY" to "Weekly",
+            "QUARTERLY" to "Quarterly"
+        )
+    }
+
+    val accounts = remember {
+        listOf(
+            Triple("CARD_PRIMARY", "Card Primary", Icons.Rounded.CreditCard),
+            Triple("ACCOUNT_SECONDARY", "Secondary Bank", Icons.Rounded.AccountBalance),
+            Triple("CASH", "Cash Wallet", Icons.Rounded.AccountBalanceWallet)
+        )
+    }
+
+    val parsedAmount = amountInput.toDoubleOrNull() ?: 0.0
+    val navyText = Color(0xFF121660)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        title = {
+            Text(
+                text = if (initialSubscription != null) "Edit Subscription" else "Log New Subscription",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = navyText
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = nameText,
+                    onValueChange = { nameText = it },
+                    label = { Text("Subscription Name / Service") },
+                    placeholder = { Text("e.g. Netflix, Spotify, Gym, AWS") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = navyText,
+                        focusedLabelColor = navyText
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = amountInput,
+                    onValueChange = { newValue ->
+                        val filtered = newValue.filter { it.isDigit() || it == '.' }
+                        amountInput = filtered
+                    },
+                    label = { Text("Billing Amount (LKR)") },
+                    placeholder = { Text("0.00") },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done
+                    ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = navyText,
+                        focusedLabelColor = navyText
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Category Section
+                Text(
+                    text = "Category",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = navyText
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    categories.forEach { category ->
+                        val isSelected = selectedCategoryKey.equals(category.key, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedCategoryKey = category.key },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = category.icon,
+                                    contentDescription = category.label,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) Color.White else navyText
+                                )
+                            },
+                            label = { Text(category.label, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = navyText,
+                                selectedLabelColor = Color.White,
+                                containerColor = BrandSoftSlate,
+                                labelColor = navyText
+                            )
+                        )
+                    }
+                }
+
+                // Billing Frequency Section
+                Text(
+                    text = "Billing Frequency",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = navyText
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    frequencies.forEach { (key, label) ->
+                        val isSelected = selectedBillingFrequency.equals(key, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedBillingFrequency = key },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = navyText,
+                                selectedLabelColor = Color.White,
+                                containerColor = BrandSoftSlate,
+                                labelColor = navyText
+                            )
+                        )
+                    }
+                }
+
+                // Paid From Section
+                Text(
+                    text = "Paid From",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = navyText
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    accounts.forEach { (key, title, icon) ->
+                        val isSelected = selectedAccountKey == key
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedAccountKey = key },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = title,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSelected) Color.White else navyText
+                                )
+                            },
+                            label = { Text(title, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = navyText,
+                                selectedLabelColor = Color.White,
+                                containerColor = BrandSoftSlate,
+                                labelColor = navyText
+                            )
+                        )
+                    }
+                }
+
+                // Next Due Date Row
+                Text(
+                    text = "Next Renewal Date",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = navyText
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(BrandSoftSlate)
+                        .clickable { showDatePicker = true }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CalendarToday,
+                            contentDescription = "Renewal Date",
+                            tint = navyText,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = SimpleDateFormat("MMM dd, yyyy", Locale.US).format(Date(selectedDateMillis)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = navyText
+                        )
+                    }
+                    Text(
+                        text = "Change",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                // Auto-Debit & Review Flag Section
+                Text(
+                    text = "Payment Method & Review",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = navyText
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = isAutoPayment,
+                        onClick = { isAutoPayment = !isAutoPayment },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (isAutoPayment) Icons.Rounded.Sync else Icons.Rounded.CheckCircle,
+                                contentDescription = "Auto-debit",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (isAutoPayment) Color.White else navyText
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = if (isAutoPayment) "Auto-Debit On" else "Manual Pay",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = navyText,
+                            selectedLabelColor = Color.White,
+                            containerColor = BrandSoftSlate,
+                            labelColor = navyText
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    FilterChip(
+                        selected = isFlaggedForReview,
+                        onClick = { isFlaggedForReview = !isFlaggedForReview },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Flag,
+                                contentDescription = "Flag for review",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (isFlaggedForReview) Color.White else navyText
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = if (isFlaggedForReview) "Flagged" else "Audit Flag",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = navyText,
+                            selectedLabelColor = Color.White,
+                            containerColor = BrandSoftSlate,
+                            labelColor = navyText
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                // Outflow Summary Banner
+                val cycleSuffix = when (selectedBillingFrequency.uppercase()) {
+                    "ANNUAL", "YEARLY" -> "/yr"
+                    "WEEKLY" -> "/wk"
+                    "QUARTERLY" -> "/qtr"
+                    else -> "/mo"
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(navyText.copy(alpha = 0.12f))
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Recurring Cost",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = navyText
+                    )
+                    Text(
+                        text = "${CurrencyFormatter.formatLkr(parsedAmount)} $cycleSuffix",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = navyText
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (nameText.isNotBlank() && parsedAmount > 0.0) {
+                        val sub = SubscriptionEntity(
+                            id = initialSubscription?.id ?: UUID.randomUUID().toString(),
+                            userId = initialSubscription?.userId ?: "",
+                            name = nameText.trim(),
+                            amountLkr = parsedAmount,
+                            billingCycle = selectedBillingFrequency.uppercase(),
+                            paymentAccount = selectedAccountKey,
+                            category = selectedCategoryKey.uppercase(),
+                            status = if (isFlaggedForReview) "UNUSED_FLAGGED" else (initialSubscription?.status ?: "ACTIVE"),
+                            nextBillingMillis = selectedDateMillis,
+                            isAutoPayment = isAutoPayment,
+                            isFlaggedForReview = isFlaggedForReview,
+                            totalPaidLkr = initialSubscription?.totalPaidLkr ?: parsedAmount,
+                            billingCyclesCount = initialSubscription?.billingCyclesCount ?: 1
+                        )
+                        onSubmit(sub)
+                    }
+                },
+                enabled = nameText.isNotBlank() && parsedAmount > 0.0,
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = navyText)
+            ) {
+                Text(
+                    text = if (initialSubscription != null) "Update Subscription" else "Save Subscription",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier
+    )
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDateMillis
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            selectedDateMillis = it
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("Done", fontWeight = FontWeight.Bold, color = navyText)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

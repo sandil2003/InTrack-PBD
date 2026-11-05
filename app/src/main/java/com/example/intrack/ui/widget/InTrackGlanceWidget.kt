@@ -1,4 +1,4 @@
-package com.example.intrack.widget
+package com.example.intrack.ui.widget
 
 import android.content.Context
 import android.content.Intent

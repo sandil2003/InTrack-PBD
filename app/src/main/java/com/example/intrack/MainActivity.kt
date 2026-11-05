@@ -27,7 +27,7 @@ import com.example.intrack.ui.theme.AppThemeMode
 import com.example.intrack.ui.theme.InTrackTheme
 import com.example.intrack.util.BiometricAuthManager
 import com.example.intrack.util.BiometricAvailability
-import com.example.intrack.widget.InTrackGlanceWidget
+import com.example.intrack.ui.widget.InTrackGlanceWidget
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers

@@ -130,6 +130,7 @@ import com.example.intrack.viewmodel.ExpenseViewModel
 import com.example.intrack.viewmodel.GoalViewModel
 import com.example.intrack.viewmodel.SubscriptionViewModel
 import com.example.intrack.ui.screens.subscriptions.AddSubscriptionBottomSheet
+import com.example.intrack.ui.screens.subscriptions.AddSubscriptionDialog
 import com.example.intrack.ui.screens.subscriptions.ViewSubscriptionBottomSheet
 import com.example.intrack.ui.theme.*
 import com.example.intrack.util.CurrencyFormatter
@@ -417,7 +418,7 @@ fun ExpenseAnalyticsScreen(
         }
 
         if (showAddSubscriptionDialog) {
-            AddSubscriptionBottomSheet(
+            AddSubscriptionDialog(
                 onDismiss = { showAddSubscriptionDialog = false },
                 onSubmit = { newSub ->
                     subscriptionViewModel.addSubscription(newSub)
@@ -430,7 +431,7 @@ fun ExpenseAnalyticsScreen(
         }
 
         if (subscriptionToEdit != null) {
-            AddSubscriptionBottomSheet(
+            AddSubscriptionDialog(
                 initialSubscription = subscriptionToEdit,
                 onDismiss = { subscriptionToEdit = null },
                 onSubmit = { updatedSub ->

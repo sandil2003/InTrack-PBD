@@ -58,7 +58,7 @@ class ExpenseViewModel @Inject constructor(
         context?.let { ctx ->
             viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                 try {
-                    com.example.intrack.widget.InTrackGlanceWidget.updateWidget(ctx)
+                    com.example.intrack.ui.widget.InTrackGlanceWidget.updateWidget(ctx)
                 } catch (_: Exception) {}
             }
         }
