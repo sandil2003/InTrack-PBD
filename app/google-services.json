@@ -12,7 +12,12 @@
           "package_name": "com.example.intrack"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "527660795071-0i7jrn1s461bs3jdf3a8227aiblrmh37.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCThMtVF0eLoB6vSSsJjU0UQs2lO4Oypf4"

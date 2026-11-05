@@ -50,15 +50,26 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.intrack.ui.screens.auth.LoginScreen
+import com.example.intrack.ui.screens.auth.SignInScreen
+import com.example.intrack.ui.screens.auth.SignUpScreen
 import com.example.intrack.ui.screens.dashboard.DashboardScreen
+import com.example.intrack.ui.screens.expenses.AddExpenseScreen
 import com.example.intrack.ui.screens.expenses.ExpenseAnalyticsScreen
+import com.example.intrack.ui.screens.goal.AddGoalScreen
 import com.example.intrack.ui.screens.goal.GoalDetailScreen
 import com.example.intrack.ui.screens.goal.GoalTrackerScreen
 import com.example.intrack.ui.screens.income.IncomeHubScreen
+import com.example.intrack.ui.screens.subscriptions.AddSubscriptionScreen
 import com.example.intrack.ui.screens.subscriptions.SubscriptionAuditScreen
 import com.example.intrack.ui.screens.transactions.AllTransactionsScreen
+import com.example.intrack.ui.screens.settings.SettingsScreen
+import com.example.intrack.ui.screens.profile.ProfileScreen
+import com.example.intrack.ui.screens.expenses.EditExpenseScreen
 
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.theme.AppThemeMode
+import com.example.intrack.viewmodel.AuthViewModel
+
 
 private data class BottomNavItem(
     val route: String,
@@ -71,15 +82,49 @@ fun FinFlowNavGraph(
     navController: NavHostController = rememberNavController(),
     themeMode: AppThemeMode = AppThemeMode.LIGHT,
     onThemeModeChange: (AppThemeMode) -> Unit = {},
+    pendingNavRoute: String? = null,
+    onClearPendingNavRoute: () -> Unit = {},
+    authViewModel: AuthViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Login.route
+    val isUserLoggedIn = remember { authViewModel.isUserLoggedIn() }
+    val startDestination = remember { if (isUserLoggedIn) Screen.Dashboard.route else Screen.Login.route }
+    val currentRoute = navBackStackEntry?.destination?.route ?: startDestination
 
-    val isBottomBarVisible = currentRoute != Screen.Login.route
+    androidx.compose.runtime.LaunchedEffect(pendingNavRoute, currentRoute) {
+        if (pendingNavRoute != null && currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route) {
+            val target = pendingNavRoute
+            onClearPendingNavRoute()
+            navController.navigate(target) {
+                popUpTo(Screen.Dashboard.route) {
+                    saveState = false
+                }
+                launchSingleTop = false
+            }
+        }
+    }
+
+    val handleSignOut: () -> Unit = {
+        authViewModel.signOut()
+        navController.navigate(Screen.Login.route) {
+            popUpTo(0) { inclusive = true }
+        }
+    }
+
+    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && !currentRoute.startsWith("add_expense") && currentRoute != Screen.AddSubscription.route && currentRoute != Screen.AddGoal.route && !currentRoute.startsWith("edit_expense")
 
     val navigateToRoute: (String) -> Unit = { route ->
-        if (currentRoute != route) {
+        if (route == Screen.Dashboard.route) {
+            if (currentRoute != Screen.Dashboard.route) {
+                navController.navigate(Screen.Dashboard.route) {
+                    popUpTo(Screen.Dashboard.route) {
+                        inclusive = false
+                    }
+                    launchSingleTop = true
+                }
+            }
+        } else if (currentRoute != route && !currentRoute.startsWith("${route}?")) {
             navController.navigate(route) {
                 popUpTo(Screen.Dashboard.route) {
                     saveState = true
@@ -105,7 +150,7 @@ fun FinFlowNavGraph(
     ) { scaffoldPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Login.route,
+            startDestination = startDestination,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = scaffoldPadding.calculateBottomPadding())
@@ -116,11 +161,40 @@ fun FinFlowNavGraph(
             popExitTransition = { fadeOut(animationSpec = tween(220)) }
         ) {
             composable(Screen.Login.route) {
-                LoginScreen(
+                SignInScreen(
                     onLoginSuccess = {
+                        val destination = pendingNavRoute
+                        onClearPendingNavRoute()
                         navController.navigate(Screen.Dashboard.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
+                        if (destination != null && destination != Screen.Dashboard.route) {
+                            navController.navigate(destination)
+                        }
+                    },
+                    onNavigateToSignUp = {
+                        navController.navigate(Screen.SignUp.route)
+                    }
+                )
+            }
+
+            composable(Screen.SignUp.route) {
+                SignUpScreen(
+                    onSignUpSuccess = {
+                        val destination = pendingNavRoute
+                        onClearPendingNavRoute()
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                        if (destination != null && destination != Screen.Dashboard.route) {
+                            navController.navigate(destination)
+                        }
+                    },
+                    onNavigateToSignIn = {
+                        navController.popBackStack()
+                    },
+                    onBackClick = {
+                        navController.popBackStack()
                     }
                 )
             }
@@ -129,11 +203,7 @@ fun FinFlowNavGraph(
                 DashboardScreen(
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
-                    onSignOut = {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
+                    onSignOut = handleSignOut,
                     onNavigateToGoal = { goalId ->
                         if (!goalId.isNullOrEmpty()) {
                             navController.navigate(Screen.GoalDetail.createRoute(goalId))
@@ -148,10 +218,16 @@ fun FinFlowNavGraph(
                         navigateToRoute(Screen.ExpenseAnalytics.route)
                     },
                     onNavigateToSubscriptions = {
-                        navigateToRoute(Screen.SubscriptionAudit.route)
+                        navigateToRoute(Screen.ExpenseAnalytics.createRoute("subscriptions"))
                     },
                     onNavigateToAllTransactions = {
                         navigateToRoute(Screen.AllTransactions.route)
+                    },
+                    onNavigateToSettings = {
+                        navigateToRoute(Screen.Settings.route)
+                    },
+                    onNavigateToProfile = {
+                        navigateToRoute(Screen.Profile.route)
                     }
                 )
             }
@@ -165,19 +241,44 @@ fun FinFlowNavGraph(
             composable(Screen.IncomeHub.route) {
                 IncomeHubScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToGoal = { navigateToRoute(Screen.GoalTracker.route) }
+                    onNavigateToGoal = { navigateToRoute(Screen.GoalTracker.route) },
+                    onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
+                    onNavigateToProfile = { navigateToRoute(Screen.Profile.route) },
+                    onSignOut = handleSignOut
                 )
             }
 
-            composable(Screen.ExpenseAnalytics.route) {
+            composable(
+                route = Screen.ExpenseAnalytics.navRoute,
+                arguments = listOf(
+                    navArgument("tab") {
+                        type = NavType.StringType
+                        defaultValue = "daily"
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val tab = backStackEntry.arguments?.getString("tab") ?: "daily"
                 ExpenseAnalyticsScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    initialTab = tab,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
+                    onNavigateToProfile = { navigateToRoute(Screen.Profile.route) },
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange,
+                    onSignOut = handleSignOut
                 )
             }
 
             composable(Screen.SubscriptionAudit.route) {
-                SubscriptionAuditScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                ExpenseAnalyticsScreen(
+                    initialTab = "subscriptions",
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navigateToRoute(Screen.Settings.route) },
+                    onNavigateToProfile = { navigateToRoute(Screen.Profile.route) },
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange,
+                    onSignOut = handleSignOut
                 )
             }
 
@@ -186,7 +287,17 @@ fun FinFlowNavGraph(
                     onNavigateToGoalDetail = { goalId ->
                         navController.navigate(Screen.GoalDetail.createRoute(goalId))
                     },
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                    onSignOut = handleSignOut
+                )
+            }
+
+            composable(Screen.AddGoal.route) {
+                AddGoalScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onGoalSaved = { navController.popBackStack() }
                 )
             }
 
@@ -201,6 +312,93 @@ fun FinFlowNavGraph(
                 val goalId = backStackEntry.arguments?.getString("goalId") ?: ""
                 GoalDetailScreen(
                     goalId = goalId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = Screen.AddExpense.navRoute,
+                arguments = listOf(
+                    navArgument("category") {
+                        type = NavType.StringType
+                        defaultValue = "DINING_OUT"
+                    },
+                    navArgument("amount") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                    navArgument("title") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                    navArgument("commitmentType") {
+                        type = NavType.StringType
+                        defaultValue = "DISCRETIONARY"
+                    },
+                    navArgument("paymentAccount") {
+                        type = NavType.StringType
+                        defaultValue = "CARD_PRIMARY"
+                    }
+                )
+            ) { backStackEntry ->
+                val category = backStackEntry.arguments?.getString("category") ?: "DINING_OUT"
+                val amount = backStackEntry.arguments?.getString("amount") ?: ""
+                val rawTitle = backStackEntry.arguments?.getString("title") ?: ""
+                val title = try {
+                    java.net.URLDecoder.decode(rawTitle, "UTF-8")
+                } catch (_: Exception) {
+                    rawTitle
+                }
+                val commitmentType = backStackEntry.arguments?.getString("commitmentType") ?: "DISCRETIONARY"
+                val paymentAccount = backStackEntry.arguments?.getString("paymentAccount") ?: "CARD_PRIMARY"
+                AddExpenseScreen(
+                    initialCategoryKey = category,
+                    initialAmount = amount,
+                    initialTitle = title,
+                    initialCommitmentType = commitmentType,
+                    initialPaymentAccount = paymentAccount,
+                    onNavigateBack = { navController.popBackStack() },
+                    onExpenseSaved = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.AddSubscription.route) {
+                AddSubscriptionScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSubscriptionSaved = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.Profile.route) {
+                ProfileScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onSignOut = handleSignOut
+                )
+            }
+
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                    onSignOut = handleSignOut,
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange
+                )
+            }
+
+            composable(
+                route = Screen.EditExpense.navRoute,
+                arguments = listOf(
+                    navArgument("expenseId") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
+                val expenseId = backStackEntry.arguments?.getString("expenseId") ?: ""
+                EditExpenseScreen(
+                    expenseId = expenseId,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -231,11 +429,6 @@ private fun FinFlowBottomBar(
             icon = Icons.Rounded.Analytics
         ),
         BottomNavItem(
-            route = Screen.SubscriptionAudit.route,
-            label = "Subs",
-            icon = Icons.Rounded.Autorenew
-        ),
-        BottomNavItem(
             route = Screen.GoalTracker.route,
             label = "Goals",
             icon = Icons.Rounded.TrackChanges
@@ -261,7 +454,9 @@ private fun FinFlowBottomBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 navItems.forEach { item ->
-                    val isSelected = currentRoute == item.route || currentRoute.startsWith("${item.route}?")
+                    val isSelected = currentRoute == item.route || 
+                        currentRoute.startsWith("${item.route}?") ||
+                        (item.route == Screen.ExpenseAnalytics.route && (currentRoute == Screen.SubscriptionAudit.route || currentRoute.startsWith("${Screen.SubscriptionAudit.route}?")))
                     val activeBg = MaterialTheme.colorScheme.primaryContainer
                     val activeContentColor = MaterialTheme.colorScheme.primary
                     val inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -292,12 +487,13 @@ private fun FinFlowBottomBar(
                             Text(
                                 text = item.label,
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                    letterSpacing = 0.1.sp
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    letterSpacing = 0.sp
                                 ),
                                 color = if (isSelected) activeContentColor else inactiveContentColor,
-                                maxLines = 1
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }

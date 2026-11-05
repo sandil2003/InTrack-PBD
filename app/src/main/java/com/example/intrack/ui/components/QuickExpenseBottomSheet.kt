@@ -52,12 +52,14 @@ fun QuickExpenseBottomSheet(
     val focusManager = LocalFocusManager.current
 
     val presets = listOf(
-        "☕ Coffee" to ("DINING_OUT" to "DISCRETIONARY"),
-        "🚗 PickMe" to ("TRANSPORT" to "COMMITTED"),
-        "🍔 Takeout" to ("DINING_OUT" to "DISCRETIONARY"),
-        "🛒 Groceries" to ("MISC" to "COMMITTED"),
-        "🏠 Rent & Utilities" to ("RENT" to "COMMITTED"),
-        "📦 Snacks" to ("DINING_OUT" to "DISCRETIONARY")
+        "☕ Coffee" to Triple("DINING_OUT", "DISCRETIONARY", "CARD_PRIMARY"),
+        "🏧 ATM Cash" to Triple("MISC", "DISCRETIONARY", "CASH"),
+        "☕ Cash Café" to Triple("DINING_OUT", "DISCRETIONARY", "CASH"),
+        "🚗 PickMe" to Triple("TRANSPORT", "COMMITTED", "CARD_PRIMARY"),
+        "🍔 Takeout" to Triple("DINING_OUT", "DISCRETIONARY", "CARD_PRIMARY"),
+        "🛒 Groceries" to Triple("MISC", "COMMITTED", "CARD_PRIMARY"),
+        "🏠 Rent" to Triple("RENT", "COMMITTED", "ACCOUNT_SECONDARY"),
+        "📦 Snacks" to Triple("DINING_OUT", "DISCRETIONARY", "CASH")
     )
 
     val accounts = listOf("Card", "Secondary", "Cash")
@@ -120,6 +122,7 @@ fun QuickExpenseBottomSheet(
                             selectedPreset = presetName
                             title = presetName.substringAfter(" ")
                             commitmentTypeIndex = if (config.second == "COMMITTED") 0 else 1
+                            selectedAccountIndex = accountKeys.indexOf(config.third).coerceAtLeast(0)
                         },
                         label = { Text(presetName, style = MaterialTheme.typography.labelSmall) },
                         shape = RoundedCornerShape(8.dp),
@@ -136,9 +139,14 @@ fun QuickExpenseBottomSheet(
             // Custom Title Field
             OutlinedTextField(
                 value = title,
-                onValueChange = { title = it },
+                onValueChange = {
+                    title = it
+                    if (it.contains("ATM", ignoreCase = true) || it.contains("Cash", ignoreCase = true)) {
+                        selectedAccountIndex = 2
+                    }
+                },
                 label = { Text("Title / Note") },
-                placeholder = { Text("e.g. Afternoon Coffee") },
+                placeholder = { Text("e.g. Afternoon Coffee or ATM Cash") },
                 singleLine = true,
                 shape = RoundedCornerShape(10.dp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -202,9 +210,10 @@ fun QuickExpenseBottomSheet(
                 onClick = {
                     if (isFormValid) {
                         val category = when {
+                            title.contains("ATM", ignoreCase = true) -> "MISC"
                             title.contains("Rent", ignoreCase = true) -> "RENT"
                             title.contains("Ride", ignoreCase = true) || title.contains("PickMe", ignoreCase = true) || title.contains("Transport", ignoreCase = true) -> "TRANSPORT"
-                            title.contains("Uber", ignoreCase = true) || title.contains("Coffee", ignoreCase = true) || title.contains("Cafe", ignoreCase = true) || title.contains("Dining", ignoreCase = true) -> "DINING_OUT"
+                            title.contains("Uber", ignoreCase = true) || title.contains("Coffee", ignoreCase = true) || title.contains("Cafe", ignoreCase = true) || title.contains("Dining", ignoreCase = true) || title.contains("Snack", ignoreCase = true) -> "DINING_OUT"
                             title.contains("Grocery", ignoreCase = true) || title.contains("Supermarket", ignoreCase = true) -> "MISC"
                             else -> "MISC"
                         }

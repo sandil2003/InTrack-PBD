@@ -1,11 +1,14 @@
 package com.example.intrack.ui.screens.subscriptions
 
+import com.example.intrack.viewmodel.SubscriptionViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -29,7 +32,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -47,6 +49,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import com.example.intrack.ui.theme.BrandTangerine
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -74,9 +79,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.data.model.SubscriptionEntity
 import com.example.intrack.ui.common.EmptyStateView
 import com.example.intrack.ui.common.UiState
@@ -90,12 +97,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun SubscriptionAuditScreen(
     onNavigateBack: () -> Unit = {},
-    viewModel: SubscriptionViewModel = viewModel(),
+    viewModel: SubscriptionViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val subscriptionsState by viewModel.subscriptionsState.collectAsState()
-    var showAddDialog by remember { mutableStateOf(false) }
-    var activeActionSub by remember { mutableStateOf<SubscriptionEntity?>(null) }
+    val auditSummary by viewModel.auditSummary.collectAsState()
+    var showAddSheet by remember { mutableStateOf(false) }
+    var subscriptionToEdit by remember { mutableStateOf<SubscriptionEntity?>(null) }
+    var selectedSubscriptionForDetail by remember { mutableStateOf<SubscriptionEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -114,6 +123,15 @@ fun SubscriptionAuditScreen(
                         modifier = Modifier.padding(start = 4.dp)
                     )
                 },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                },
                 windowInsets = androidx.compose.material3.TopAppBarDefaults.windowInsets,
                 colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
@@ -123,7 +141,10 @@ fun SubscriptionAuditScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = {
+                    subscriptionToEdit = null
+                    showAddSheet = true
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp)
@@ -146,8 +167,9 @@ fun SubscriptionAuditScreen(
                 EmptyStateView(
                     title = "Error Loading Subscriptions",
                     message = errorMsg,
-                    actionLabel = "Retry",
-                    onActionClick = { viewModel.loadSubscriptions("guest_user") },
+                    onActionClick = {
+                        viewModel.loadSubscriptions()
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
@@ -156,19 +178,19 @@ fun SubscriptionAuditScreen(
                     title = "No Subscriptions Found",
                     message = "No fixed obligations or auto-debits recorded.",
                     actionLabel = "Add Subscription",
-                    onActionClick = { showAddDialog = true },
+                    onActionClick = {
+                        subscriptionToEdit = null
+                        showAddSheet = true
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
             is UiState.Success -> {
-                val subscriptions = (subscriptionsState as UiState.Success<List<SubscriptionEntity>>).data
-                val activeSubs = subscriptions.filter { it.status != "CANCELLED" }
-                val totalActive = activeSubs.sumOf { it.amountLkr }
-                val secondaryTotal = activeSubs.filter { it.paymentAccount == "ACCOUNT_SECONDARY" }.sumOf { it.amountLkr }
-                val primaryCardTotal = activeSubs.filter { it.paymentAccount == "CARD_PRIMARY" }.sumOf { it.amountLkr }
-                val cashTotal = activeSubs.filter { it.paymentAccount == "CASH" }.sumOf { it.amountLkr }
-
-                val filteredList = subscriptions
+                val totalActive = auditSummary.totalActiveLkr
+                val secondaryTotal = auditSummary.secondaryTotalLkr
+                val primaryCardTotal = auditSummary.primaryCardTotalLkr
+                val cashTotal = auditSummary.cashTotalLkr
+                val filteredList = auditSummary.filteredSubs
 
                 LazyColumn(
                     modifier = Modifier
@@ -187,34 +209,63 @@ fun SubscriptionAuditScreen(
                         )
                     }
 
+                    val allSubs = (subscriptionsState as UiState.Success<List<SubscriptionEntity>>).data
+                    val zombieSubs = allSubs.filter { it.isFlaggedForReview || it.status.equals("UNUSED_FLAGGED", ignoreCase = true) }
+
+                    if (zombieSubs.isNotEmpty()) {
+                        item {
+                            ZombieSubscriptionHunterCard(
+                                zombieSubs = zombieSubs,
+                                onCancel = { sub ->
+                                    viewModel.deleteSubscription(sub.id)
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Cancelled zombie subscription ''. Saved ${CurrencyFormatter.formatLkr(sub.amountLkr)}/mo!")
+                                    }
+                                },
+                                onKeep = { sub ->
+                                    viewModel.updateSubscription(sub.copy(isFlaggedForReview = false, status = "ACTIVE"))
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Marked '' as active.")
+                                    }
+                                }
+                            )
+                        }
+                    }
+
                     item {
-                        Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 2.dp)
+                        ) {
                             Text(
                                 text = "Recurring Charges",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
+                            Text(
+                                text = "(${filteredList.size})",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
 
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            if (filteredList.isEmpty()) {
-                                EmptyStateView(
-                                    title = "No items in this filter",
-                                    message = "All subscriptions in this category are up to date."
-                                )
-                            } else {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    filteredList.forEach { subscription ->
-                                        SubscriptionItemCard(
-                                            subscription = subscription,
-                                            onClick = { activeActionSub = subscription }
-                                        )
-                                    }
-                                }
-                            }
+                    if (filteredList.isEmpty()) {
+                        item {
+                            EmptyStateView(
+                                title = "No items in this filter",
+                                message = "All subscriptions in this category are up to date."
+                            )
+                        }
+                    } else {
+                        items(filteredList, key = { it.id.ifEmpty { it.name } }) { subscription ->
+                            SubscriptionItemRow(
+                                subscription = subscription,
+                                onClick = { selectedSubscriptionForDetail = subscription }
+                            )
                         }
                     }
 
@@ -227,79 +278,46 @@ fun SubscriptionAuditScreen(
         }
     }
 
-    if (showAddDialog) {
-        AddSubscriptionDialog(
-            onDismiss = { showAddDialog = false },
-            onSubmit = { newSub ->
-                viewModel.addSubscription(newSub)
-                showAddDialog = false
+    if (selectedSubscriptionForDetail != null) {
+        ViewSubscriptionBottomSheet(
+            subscription = selectedSubscriptionForDetail!!,
+            onDismiss = { selectedSubscriptionForDetail = null },
+            onEdit = { subToEdit ->
+                subscriptionToEdit = subToEdit
+                selectedSubscriptionForDetail = null
+                showAddSheet = true
+            },
+            onDelete = { subToDelete ->
+                viewModel.deleteSubscription(subToDelete.id)
+                selectedSubscriptionForDetail = null
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar("Added recurring cost '${newSub.name}' (${CurrencyFormatter.formatLkr(newSub.amountLkr)}/mo)")
+                    snackbarHostState.showSnackbar("Cancelled and deleted ${subToDelete.name}")
                 }
             }
         )
     }
 
-    if (activeActionSub != null) {
-        val sub = activeActionSub!!
-        AlertDialog(
-            onDismissRequest = { activeActionSub = null },
-            title = {
-                Text(text = sub.name, fontWeight = FontWeight.Bold)
+    if (showAddSheet) {
+        AddSubscriptionDialog(
+            initialSubscription = subscriptionToEdit,
+            onDismiss = {
+                showAddSheet = false
+                subscriptionToEdit = null
             },
-            text = {
-                Column {
-                    Text(
-                        text = "Cost: ${CurrencyFormatter.formatLkr(sub.amountLkr)} / month",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Payment Account: ${sub.paymentAccount.replace("_", " ")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Status: ${sub.status.lowercase().replaceFirstChar { it.uppercase() }}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                if (sub.status != "CANCELLED") {
-                    Button(
-                        onClick = {
-                            viewModel.updateStatus(sub.id, "CANCELLED")
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Cancelled ${sub.name}! Saved ${CurrencyFormatter.formatLkr(sub.amountLkr)}/month.")
-                            }
-                            activeActionSub = null
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Cancel Subscription")
+            onSubmit = { updatedSub ->
+                if (subscriptionToEdit != null) {
+                    viewModel.updateSubscription(updatedSub)
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Updated '${updatedSub.name}'")
                     }
                 } else {
-                    Button(
-                        onClick = {
-                            viewModel.updateStatus(sub.id, "ACTIVE")
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Re-activated ${sub.name}")
-                            }
-                            activeActionSub = null
-                        }
-                    ) {
-                        Text("Keep Active")
+                    viewModel.addSubscription(updatedSub)
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Added recurring cost '${updatedSub.name}' (${CurrencyFormatter.formatLkr(updatedSub.amountLkr)}/mo)")
                     }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { activeActionSub = null }) {
-                    Text("Close")
-                }
+                showAddSheet = false
+                subscriptionToEdit = null
             }
         )
     }
@@ -335,15 +353,33 @@ fun RentAndRecurringCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            Text(
-                text = CurrencyFormatter.formatLkr(totalRecurringLkr),
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-0.5).sp
-                ),
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = "LKR",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.alignByBaseline()
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = CurrencyFormatter.formatLkr(totalRecurringLkr).replace("LKR ", ""),
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -384,96 +420,100 @@ fun RentAndRecurringCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Numbers & Legend (title and cost in two lines)
-            Column(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(TangerineShade1)
-                            )
-                            Text(
-                                text = "Secondary Account",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(TangerineShade1)
+                        )
                         Text(
-                            text = CurrencyFormatter.formatLkr(secondaryAccountTotal),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = "Secondary",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(secondaryAccountTotal),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(TangerineShade2)
-                            )
-                            Text(
-                                text = "Card Primary",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(TangerineShade2)
+                        )
                         Text(
-                            text = CurrencyFormatter.formatLkr(primaryCardTotal),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = "Card",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = CurrencyFormatter.formatLkr(primaryCardTotal),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
 
                 if (cashRatio > 0f) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(TangerineShade3)
-                                )
-                                Text(
-                                    text = "Cash",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(2.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(TangerineShade3)
+                            )
                             Text(
-                                text = CurrencyFormatter.formatLkr(cashTotal),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
+                                text = "Cash",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = CurrencyFormatter.formatLkr(cashTotal),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -484,46 +524,14 @@ fun RentAndRecurringCard(
 @Composable
 fun SubscriptionItemRow(
     subscription: SubscriptionEntity,
+    modifier: Modifier = Modifier,
     onCancelClick: () -> Unit = {},
-    onKeepClick: () -> Unit = {}
-) {
-    SubscriptionItemCard(
-        subscription = subscription,
-        onClick = {}
-    )
-}
-
-@Composable
-fun SubscriptionItemCard(
-    subscription: SubscriptionEntity,
+    onKeepClick: () -> Unit = {},
     onClick: () -> Unit = {}
 ) {
-    val (badgeBg, badgeText, accountLabel) = when (subscription.paymentAccount.uppercase()) {
-        "CARD_PRIMARY" -> Triple(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
-            MaterialTheme.colorScheme.onPrimaryContainer,
-            "Card Primary"
-        )
-        "ACCOUNT_SECONDARY" -> Triple(
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
-            MaterialTheme.colorScheme.onSecondaryContainer,
-            "Secondary Account"
-        )
-        "CASH" -> Triple(
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant,
-            "Cash"
-        )
-        else -> Triple(
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant,
-            subscription.paymentAccount.replace("_", " ")
-        )
-    }
-
     OutlinedCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -532,172 +540,205 @@ fun SubscriptionItemCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Receipt,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Text(
-                        text = subscription.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(badgeBg)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = accountLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = badgeText
-                        )
-                    }
-                }
-            }
-
+            Text(
+                text = subscription.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .alignByBaseline()
+            )
             Spacer(modifier = Modifier.width(12.dp))
-
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = CurrencyFormatter.formatLkr(subscription.amountLkr),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "/ month",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = CurrencyFormatter.formatLkr(subscription.amountLkr),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                softWrap = false,
+                textAlign = TextAlign.End,
+                modifier = Modifier.alignByBaseline()
+            )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddSubscriptionDialog(
-    onDismiss: () -> Unit,
-    onSubmit: (SubscriptionEntity) -> Unit
+fun SubscriptionItemCard(
+    subscription: SubscriptionEntity,
+    onClick: () -> Unit = {}
 ) {
-    var name by remember { mutableStateOf("") }
-    var amountText by remember { mutableStateOf("") }
-    var isFlagged by remember { mutableStateOf(false) }
-    var accountIndex by remember { mutableIntStateOf(1) } // 0: CARD_PRIMARY, 1: ACCOUNT_SECONDARY, 2: CASH
+    SubscriptionItemRow(
+        subscription = subscription,
+        onClick = onClick
+    )
+}
 
-    val accounts = listOf("Card", "Secondary", "Cash")
-    val accountKeys = listOf("CARD_PRIMARY", "ACCOUNT_SECONDARY", "CASH")
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "New Subscription",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Name") },
-                    placeholder = { Text("e.g. Gym, SaaS, Netflix") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { amountText = it },
-                    label = { Text("Amount (LKR)") },
-                    placeholder = { Text("34000.00") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Account",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    accounts.forEachIndexed { index, label ->
-                        SegmentedButton(
-                            selected = accountIndex == index,
-                            onClick = { accountIndex = index },
-                            shape = SegmentedButtonDefaults.itemShape(index = index, count = accounts.size)
-                        ) { Text(label, style = MaterialTheme.typography.labelSmall) }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = isFlagged, onCheckedChange = { isFlagged = it })
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Flag for review", style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val amt = amountText.toDoubleOrNull() ?: 0.0
-                    if (name.isNotEmpty() && amt > 0) {
-                        onSubmit(
-                            SubscriptionEntity(
-                                name = name,
-                                amountLkr = amt,
-                                paymentAccount = accountKeys[accountIndex],
-                                isFlaggedForReview = isFlagged,
-                                status = "ACTIVE"
-                            )
+@Composable
+fun ZombieSubscriptionHunterCard(
+    zombieSubs: List<SubscriptionEntity>,
+    onCancel: (SubscriptionEntity) -> Unit,
+    onKeep: (SubscriptionEntity) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val totalWasted = zombieSubs.sumOf { it.amountLkr }
+    OutlinedCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = BrandTangerine.copy(alpha = 0.05f)
+        ),
+        border = BorderStroke(1.5.dp, BrandTangerine.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(BrandTangerine.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.NotificationsActive,
+                            contentDescription = null,
+                            tint = BrandTangerine,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                },
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Save", style = MaterialTheme.typography.labelLarge)
+                    Column {
+                        Text(
+                            text = "Zombie Subscriptions (${zombieSubs.size})",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Intended to cancel 6 months ago",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(BrandTangerine.copy(alpha = 0.15f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "LEAK: ${CurrencyFormatter.formatLkr(totalWasted)}/mo",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = BrandTangerine
+                    )
+                }
             }
-        },
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text("Cancel", style = MaterialTheme.typography.labelLarge)
+
+            Text(
+                text = "Cancelling these unused subscriptions recovers ${CurrencyFormatter.formatLkr(totalWasted)} monthly - directly boosting your MacBook Pro M4 goal!",
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            zombieSubs.forEach { sub ->
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = sub.name,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "Auto-debiting * Unused for 6 months",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text(
+                                text = CurrencyFormatter.formatLkr(sub.amountLkr),
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = BrandTangerine
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { onCancel(sub) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "Cancel & Stop Leak",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onError
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = { onKeep(sub) },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "Keep Active",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                            }
+                        }
+                    }
+                }
             }
-        },
-        shape = RoundedCornerShape(16.dp)
-    )
+        }
+    }
 }

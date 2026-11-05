@@ -1,6 +1,11 @@
 package com.example.intrack.data.model
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "incomes")
 data class IncomeEntity(
+    @PrimaryKey
     val id: String = "",
     val userId: String = "",
     val channel: String = "SALARY", // SALARY, FREELANCE, ADSENSE, CRYPTO

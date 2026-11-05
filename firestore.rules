@@ -1,38 +1,57 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     function isOwner(userId) {
-      return request.auth != null && (request.auth.uid == userId || userId == 'guest_user');
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId);
+      allow delete: if isOwner(userId);
 
       match /incomes/{incomeId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.realizedAmountLkr is number;
       }
+
       match /expenses/{expenseId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.amountLkr is number;
       }
+
       match /goals/{goalId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.targetAmountLkr is number;
+
+        match /contributions/{contributionId} {
+          allow read, delete: if isOwner(userId);
+          allow create, update: if isOwner(userId)
+            && request.resource.data.userId == userId
+            && request.resource.data.amountLkr is number;
+        }
       }
+
       match /subscriptions/{subscriptionId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.amountLkr is number;
       }
     }
 
-    match /incomes/{incomeId} {
-      allow read, write: if true;
-    }
-    match /expenses/{expenseId} {
-      allow read, write: if true;
-    }
-    match /goals/{goalId} {
-      allow read, write: if true;
-    }
-    match /subscriptions/{subscriptionId} {
-      allow read, write: if true;
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

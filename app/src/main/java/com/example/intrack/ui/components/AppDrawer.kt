@@ -1,5 +1,6 @@
 package com.example.intrack.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,10 +20,10 @@ import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Analytics
-import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Dashboard
-import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.TrackChanges
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +33,8 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,8 +42,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.intrack.ui.navigation.Screen
 import com.example.intrack.ui.theme.AppThemeMode
+import com.example.intrack.ui.theme.BrandSoftSlate
+import com.example.intrack.ui.theme.BrandWarmYellow
+import com.example.intrack.viewmodel.AuthViewModel
 
 data class DrawerMenuItem(
     val route: String,
@@ -56,8 +64,15 @@ fun AppDrawerContent(
     onThemeModeChange: (AppThemeMode) -> Unit = {},
     onRouteSelected: (String) -> Unit,
     onSignOut: () -> Unit,
-    onCloseDrawer: () -> Unit
+    onCloseDrawer: () -> Unit,
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    val userName by authViewModel.userDisplayName.collectAsState()
+    val userEmail by authViewModel.userEmail.collectAsState()
+    val userInitials by authViewModel.userInitials.collectAsState()
+
+    val navyText = Color(0xFF121660)
+
     val menuItems = listOf(
         DrawerMenuItem(
             route = Screen.Dashboard.route,
@@ -75,10 +90,9 @@ fun AppDrawerContent(
             icon = Icons.Rounded.Analytics
         ),
         DrawerMenuItem(
-            route = Screen.SubscriptionAudit.route,
+            route = Screen.ExpenseAnalytics.createRoute("subscriptions"),
             title = "Subscriptions",
-            icon = Icons.AutoMirrored.Rounded.ReceiptLong,
-            badge = "Review"
+            icon = Icons.AutoMirrored.Rounded.ReceiptLong
         ),
         DrawerMenuItem(
             route = Screen.GoalTracker.route,
@@ -89,96 +103,94 @@ fun AppDrawerContent(
 
     ModalDrawerSheet(
         modifier = Modifier.width(300.dp),
-        drawerShape = RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp),
-        drawerContainerColor = MaterialTheme.colorScheme.surface
+        drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
+        drawerContainerColor = Color.White
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 20.dp)
+                .padding(16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
+            // User Profile Header Card
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = BrandWarmYellow),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 14.dp)
                 ) {
-                    Text(
-                        text = "K",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(navyText),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = "Kavindu",
+                            text = userInitials.ifBlank { "U" },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color.White
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "PRO",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
                     }
 
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                    Text(
-                        text = "kavindu@intrack.io",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = userName.ifBlank { "Account User" },
+                                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
+                                fontWeight = FontWeight.Bold,
+                                color = navyText
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(navyText)
+                                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                            ) {
+                                Text(
+                                    text = "PRO",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        Text(
+                            text = userEmail,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                            color = navyText.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
 
         HorizontalDivider(
             modifier = Modifier.padding(horizontal = 16.dp),
-            color = MaterialTheme.colorScheme.outlineVariant
+            color = navyText.copy(alpha = 0.12f)
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Navigation Menu List
         Column(modifier = Modifier.padding(horizontal = 12.dp)) {
             menuItems.forEach { item ->
                 val isSelected = currentRoute == item.route
 
-                val itemBg = if (isSelected) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    Color.Transparent
-                }
-
-                val iconColor = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
-
-                val textColor = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
+                val itemBg = if (isSelected) BrandSoftSlate else Color.Transparent
 
                 Row(
                     modifier = Modifier
@@ -196,7 +208,7 @@ fun AppDrawerContent(
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.title,
-                        tint = iconColor,
+                        tint = navyText,
                         modifier = Modifier.size(22.dp)
                     )
 
@@ -204,9 +216,9 @@ fun AppDrawerContent(
 
                     Text(
                         text = item.title,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.5.sp),
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = textColor,
+                        color = navyText,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -214,13 +226,13 @@ fun AppDrawerContent(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(MaterialTheme.colorScheme.errorContainer)
+                                .background(navyText)
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = label,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -234,15 +246,15 @@ fun AppDrawerContent(
 
         HorizontalDivider(
             modifier = Modifier.padding(horizontal = 16.dp),
-            color = MaterialTheme.colorScheme.outlineVariant
+            color = navyText.copy(alpha = 0.12f)
         )
 
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "App Theme",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                fontWeight = FontWeight.Bold,
+                color = navyText,
                 modifier = Modifier.padding(bottom = 6.dp)
             )
 
@@ -257,16 +269,16 @@ fun AppDrawerContent(
                         onClick = { onThemeModeChange(mode) },
                         shape = SegmentedButtonDefaults.itemShape(index = index, count = 3),
                         colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            activeContainerColor = navyText,
+                            activeContentColor = Color.White,
+                            inactiveContainerColor = BrandSoftSlate,
+                            inactiveContentColor = navyText
                         )
                     ) {
                         Text(
                             text = label,
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = if (themeMode == mode) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (themeMode == mode) FontWeight.Bold else FontWeight.Medium
                             )
                         )
                     }
@@ -290,14 +302,14 @@ fun AppDrawerContent(
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ExitToApp,
                     contentDescription = "Sign Out",
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = navyText,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Sign Out",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                    color = navyText,
                     fontWeight = FontWeight.Bold
                 )
             }
