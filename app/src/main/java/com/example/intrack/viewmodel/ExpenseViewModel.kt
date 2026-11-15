@@ -34,6 +34,7 @@ data class ExpenseAnalyticsSummary(
     val monthExpenses: List<ExpenseEntity> = emptyList(),
     val outflowExpenses: List<ExpenseEntity> = emptyList(),
     val totalExpenseLkr: Double = 0.0,
+    val rollingAverageLkr: Double = 0.0,
     val committedLkr: Double = 0.0,
     val discretionaryLkr: Double = 0.0,
     val cardPrimaryTotalLkr: Double = 0.0,
@@ -43,6 +44,35 @@ data class ExpenseAnalyticsSummary(
     val filteredExpenses: List<ExpenseEntity> = emptyList(),
     val groupedExpenses: Map<String, List<ExpenseEntity>> = emptyMap()
 )
+
+object ExpenseAnalyticsCalculator {
+    /**
+     * Averages up to 3 prior non-zero outflow months (excluding internal transfers)
+     * relative to [selectedMonth] in [recentMonths]. Returns 0.0 when no prior baseline exists.
+     */
+    fun computeRollingAverageLkr(
+        allExpenses: List<ExpenseEntity>,
+        selectedMonth: String,
+        recentMonths: List<String>,
+        monthMatcher: (Long, String) -> Boolean = { millis, month -> DateUtils.matchesMonth(millis, month) }
+    ): Double {
+        val selectedIdx = recentMonths.indexOf(selectedMonth)
+        val priorMonths = if (selectedIdx >= 0) {
+            recentMonths.drop(selectedIdx + 1).take(3)
+        } else {
+            recentMonths.filter { it != selectedMonth }.take(3)
+        }
+        if (priorMonths.isEmpty()) return 0.0
+
+        val nonZeroTotals = priorMonths.map { monthName ->
+            allExpenses
+                .filter { !it.isInternalTransfer() && monthMatcher(it.dateSpentMillis, monthName) }
+                .sumOf { it.amountLkr }
+        }.filter { it > 0.0 }
+
+        return if (nonZeroTotals.isNotEmpty()) nonZeroTotals.average() else 0.0
+    }
+}
 
 @HiltViewModel
 class ExpenseViewModel @Inject constructor(
@@ -113,6 +143,13 @@ class ExpenseViewModel @Inject constructor(
         recomputeAnalytics()
     }
 
+    fun clearFilters() {
+        _selectedTypeFilter.value = "ALL"
+        _selectedCategoryFilter.value = "ALL"
+        _selectedAccountFilter.value = "ALL"
+        recomputeAnalytics()
+    }
+
     private fun recomputeAnalytics() {
         val allExpenses = (_expensesState.value as? UiState.Success<List<ExpenseEntity>>)?.data ?: emptyList()
         val month = _selectedMonth.value
@@ -125,6 +162,11 @@ class ExpenseViewModel @Inject constructor(
         }
         val outflowExpenses = monthExpenses.filter { !it.isInternalTransfer() }
         val totalExpense = outflowExpenses.sumOf { it.amountLkr }
+        val rollingAverage = ExpenseAnalyticsCalculator.computeRollingAverageLkr(
+            allExpenses = allExpenses,
+            selectedMonth = month,
+            recentMonths = recentMonths
+        )
         val committed = outflowExpenses.filter { it.isCommittedExpense() }.sumOf { it.amountLkr }
         val discretionary = outflowExpenses.filter { it.isDiscretionaryExpense() }.sumOf { it.amountLkr }
 
@@ -165,6 +207,7 @@ class ExpenseViewModel @Inject constructor(
             monthExpenses = monthExpenses,
             outflowExpenses = outflowExpenses,
             totalExpenseLkr = totalExpense,
+            rollingAverageLkr = rollingAverage,
             committedLkr = committed,
             discretionaryLkr = discretionary,
             cardPrimaryTotalLkr = cardPrimaryTotal,

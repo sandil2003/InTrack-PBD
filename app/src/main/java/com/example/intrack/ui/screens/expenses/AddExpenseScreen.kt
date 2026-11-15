@@ -120,7 +120,7 @@ data class ExpenseAccountItem(
 )
 
 /**
- * Full screen version of "Add an expense" matching Figma frame 2010:240.
+ * Full screen version of "Add an expense" matching the design language.
  */
 @Composable
 fun AddExpenseScreen(
@@ -435,7 +435,7 @@ fun AddExpenseDialog(
 }
 
 /**
- * Modal Bottom Sheet version of "Add an expense" matching Figma frame 2010:303.
+ * Modal Bottom Sheet version of "Add an expense"
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -462,7 +462,7 @@ fun AddExpenseBottomSheet(
 }
 
 /**
- * Complete UI and UX matching Figma node 2010:303 ("New Transaction").
+ * Complete UI and UX matching ("New Transaction").
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -531,7 +531,7 @@ fun AddExpenseContent(
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
     ) {
-        // 1. Drag Handle Indicator (Height 22dp, pill 48x6dp, color #E4E2DE)
+        // 1. Drag Handle Indicator
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -547,7 +547,7 @@ fun AddExpenseContent(
             )
         }
 
-        // 2. Sheet Header Bar (Padding: Top 8dp, Bottom 12dp, Horiz 20dp)
+        // 2. Sheet Header Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()

@@ -8,6 +8,8 @@ import com.example.intrack.data.local.InTrackDatabase
 import com.example.intrack.data.local.IncomeDao
 import com.example.intrack.data.local.SubscriptionDao
 import com.example.intrack.data.remote.FirestoreService
+import com.example.intrack.data.repository.AiCoachRepository
+import com.example.intrack.data.repository.AiCoachRepositoryImpl
 import com.example.intrack.data.repository.AuthRepository
 import com.example.intrack.data.repository.AuthRepositoryImpl
 import com.example.intrack.data.repository.CryptoRateRepository
@@ -109,6 +111,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideCryptoRateRepository(): CryptoRateRepository = CryptoRateRepositoryImpl()
+
+    @Provides
+    @Singleton
+    fun provideAiCoachRepository(): AiCoachRepository = AiCoachRepositoryImpl()
 
     @Provides
     @Singleton

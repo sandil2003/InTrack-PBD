@@ -38,6 +38,7 @@ sealed class Screen(val route: String, val title: String) {
     object AddGoal : Screen("add_goal", "New Financial Goal")
     object Profile : Screen("profile", "My Profile")
     object Settings : Screen("settings", "Settings & Account")
+    object AiCoach : Screen("ai_coach", "AI Financial Coach")
     object EditExpense : Screen("edit_expense?expenseId={expenseId}", "Edit expense") {
         const val navRoute = "edit_expense?expenseId={expenseId}"
         fun createRoute(expenseId: String): String = "edit_expense?expenseId=$expenseId"

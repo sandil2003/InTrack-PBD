@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -127,6 +128,7 @@ fun DashboardScreen(
     onNavigateToAllTransactions: () -> Unit = onNavigateToExpenses,
     onNavigateToSettings: () -> Unit = {},
     onNavigateToProfile: () -> Unit = onNavigateToSettings,
+    onNavigateToAiCoach: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -273,6 +275,10 @@ fun DashboardScreen(
                             onLogIncomeClick = onNavigateToIncome,
                             onNavigateToGoal = { onNavigateToGoal(null) }
                         )
+                    }
+
+                    item {
+                        AiCoachEntryCard(onClick = onNavigateToAiCoach)
                     }
 
                     item {
@@ -1165,6 +1171,79 @@ fun QuickActionButtons(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiCoachEntryCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = BrandSoftSlate),
+        border = BorderStroke(1.dp, BrandMidnightNavy.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(BrandMidnightNavy),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = "AI Financial Coach",
+                    tint = BrandWarmYellow,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Ask InTrack AI Coach",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = BrandMidnightNavy
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Get instant advice on spending, goals & subs",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                    color = BrandMidnightNavy.copy(alpha = 0.72f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(BrandWarmYellow),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                    contentDescription = "Open AI Coach",
+                    tint = BrandMidnightNavy,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }

@@ -49,6 +49,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.intrack.ui.screens.ai.AiCoachScreen
 import com.example.intrack.ui.screens.auth.LoginScreen
 import com.example.intrack.ui.screens.auth.SignInScreen
 import com.example.intrack.ui.screens.auth.SignUpScreen
@@ -112,7 +113,7 @@ fun FinFlowNavGraph(
         }
     }
 
-    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && !currentRoute.startsWith("add_expense") && currentRoute != Screen.AddSubscription.route && currentRoute != Screen.AddGoal.route && !currentRoute.startsWith("edit_expense")
+    val isBottomBarVisible = currentRoute != Screen.Login.route && currentRoute != Screen.SignUp.route && !currentRoute.startsWith("add_expense") && currentRoute != Screen.AddSubscription.route && currentRoute != Screen.AddGoal.route && !currentRoute.startsWith("edit_expense") && currentRoute != Screen.AiCoach.route
 
     val navigateToRoute: (String) -> Unit = { route ->
         if (route == Screen.Dashboard.route) {
@@ -228,7 +229,16 @@ fun FinFlowNavGraph(
                     },
                     onNavigateToProfile = {
                         navigateToRoute(Screen.Profile.route)
+                    },
+                    onNavigateToAiCoach = {
+                        navController.navigate(Screen.AiCoach.route)
                     }
+                )
+            }
+
+            composable(Screen.AiCoach.route) {
+                AiCoachScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
