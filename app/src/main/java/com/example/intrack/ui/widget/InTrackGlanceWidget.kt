@@ -147,7 +147,7 @@ class InTrackGlanceWidget : GlanceAppWidget() {
         }
 
         if (isNarrow) {
-            // Vertical Stack (e.g., 2x2, 2x3, narrow column)
+            // Vertical Stack
             Column(
                 modifier = GlanceModifier.fillMaxSize(),
                 verticalAlignment = Alignment.Vertical.CenterVertically

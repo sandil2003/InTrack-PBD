@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Analytics
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material3.Card
@@ -98,6 +99,12 @@ fun AppDrawerContent(
             route = Screen.GoalTracker.route,
             title = "Goals",
             icon = Icons.Rounded.TrackChanges
+        ),
+        DrawerMenuItem(
+            route = Screen.AiCoach.route,
+            title = "AI Coach",
+            icon = Icons.Rounded.AutoAwesome,
+            badge = "AI"
         )
     )
 

@@ -122,7 +122,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-// Design tokens matching Figma frame 2015:802
+// Design tokens matching 
 private val FigmaBg: Color
     @Composable
     @ReadOnlyComposable
@@ -177,7 +177,7 @@ private val FigmaDestructive: Color
     get() = MaterialTheme.colorScheme.financial.expense
 
 /**
- * Modal Bottom Sheet implementation of the Figma "Edit expense" screen (Node 2015:802).
+ * Modal Bottom Sheet implementation of the Figma "Edit expense" screen
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
