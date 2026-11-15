@@ -1,5 +1,6 @@
 package com.example.intrack.ui.components
 
+import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.Button
@@ -24,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,9 +40,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.intrack.ui.theme.BrandMidnightNavy
 import com.example.intrack.ui.theme.BrandSoftSlate
+import com.example.intrack.ui.theme.InTrackTheme
 import com.example.intrack.util.CurrencyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,16 +59,17 @@ fun WindfallAllocatorModal(
 
     val allocatedLkr = windfallAmountLkr * allocationPercentage
     val remainingToSpendLkr = windfallAmountLkr - allocatedLkr
-    val navyText = Color(0xFF121660)
+    val navyText = BrandMidnightNavy
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp)
                 .padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -77,7 +84,7 @@ fun WindfallAllocatorModal(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Allocate Windfall",
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = navyText
                 )
@@ -97,8 +104,8 @@ fun WindfallAllocatorModal(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "${(allocationPercentage * 100).toInt()}% TO GOAL",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "${(allocationPercentage * 100).toInt()}% to Goal",
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = navyText
                     )
@@ -112,7 +119,7 @@ fun WindfallAllocatorModal(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Slider(
                 value = allocationPercentage,
@@ -136,18 +143,22 @@ fun WindfallAllocatorModal(
                 Text("100%", style = MaterialTheme.typography.labelSmall, color = navyText)
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(navyText.copy(alpha = 0.1f))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(navyText.copy(alpha = 0.08f))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Remaining cash:", style = MaterialTheme.typography.bodySmall, color = navyText)
+                Text(
+                    text = "Remaining cash",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = navyText
+                )
                 Text(
                     text = CurrencyFormatter.formatLkr(remainingToSpendLkr),
                     style = MaterialTheme.typography.bodyMedium,
@@ -156,7 +167,7 @@ fun WindfallAllocatorModal(
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
@@ -167,24 +178,41 @@ fun WindfallAllocatorModal(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = navyText),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
             ) {
                 Text(
-                    text = "Confirm Allocation • ${CurrencyFormatter.formatLkr(allocatedLkr)}",
+                    text = "Allocate ${CurrencyFormatter.formatLkr(allocatedLkr)}",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             TextButton(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Dismiss", color = navyText, fontWeight = FontWeight.Bold)
+                Text("Dismiss", color = navyText, fontWeight = FontWeight.SemiBold)
             }
+        }
+    }
+}
+
+@Preview(name = "Windfall Allocator Modal Light", showBackground = true)
+@Preview(name = "Windfall Allocator Modal Dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun WindfallAllocatorModalPreview() {
+    InTrackTheme {
+        Surface {
+            WindfallAllocatorModal(
+                windfallAmountLkr = 50000.0,
+                onConfirmAllocation = {},
+                onDismiss = {}
+            )
         }
     }
 }
