@@ -67,14 +67,14 @@ fun calculateCategoryBreakdown(expenses: List<ExpenseEntity>): List<CategorySpen
 
         val (displayName, color, icon) = when (catKey) {
             "MISC" -> Triple("Groceries", BrandEmeraldGreen, Icons.Default.ShoppingCart)
-            "DINING_OUT" -> Triple("Bistro & Dining", BrandWarmYellow, Icons.Default.LocalCafe)
-            "TRANSPORT" -> Triple("Commute & Transport", BrandAzureBlue, Icons.Default.DirectionsCar)
-            "UTILITIES" -> Triple("Utilities & Others", BrandMidnightNavy, Icons.Default.Receipt)
-            "RENT" -> Triple("Housing & Rent", BrandMidnightNavy, Icons.Default.Home)
-            "SUBSCRIPTION" -> Triple("Subscriptions", BrandAzureBlue, Icons.Default.Receipt)
+            "DINING_OUT" -> Triple("Dining", BrandWarmYellow, Icons.Default.LocalCafe)
+            "TRANSPORT" -> Triple("Transport", BrandAzureBlue, Icons.Default.DirectionsCar)
+            "UTILITIES" -> Triple("Utilities", Color(0xFF7C4DFF), Icons.Default.Receipt)
+            "RENT" -> Triple("Housing", BrandMidnightNavy, Icons.Default.Home)
+            "SUBSCRIPTION" -> Triple("Subscriptions", Color(0xFF00ACC1), Icons.Default.Receipt)
             else -> Triple(
                 catKey.replace("_", " ").lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
-                BrandAzureBlue,
+                Color(0xFF5C6BC0),
                 Icons.Default.Receipt
             )
         }
