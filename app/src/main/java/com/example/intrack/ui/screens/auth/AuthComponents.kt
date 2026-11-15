@@ -187,7 +187,7 @@ fun TactileLogoBadge(
         modifier = modifier
             .size(76.dp)
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White)
+            .background(Color(0xFFFBB41E))
             .border(1.dp, AuthBorder.copy(alpha = 0.6f), RoundedCornerShape(22.dp)),
         contentAlignment = Alignment.Center
     ) {
@@ -195,7 +195,7 @@ fun TactileLogoBadge(
             painter = painterResource(id = R.drawable.new_logo),
             contentDescription = "InTrack Logo",
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit
+            contentScale = ContentScale.Crop
         )
     }
 }
