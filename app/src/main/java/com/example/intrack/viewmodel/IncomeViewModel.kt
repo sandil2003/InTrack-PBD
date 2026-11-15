@@ -55,6 +55,71 @@ data class IncomeHubSummary(
     val cryptoYtdTotalLossesLkr: Double = 0.0
 )
 
+data class IncomeChannelSlice(
+    val channelKey: String,
+    val label: String,
+    val amountLkr: Double,
+    val percentage: Float,
+    val entryCount: Int
+)
+
+object IncomeAnalyticsCalculator {
+    fun computeRollingAverageLkr(
+        allIncomes: List<IncomeEntity>,
+        selectedMonth: String,
+        recentMonths: List<String>,
+        monthMatcher: (Long, String) -> Boolean = { millis, month -> DateUtils.matchesMonth(millis, month) }
+    ): Double {
+        val selectedIdx = recentMonths.indexOf(selectedMonth)
+        val priorMonths = if (selectedIdx >= 0) {
+            recentMonths.drop(selectedIdx + 1).take(3)
+        } else {
+            recentMonths.filter { it != selectedMonth }.take(3)
+        }
+        if (priorMonths.isEmpty()) return 0.0
+
+        val nonZeroTotals = priorMonths.map { monthName ->
+            allIncomes
+                .filter { it.status.equals("PAID", ignoreCase = true) && monthMatcher(it.dateReceivedMillis, monthName) }
+                .sumOf { it.realizedAmountLkr }
+        }.filter { it > 0.0 }
+
+        return if (nonZeroTotals.isNotEmpty()) nonZeroTotals.average() else 0.0
+    }
+
+    fun buildChannelSlices(
+        salaryTotalLkr: Double,
+        salaryCount: Int,
+        freelanceTotalLkr: Double,
+        freelanceCount: Int,
+        adsenseTotalLkr: Double,
+        adsenseCount: Int,
+        cryptoTotalLkr: Double,
+        cryptoCount: Int
+    ): List<IncomeChannelSlice> {
+        val raw = listOf(
+            Triple("SALARY", "Salary", salaryTotalLkr to salaryCount),
+            Triple("FREELANCE", "Freelance", freelanceTotalLkr to freelanceCount),
+            Triple("ADSENSE", "AdSense", adsenseTotalLkr to adsenseCount),
+            Triple("CRYPTO", "Crypto", cryptoTotalLkr to cryptoCount)
+        ).filter { it.third.first > 0.0 }
+
+        val positiveSum = raw.sumOf { it.third.first }
+        if (positiveSum <= 0.0) return emptyList()
+
+        return raw.map { (key, label, pair) ->
+            val (amount, count) = pair
+            IncomeChannelSlice(
+                channelKey = key,
+                label = label,
+                amountLkr = amount,
+                percentage = ((amount / positiveSum) * 100.0).toFloat(),
+                entryCount = count
+            )
+        }.sortedByDescending { it.amountLkr }
+    }
+}
+
 @HiltViewModel
 class IncomeViewModel @Inject constructor(
     private val incomeRepository: IncomeRepository,
@@ -241,7 +306,11 @@ class IncomeViewModel @Inject constructor(
         val totalCrypto = cryptoIncomes.sumOf { it.realizedAmountLkr }
         val totalMonthRealized = monthPaidIncomes.sumOf { it.realizedAmountLkr }
 
-        val rollingAverage = 140000.0 + 45000.0 + 64050.0 + 28500.0
+        val rollingAverage = IncomeAnalyticsCalculator.computeRollingAverageLkr(
+            allIncomes = allIncomes,
+            selectedMonth = month,
+            recentMonths = recentMonths
+        )
 
         val filteredByChannel = when (channelFilter) {
             "ALL" -> monthIncomes

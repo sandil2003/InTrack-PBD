@@ -50,6 +50,7 @@ import androidx.compose.material.icons.rounded.CurrencyBitcoin
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Laptop
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Work
 import androidx.compose.material3.AlertDialog
@@ -307,6 +308,7 @@ fun IncomeHubContent(
     var showActivityFilters by remember { mutableStateOf(false) }
     var channelFilterExpanded by remember { mutableStateOf(false) }
     var showPendingInvoicesSheet by remember { mutableStateOf(false) }
+    var showIncomeChartsModal by remember { mutableStateOf(false) }
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -448,10 +450,6 @@ fun IncomeHubContent(
                 is UiState.Success -> {
                     val allPendingInvoices = summary.allPendingInvoices
                     val totalPendingReceivablesLkr = summary.totalPendingReceivablesLkr
-                    val totalSalary = summary.totalSalaryLkr
-                    val totalFreelancePaidThisMonth = summary.totalFreelancePaidThisMonthLkr
-                    val totalAdsense = summary.totalAdsenseLkr
-                    val totalCrypto = summary.totalCryptoLkr
                     val totalMonthRealized = summary.totalMonthRealizedLkr
                     val rollingAverage = summary.rollingAverageLkr
                     val monthPaidIncomes = summary.monthPaidIncomes
@@ -478,10 +476,7 @@ fun IncomeHubContent(
                                     monthLabel = selectedMonth,
                                     totalInflowLkr = totalMonthRealized,
                                     rollingAvgLkr = rollingAverage,
-                                    salaryTotal = totalSalary,
-                                    freelanceTotal = totalFreelancePaidThisMonth,
-                                    adsenseTotal = totalAdsense,
-                                    cryptoTotal = totalCrypto
+                                    onOpenCharts = { showIncomeChartsModal = true }
                                 )
 
                                 if (allPendingInvoices.isNotEmpty()) {
@@ -584,10 +579,7 @@ fun IncomeHubContent(
                                     monthLabel = selectedMonth,
                                     totalInflowLkr = totalMonthRealized,
                                     rollingAvgLkr = rollingAverage,
-                                    salaryTotal = totalSalary,
-                                    freelanceTotal = totalFreelancePaidThisMonth,
-                                    adsenseTotal = totalAdsense,
-                                    cryptoTotal = totalCrypto
+                                    onOpenCharts = { showIncomeChartsModal = true }
                                 )
                             }
 
@@ -684,6 +676,26 @@ fun IncomeHubContent(
                                 pendingWindfallAmount = invoice.realizedAmountLkr
                                 pendingWindfallIncome = invoice.copy(status = "PAID")
                                 showWindfallModal = true
+                            }
+                        )
+                    }
+
+                    if (showIncomeChartsModal) {
+                        IncomeBreakdownPieModal(
+                            monthLabel = selectedMonth,
+                            totalInflowLkr = totalMonthRealized,
+                            salaryTotalLkr = summary.totalSalaryLkr,
+                            salaryCount = summary.salaryIncomes.size,
+                            freelanceTotalLkr = summary.totalFreelancePaidThisMonthLkr,
+                            freelanceCount = summary.paidFreelanceInMonth.size,
+                            adsenseTotalLkr = summary.totalAdsenseLkr,
+                            adsenseCount = summary.adsenseIncomes.size,
+                            cryptoTotalLkr = summary.totalCryptoLkr,
+                            cryptoCount = summary.cryptoIncomes.size,
+                            onDismiss = { showIncomeChartsModal = false },
+                            onSelectChannel = { channel ->
+                                onSelectFilter(channel)
+                                showActivityFilters = true
                             }
                         )
                     }
@@ -944,24 +956,14 @@ fun TotalInflowBreakdownCard(
     monthLabel: String,
     totalInflowLkr: Double,
     rollingAvgLkr: Double,
-    salaryTotal: Double,
-    freelanceTotal: Double,
-    adsenseTotal: Double,
-    cryptoTotal: Double,
+    onOpenCharts: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val rollingAvg = if (rollingAvgLkr > 0) rollingAvgLkr else 120000.0
-    val diff = totalInflowLkr - rollingAvg
-    val diffPct = if (rollingAvg > 0) ((diff / rollingAvg) * 100).toInt() else 0
+    val hasRollingBaseline = rollingAvgLkr > 0.0
+    val diff = totalInflowLkr - rollingAvgLkr
+    val diffPct = if (hasRollingBaseline) ((diff / rollingAvgLkr) * 100).toInt() else 0
     val isAhead = diff >= 0
     val navyText = BrandMidnightNavy
-
-    val channels = listOf(
-        Triple("Salary", salaryTotal, BrandEmeraldGreen),
-        Triple("Freelance", freelanceTotal, BrandAzureBlue),
-        Triple("AdSense", adsenseTotal, BrandMidnightNavy),
-        Triple("Crypto", cryptoTotal, Color(0xFF7C4DFF))
-    ).filter { it.second > 0 }
 
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -975,7 +977,7 @@ fun TotalInflowBreakdownCard(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            // Title
+            // Title + Top-Right Analytics Pie Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -985,8 +987,29 @@ fun TotalInflowBreakdownCard(
                     text = "$monthLabel Inflow",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = navyText
+                    color = navyText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(navyText.copy(alpha = 0.12f))
+                        .clickable { onOpenCharts() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PieChart,
+                        contentDescription = "View income breakdown",
+                        tint = navyText,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -1023,106 +1046,31 @@ fun TotalInflowBreakdownCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            if (hasRollingBaseline) {
+                Spacer(modifier = Modifier.height(10.dp))
 
-            // Rolling 3-Month Average Run-Rate Comparison
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(navyText.copy(alpha = 0.12f))
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "${if (isAhead) "▲ +" else "▼ "}$diffPct% vs 3M avg (${CurrencyFormatter.formatLkr(rollingAvg)})",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = navyText
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Channel Breakdown Distribution Bar
-            if (channels.isNotEmpty() && totalInflowLkr > 0) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(CircleShape)
-                        .background(navyText.copy(alpha = 0.12f))
-                ) {
-                    channels.forEach { (_, amount, color) ->
-                        val fraction = (amount / totalInflowLkr).toFloat().coerceIn(0f, 1f)
-                        if (fraction > 0f) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(fraction)
-                                    .fillMaxHeight()
-                                    .background(color)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Channel Legend Breakdown
+                // Rolling 3-Month Average Run-Rate Comparison
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    channels.forEach { (name, amount, color) ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(color)
-                                )
-                                Text(
-                                    text = name,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = navyText,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = CurrencyFormatter.formatLkr(amount),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = navyText,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(navyText.copy(alpha = 0.12f))
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "${if (isAhead) "▲ +" else "▼ "}$diffPct% vs 3M avg (${CurrencyFormatter.formatLkr(rollingAvgLkr)})",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = navyText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(CircleShape)
-                        .background(navyText.copy(alpha = 0.12f))
-                )
             }
         }
     }
@@ -2913,10 +2861,7 @@ private fun HeroInflowCardPreview() {
             monthLabel = "October 2026",
             totalInflowLkr = 257550.0,
             rollingAvgLkr = 230000.0,
-            salaryTotal = 120000.0,
-            freelanceTotal = 45000.0,
-            adsenseTotal = 64050.0,
-            cryptoTotal = 28500.0,
+            onOpenCharts = {},
             modifier = Modifier.padding(16.dp)
         )
     }
